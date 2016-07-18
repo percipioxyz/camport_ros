@@ -564,6 +564,9 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
 	    float data[9];
 	  }calibIntris;
 	  int size = sizeof(calibIntris);
+	  calibIntris.width = width;
+	  calibIntris.height = height;
+	  //get intristic from percipio firmware
 	  device_->getCalibIntristic((void*)&calibIntris, &size);
 
 	  info->width  = width;
