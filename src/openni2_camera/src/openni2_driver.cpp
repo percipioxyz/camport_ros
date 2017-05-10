@@ -215,7 +215,7 @@ void OpenNI2Driver::setIRVideoMode(const OpenNI2VideoMode& ir_video_mode)
   }
   else
   {
-    ROS_ERROR_STREAM("Unsupported IR video mode - " << ir_video_mode);
+      ROS_INFO_STREAM("Unsupported IR video mode - " << ir_video_mode);
   }
 }
 void OpenNI2Driver::setColorVideoMode(const OpenNI2VideoMode& color_video_mode)
@@ -229,7 +229,7 @@ void OpenNI2Driver::setColorVideoMode(const OpenNI2VideoMode& color_video_mode)
   }
   else
   {
-    ROS_ERROR_STREAM("Unsupported color video mode - " << color_video_mode);
+    ROS_INFO_STREAM("Unsupported color video mode - " << color_video_mode);
   }
 }
 void OpenNI2Driver::setDepthVideoMode(const OpenNI2VideoMode& depth_video_mode)
@@ -243,7 +243,7 @@ void OpenNI2Driver::setDepthVideoMode(const OpenNI2VideoMode& depth_video_mode)
   }
   else
   {
-    ROS_ERROR_STREAM("Unsupported depth video mode - " << depth_video_mode);
+    ROS_INFO_STREAM("Unsupported depth video mode - " << depth_video_mode);
   }
 }
 
