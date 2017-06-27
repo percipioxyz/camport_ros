@@ -41,6 +41,12 @@
 namespace openni2_wrapper
 {
 
+sensor_msgs::CameraInfoPtr info;
+bool loadedIRCameraInfo = false;
+
+sensor_msgs::CameraInfoPtr color_info;
+bool loadedColorCameraInfo = false;
+
 OpenNI2Driver::OpenNI2Driver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     nh_(n),
     pnh_(pnh),
@@ -249,7 +255,6 @@ void OpenNI2Driver::setDepthVideoMode(const OpenNI2VideoMode& depth_video_mode)
 
 void OpenNI2Driver::applyConfigToOpenNIDevice()
 {
-
   data_skip_ir_counter_ = 0;
   data_skip_color_counter_= 0;
   data_skip_depth_counter_ = 0;
@@ -524,11 +529,12 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getDefaultCameraInfo(int width, int he
 /// @todo Use binning/ROI properly in publishing camera infos
 sensor_msgs::CameraInfoPtr OpenNI2Driver::getColorCameraInfo(int width, int height, ros::Time time) const
 {
-  sensor_msgs::CameraInfoPtr info;
+  if (loadedColorCameraInfo)
+    return color_info; 
 
   if (color_info_manager_->isCalibrated())
   {
-    info = boost::make_shared<sensor_msgs::CameraInfo>(color_info_manager_->getCameraInfo());
+    color_info = boost::make_shared<sensor_msgs::CameraInfo>(color_info_manager_->getCameraInfo());
     if ( info->width != width )
     {
       // Use uncalibrated values
@@ -539,23 +545,26 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getColorCameraInfo(int width, int heig
   else
   {
     // If uncalibrated, fill in default values
-    info = getDefaultCameraInfo(width, height, device_->getColorFocalLength(height));
+    color_info = getDefaultCameraInfo(width, height, device_->getColorFocalLength(height));
   }
 
   // Fill in header
-  info->header.stamp    = time;
-  info->header.frame_id = color_frame_id_;
+  color_info->header.stamp    = time;
+  color_info->header.frame_id = color_frame_id_;
+  
+  loadedColorCameraInfo = true;
 
-  return info;
+  return color_info;
 }
 
 
 sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height, ros::Time time) const
 {
-  sensor_msgs::CameraInfoPtr info;
 
   if (device_->getVendor() == "Percipio")
   {
+      if (!loadedIRCameraInfo) {
+
 	  info = boost::make_shared<sensor_msgs::CameraInfo>();
 
 	  struct {
@@ -600,6 +609,8 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
 	  info->header.stamp    = time;
 	  info->header.frame_id = depth_frame_id_;
 
+      loadedIRCameraInfo = true;
+      }
 	  return info;
   }
 
