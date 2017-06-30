@@ -605,12 +605,11 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
 	  info->P[6] = info->K[5]; // cy
 	  info->P[10] = 1.0;
 
+      loadedIRCameraInfo = true;
+      }
 	  // Fill in header
 	  info->header.stamp    = time;
 	  info->header.frame_id = depth_frame_id_;
-
-      loadedIRCameraInfo = true;
-      }
 	  return info;
   }
 
