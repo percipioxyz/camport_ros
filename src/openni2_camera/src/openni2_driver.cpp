@@ -41,6 +41,14 @@
 namespace openni2_wrapper
 {
 
+struct calibIntris{
+    uint32_t width;
+    uint32_t height;
+    float data[9];
+};
+
+struct calibIntris ir_cal;
+
 sensor_msgs::CameraInfoPtr info;
 bool loadedIRCameraInfo = false;
 
@@ -563,20 +571,18 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
 
   if (device_->getVendor() == "Percipio")
   {
-      if (!loadedIRCameraInfo) {
 
 	  info = boost::make_shared<sensor_msgs::CameraInfo>();
 
-	  struct {
-	    uint32_t width;
-	    uint32_t height;
-	    float data[9];
-	  }calibIntris;
 	  int size = sizeof(calibIntris);
-	  calibIntris.width = width;
-	  calibIntris.height = height;
-	  //get intristic from percipio firmware
-	  device_->getCalibIntristic((void*)&calibIntris, &size);
+	  ir_cal.width = width;
+	  ir_cal.height = height;
+      
+      if (!loadedIRCameraInfo) {
+	      //get intristic from percipio firmware
+	      device_->getCalibIntristic((void*)&ir_cal, &size);
+          loadedIRCameraInfo = true;
+      }
 
 	  info->width  = width;
 	  info->height = height;
@@ -587,10 +593,10 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
 
 	  // Simple camera matrix: square pixels (fx = fy), principal point at center
 	  info->K.assign(0.0);
-	  info->K[0] = calibIntris.data[0];
-	  info->K[4] = calibIntris.data[4];
-	  info->K[2] = calibIntris.data[2];
-	  info->K[5] = calibIntris.data[5];
+	  info->K[0] = ir_cal.data[0];
+	  info->K[4] = ir_cal.data[4];
+	  info->K[2] = ir_cal.data[2];
+	  info->K[5] = ir_cal.data[5];
 	  info->K[8] = 1.0;
 
 	  // No separate rectified image plane, so R = I
@@ -605,8 +611,6 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
 	  info->P[6] = info->K[5]; // cy
 	  info->P[10] = 1.0;
 
-      loadedIRCameraInfo = true;
-      }
 	  // Fill in header
 	  info->header.stamp    = time;
 	  info->header.frame_id = depth_frame_id_;
@@ -649,6 +653,15 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getDepthCameraInfo(int width, int heig
   info->K[5] -= depth_ir_offset_y_*scaling; // cy
   info->P[2] -= depth_ir_offset_x_*scaling; // cx
   info->P[6] -= depth_ir_offset_y_*scaling; // cy
+
+  printf("depth_ir_offset_x = %f\n", depth_ir_offset_x_);
+  printf("depth_ir_offset_y = %f\n", depth_ir_offset_y_);
+  printf("scaling = %f\n", scaling);
+
+  printf("info->K[2] = %f\n", info->K[2]);
+  printf("info->K[5] = %f\n", info->K[5]);
+  printf("info->P[2] = %f\n", info->P[2]);
+  printf("info->P[6] = %f\n", info->P[6]);
 
   /// @todo Could put this in projector frame so as to encode the baseline in P[3]
   return info;
