@@ -654,14 +654,14 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getDepthCameraInfo(int width, int heig
   info->P[2] -= depth_ir_offset_x_*scaling; // cx
   info->P[6] -= depth_ir_offset_y_*scaling; // cy
 
-  printf("depth_ir_offset_x = %f\n", depth_ir_offset_x_);
-  printf("depth_ir_offset_y = %f\n", depth_ir_offset_y_);
-  printf("scaling = %f\n", scaling);
+  //printf("depth_ir_offset_x = %f\n", depth_ir_offset_x_);
+  //printf("depth_ir_offset_y = %f\n", depth_ir_offset_y_);
+  //printf("scaling = %f\n", scaling);
 
-  printf("info->K[2] = %f\n", info->K[2]);
-  printf("info->K[5] = %f\n", info->K[5]);
-  printf("info->P[2] = %f\n", info->P[2]);
-  printf("info->P[6] = %f\n", info->P[6]);
+  //printf("info->K[2] = %f\n", info->K[2]);
+  //printf("info->K[5] = %f\n", info->K[5]);
+  //printf("info->P[2] = %f\n", info->P[2]);
+  //printf("info->P[6] = %f\n", info->P[6]);
 
   /// @todo Could put this in projector frame so as to encode the baseline in P[3]
   return info;
