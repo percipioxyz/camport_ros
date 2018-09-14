@@ -538,7 +538,13 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getDefaultCameraInfo(int width, int he
 sensor_msgs::CameraInfoPtr OpenNI2Driver::getColorCameraInfo(int width, int height, ros::Time time) const
 {
   if (loadedColorCameraInfo)
+  {
+    // Fill in header
+    color_info->header.stamp    = time;
+    color_info->header.frame_id = color_frame_id_;
+    
     return color_info; 
+  }
 
   if (color_info_manager_->isCalibrated())
   {
