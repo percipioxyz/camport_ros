@@ -195,8 +195,8 @@ void OpenNI2Driver::configCb(Config &config, uint32_t level)
 
   // assign pixel format
 
-  ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY16;
-  //ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY8;
+  //ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY16;
+  ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY8;
   color_video_mode_.pixel_format_ = PIXEL_FORMAT_RGB888;
   depth_video_mode_.pixel_format_ = PIXEL_FORMAT_DEPTH_1_MM;
 
@@ -225,7 +225,6 @@ void OpenNI2Driver::setIRVideoMode(const OpenNI2VideoMode& ir_video_mode)
     {
       device_->setIRVideoMode(ir_video_mode);
     }
-
   }
   else
   {
@@ -574,10 +573,8 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getColorCameraInfo(int width, int heig
 
 sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height, ros::Time time) const
 {
-
   if (device_->getVendor() == "Percipio")
   {
-
 	  info = boost::make_shared<sensor_msgs::CameraInfo>();
 
 	  int size = sizeof(calibIntris);
@@ -700,7 +697,7 @@ std::string OpenNI2Driver::resolveDeviceURI(const std::string& device_id) throw(
   // retrieve available device URIs, they look like this: "1d27/0601@1/5"
   // which is <vendor ID>/<product ID>@<bus number>/<device number>
   boost::shared_ptr<std::vector<std::string> > available_device_URIs =
-    device_manager_->getConnectedDeviceURIs();
+  device_manager_->getConnectedDeviceURIs();
 
   // look for '#<number>' format
   if (device_id.size() > 1 && device_id[0] == '#')
@@ -767,6 +764,7 @@ std::string OpenNI2Driver::resolveDeviceURI(const std::string& device_id) throw(
   else
   {
     // check if the device id given matches a serial number of a connected device
+    /*
     for(std::vector<std::string>::const_iterator it = available_device_URIs->begin();
         it != available_device_URIs->end(); ++it)
     {
@@ -774,12 +772,14 @@ std::string OpenNI2Driver::resolveDeviceURI(const std::string& device_id) throw(
         std::string serial = device_manager_->getSerial(*it);
         if (serial.size() > 0 && device_id == serial)
           return *it;
+        
       }
       catch (const OpenNI2Exception& exception)
       {
         ROS_WARN("Could not query serial number of device \"%s\":", exception.what());
       }
     }
+    */
 
     // everything else is treated as part of the device_URI
     bool match_found = false;
@@ -801,6 +801,10 @@ std::string OpenNI2Driver::resolveDeviceURI(const std::string& device_id) throw(
         }
       }
     }
+
+    if (!match_found)
+        THROW_OPENNI_EXCEPTION("Device not found %s", device_id.c_str());
+      
     return matched_uri;
   }
 
