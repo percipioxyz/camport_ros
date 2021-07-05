@@ -31,7 +31,7 @@
 
 #include "openni2_camera/openni2_driver.h"
 #include <nodelet/nodelet.h>
-
+/*
 namespace openni2_camera
 {
 
@@ -52,6 +52,6 @@ private:
 };
 
 }
-
+*/
 #include <pluginlib/class_list_macros.h>
 PLUGINLIB_EXPORT_CLASS(openni2_camera::OpenNI2DriverNodelet, nodelet::Nodelet);

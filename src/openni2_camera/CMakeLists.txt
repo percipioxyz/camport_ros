@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(openni2_camera)
 
-find_package(catkin REQUIRED camera_info_manager dynamic_reconfigure image_transport  nodelet sensor_msgs roscpp message_generation)
+find_package(catkin REQUIRED camera_info_manager std_msgs dynamic_reconfigure image_transport  nodelet sensor_msgs roscpp message_generation)
 
 find_package(Boost REQUIRED COMPONENTS system thread)
 

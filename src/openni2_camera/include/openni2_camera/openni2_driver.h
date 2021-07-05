@@ -55,6 +55,9 @@
 
 #include <ros/ros.h>
 
+#include "openni2_camera/openni2_driver.h"
+#include <nodelet/nodelet.h>
+
 namespace openni2_wrapper
 {
 
@@ -175,5 +178,28 @@ private:
 };
 
 }
+
+
+namespace openni2_camera
+{
+
+class OpenNI2DriverNodelet : public nodelet::Nodelet
+{
+public:
+  OpenNI2DriverNodelet()  {};
+
+  ~OpenNI2DriverNodelet() {}
+  
+private:
+  virtual void onInit()
+  {
+    lp.reset(new openni2_wrapper::OpenNI2Driver(getNodeHandle(), getPrivateNodeHandle()));
+  };
+
+  boost::shared_ptr<openni2_wrapper::OpenNI2Driver> lp;
+};
+
+}
+
 
 #endif
