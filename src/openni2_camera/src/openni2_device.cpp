@@ -520,6 +520,11 @@ void OpenNI2Device::setDepthVideoMode(const OpenNI2VideoMode& video_mode) throw 
   }
 }
 
+void OpenNI2Device::setLaserPower(int value) throw (OpenNI2Exception)
+{
+  openni_device_->setProperty(ONI_DEVICE_PROPERTY_LASER_POWER, (void*)&value, sizeof(int));
+}
+
 void OpenNI2Device::setAutoExposure(bool enable) throw (OpenNI2Exception)
 {
   boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
@@ -553,6 +558,163 @@ void OpenNI2Device::setAutoWhiteBalance(bool enable) throw (OpenNI2Exception)
   }
 }
 
+void OpenNI2Device::setColorAnalogGain(int value) throw (OpenNI2Exception)
+{
+#if 0
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      const openni::Status rc = camera_seeting->setPixelsAnalogGain(value);
+      if (rc != openni::STATUS_OK)
+        THROW_OPENNI_EXCEPTION("Couldn't set pixels analog gain: \n%s\n", openni::OpenNI::getExtendedError());
+    }
+  }
+  #endif
+}
+
+void OpenNI2Device::setColorRedGain(int value) throw (OpenNI2Exception)
+{
+#if 0
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      const openni::Status rc = camera_seeting->setPixelsRedGain(value);
+      if (rc != openni::STATUS_OK)
+        THROW_OPENNI_EXCEPTION("Couldn't set pixels red gain: \n%s\n", openni::OpenNI::getExtendedError());
+    }
+  }
+#endif
+}
+
+void OpenNI2Device::setColorGreenGain(int value) throw (OpenNI2Exception)
+{
+#if 0
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      const openni::Status rc = camera_seeting->setPixelsGreenGain(value);
+      if (rc != openni::STATUS_OK)
+        THROW_OPENNI_EXCEPTION("Couldn't set pixels green gain: \n%s\n", openni::OpenNI::getExtendedError());
+    }
+  }
+#endif
+}
+
+void OpenNI2Device::setColorBlueGain(int value) throw (OpenNI2Exception)
+{
+#if 0
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      const openni::Status rc = camera_seeting->setPixelsBlueGain(value);
+      if (rc != openni::STATUS_OK)
+        THROW_OPENNI_EXCEPTION("Couldn't set pixels blue gain: \n%s\n", openni::OpenNI::getExtendedError());
+    }
+  }
+#endif
+}
+
+void OpenNI2Device::setColorExposureTime(int value) throw (OpenNI2Exception)
+{
+#if 0
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      const openni::Status rc = camera_seeting->setExposureTime(value);
+      if (rc != openni::STATUS_OK)
+        THROW_OPENNI_EXCEPTION("Couldn't set exposure time: \n%s\n", openni::OpenNI::getExtendedError());
+    }
+  }
+#endif
+}
+
+void OpenNI2Device::setIrGain(int value) throw (OpenNI2Exception)
+{
+#if 0
+  boost::shared_ptr<openni::VideoStream> stream = getIRVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      const openni::Status rc = camera_seeting->setIRGain(value);
+      if (rc != openni::STATUS_OK)
+        THROW_OPENNI_EXCEPTION("Couldn't set ir gain: \n%s\n", openni::OpenNI::getExtendedError());
+    }
+  }
+#endif
+}
+
+bool OpenNI2Device::getLaserPower(int* value) const
+{
+  long unsigned int data;
+  int size;
+  printf("#####OpenNI2Device::getLaserPower.\n");
+  openni_device_->getProperty(ONI_DEVICE_PROPERTY_LASER_POWER, (void*)&data, &size);
+}
+
+bool OpenNI2Device::getAutoExposure(bool* enable) const
+{
+
+}
+
+bool OpenNI2Device::getAutoWhiteBalance(bool* enable) const
+{
+
+}
+
+bool OpenNI2Device::getColorAnalogGain(int* value) const
+{
+
+}
+
+bool OpenNI2Device::getColorRedGain(int* value) const
+{
+
+}
+
+bool OpenNI2Device::getColorGreenGain(int* value) const
+{
+
+}
+
+bool OpenNI2Device::getColorBlueGain(int* value) const
+{
+
+}
+
+bool OpenNI2Device::getColorExposureTime(int* value) const
+{
+
+}
+
+bool OpenNI2Device::getIrGain(int* value) const
+{
+
+}
+  
+/*
 bool OpenNI2Device::getAutoExposure() const
 {
   bool ret = false;
@@ -583,7 +745,7 @@ bool OpenNI2Device::getAutoWhiteBalance() const
 
   return ret;
 }
-
+*/
 void OpenNI2Device::setUseDeviceTimer(bool enable)
 {
   if (ir_frame_listener)

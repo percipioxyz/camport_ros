@@ -122,13 +122,33 @@ public:
   float getIRFocalLength (int output_y_resolution) const;
   float getColorFocalLength (int output_y_resolution) const;
   float getDepthFocalLength (int output_y_resolution) const;
-
+  
+  //TODO
+  void setLaserPower(int value) throw (OpenNI2Exception);
   void setAutoExposure(bool enable) throw (OpenNI2Exception);
   void setAutoWhiteBalance(bool enable) throw (OpenNI2Exception);
-
+  
+  void setColorAnalogGain(int value) throw (OpenNI2Exception);
+  void setColorRedGain(int value) throw (OpenNI2Exception);
+  void setColorGreenGain(int value) throw (OpenNI2Exception);
+  void setColorBlueGain(int value) throw (OpenNI2Exception);
+  void setColorExposureTime(int value) throw (OpenNI2Exception);
+  void setIrGain(int value) throw (OpenNI2Exception);
+  
+  bool getLaserPower(int* value) const;
+  bool getAutoExposure(bool* enable) const;
+  bool getAutoWhiteBalance(bool* enable) const;
+  bool getColorAnalogGain(int* value) const;
+  bool getColorRedGain(int* value) const;
+  bool getColorGreenGain(int* value) const;
+  bool getColorBlueGain(int* value) const;
+  bool getColorExposureTime(int* value) const;
+  bool getIrGain(int* value) const;
+      
+/*
   bool getAutoExposure() const;
   bool getAutoWhiteBalance() const;
-
+*/
   void setUseDeviceTimer(bool enable);
 
   //PERCIPIO

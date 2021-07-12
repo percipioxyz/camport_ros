@@ -149,6 +149,20 @@ private:
   std::map<int, OpenNI2VideoMode> video_modes_lookup_;
 
   // dynamic reconfigure config
+  int m_laser_power_;
+  
+  bool auto_exposure_;
+  bool auto_white_balance_;
+  
+  int m_rgb_analog_gain_;
+  int m_rgb_r_gain_;
+  int m_rgb_g_gain_;
+  int m_rgb_b_gain_;
+  int m_rgb_exposure_time_;
+  
+  int m_ir_gain_;
+  //-
+
   double depth_ir_offset_x_;
   double depth_ir_offset_y_;
   int z_offset_mm_;
@@ -164,8 +178,7 @@ private:
   int data_skip_color_counter_;
   int data_skip_depth_counter_;
 
-  bool auto_exposure_;
-  bool auto_white_balance_;
+  
 
   bool ir_subscribers_;
   bool color_subscribers_;
