@@ -7,6 +7,7 @@
   <arg name="depth_frame_id" />
   <arg name="rgb_camera_info_url" />
   <arg name="depth_camera_info_url" />
+  <arg name="ir_camera_info_url" />
   <arg name="depth_registration" default="true" />
   <arg name="color_depth_synchronization" default="false" />
   <arg name="auto_exposure" default="true" />

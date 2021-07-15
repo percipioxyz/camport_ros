@@ -99,6 +99,7 @@ void OpenNI2Driver::advertiseROSTopics()
   image_transport::ImageTransport depth_it(depth_nh);
   ros::NodeHandle depth_raw_nh(nh_, "depth");
   image_transport::ImageTransport depth_raw_it(depth_raw_nh);
+  
   // Advertise all published topics
 
   // Prevent connection callbacks from executing until we've set all the publishers. Otherwise
@@ -110,24 +111,41 @@ void OpenNI2Driver::advertiseROSTopics()
   // Asus Xtion PRO does not have an RGB camera
   if (device_->hasColorSensor())
   {
-    image_transport::SubscriberStatusCallback itssc = boost::bind(&OpenNI2Driver::colorConnectCb, this);
-    ros::SubscriberStatusCallback rssc = boost::bind(&OpenNI2Driver::colorConnectCb, this);
-    pub_color_ = color_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
+    if((color_video_mode_.x_resolution_ > 0) && (color_video_mode_.y_resolution_ > 0))
+    {
+      image_transport::SubscriberStatusCallback itssc = boost::bind(&OpenNI2Driver::colorConnectCb, this);
+      ros::SubscriberStatusCallback rssc = boost::bind(&OpenNI2Driver::colorConnectCb, this);
+      pub_color_ = color_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
+    }
+    else
+      ROS_WARN("color video mode err : %d, %d.\n", color_video_mode_.x_resolution_, color_video_mode_.y_resolution_);
   }
+  else
+    ROS_WARN("Device do not has color sensor.\n");
 
   if (device_->hasIRSensor())
   {
-    image_transport::SubscriberStatusCallback itssc = boost::bind(&OpenNI2Driver::irConnectCb, this);
-    ros::SubscriberStatusCallback rssc = boost::bind(&OpenNI2Driver::irConnectCb, this);
-    pub_ir_ = ir_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
+    if((ir_video_mode_.x_resolution_ > 0) && (ir_video_mode_.y_resolution_ > 0))
+    {
+      image_transport::SubscriberStatusCallback itssc = boost::bind(&OpenNI2Driver::irConnectCb, this);
+      ros::SubscriberStatusCallback rssc = boost::bind(&OpenNI2Driver::irConnectCb, this);
+      pub_ir_ = ir_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
+    }
   }
 
   if (device_->hasDepthSensor())
   {
-    image_transport::SubscriberStatusCallback itssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
-    ros::SubscriberStatusCallback rssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
-    pub_depth_raw_ = depth_it.advertiseCamera("image_raw", 1, itssc, itssc, rssc, rssc);
-    pub_depth_ = depth_raw_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
+    if((depth_video_mode_.x_resolution_ > 0) && (depth_video_mode_.y_resolution_ > 0))
+    {
+      image_transport::SubscriberStatusCallback itssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
+      ros::SubscriberStatusCallback rssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
+      pub_depth_raw_ = depth_it.advertiseCamera("image_raw", 1, itssc, itssc, rssc, rssc); //jet
+      pub_depth_ = depth_raw_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
+
+      //image_transport::SubscriberStatusCallback itssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
+      //ros::SubscriberStatusCallback rssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
+      //pub_depth_ = depth_it.advertiseCamera("image", 0, itssc, itssc, rssc, rssc);
+    }
   }
 
   ////////// CAMERA INFO MANAGER
@@ -141,14 +159,19 @@ void OpenNI2Driver::advertiseROSTopics()
   // The camera names are set to [rgb|depth]_[serial#], e.g. depth_B00367707227042B.
   // camera_info_manager substitutes this for ${NAME} in the URL.
   std::string serial_number = device_->getStringID();
-  std::string color_name, ir_name;
+  std::string color_name, ir_name;//, depth_name;
 
   color_name = "rgb_"   + serial_number;
   ir_name  = "depth_" + serial_number;
+  //ir_name  = "ir_" + serial_number;
+  //depth_name = "depth_" + serial_number;
 
   // Load the saved calibrations, if they exist
   color_info_manager_ = boost::make_shared<camera_info_manager::CameraInfoManager>(color_nh, color_name, color_info_url_);
   ir_info_manager_  = boost::make_shared<camera_info_manager::CameraInfoManager>(ir_nh,  ir_name,  ir_info_url_);
+  //color_info_manager_  = boost::make_shared<camera_info_manager::CameraInfoManager>(color_nh,  color_name,  color_info_url_);
+  //ir_info_manager_     = boost::make_shared<camera_info_manager::CameraInfoManager>(ir_nh,     ir_name,     ir_info_url_);
+  //depth_info_manager_  = boost::make_shared<camera_info_manager::CameraInfoManager>(depth_nh,  depth_name,  depth_info_url_);
 
   get_serial_server = nh_.advertiseService("get_serial", &OpenNI2Driver::getSerialCb,this);
 
@@ -162,12 +185,11 @@ bool OpenNI2Driver::getSerialCb(openni2_camera::GetSerialRequest& req, openni2_c
 void OpenNI2Driver::configCb(Config &config, uint32_t level)
 {
   bool stream_reset = false;
-  printf("==================OpenNI2Driver::configCb level = %d.\n", level);
   if((int)level < 0) {
     if(device_) {
       device_->getLaserPower(&m_laser_power_);
-      device_->getAutoExposure(&auto_exposure_);
-      device_->getAutoWhiteBalance(&auto_white_balance_);
+      auto_exposure_ = device_->getAutoExposure();
+      auto_white_balance_ = device_->getAutoWhiteBalance();
       device_->getColorAnalogGain(&m_rgb_analog_gain_);
       device_->getColorRedGain(&m_rgb_r_gain_);
       device_->getColorGreenGain(&m_rgb_g_gain_);
@@ -188,65 +210,79 @@ void OpenNI2Driver::configCb(Config &config, uint32_t level)
       config.rgb_exposure_time = m_rgb_exposure_time_;
   
       config.ir_gain = m_ir_gain_;
-      
     }
   }
   else {
-    m_laser_power_ = config.laser_power;
+    if(m_laser_power_ != config.laser_power) {
+      m_laser_power_ = config.laser_power;
+      if(device_) device_->setLaserPower(m_laser_power_);
+    }
   
-    auto_exposure_ = config.auto_exposure;
-    auto_white_balance_ = config.auto_white_balance;
-  
-    m_rgb_analog_gain_ = config.rgb_analog_gain;
-    m_rgb_r_gain_ = config.rgb_r_gain;
-    m_rgb_g_gain_ = config.rgb_g_gain;
-    m_rgb_b_gain_ = config.rgb_b_gain;
-    m_rgb_exposure_time_ = config.rgb_exposure_time;
-  
-    m_ir_gain_ = config.ir_gain;
+    if(auto_exposure_ != config.auto_exposure) {
+      auto_exposure_ = config.auto_exposure;
+      if(device_) device_->setAutoExposure(auto_exposure_);
+    }
     
-    if(device_) {
-      std::string serial_number = device_->getStringID();
+    if(auto_white_balance_ != config.auto_white_balance) {
+      auto_white_balance_ = config.auto_white_balance;
+      if(device_) device_->setAutoWhiteBalance(auto_white_balance_);
+    }
   
-      ROS_INFO("##Cam device sn = %s", serial_number.c_str());
+    if(m_rgb_analog_gain_ != config.rgb_analog_gain) {
+      m_rgb_analog_gain_ = config.rgb_analog_gain;
+      if(device_) device_->setColorAnalogGain(m_rgb_analog_gain_);
+    }
+    
+    if(m_rgb_r_gain_ != config.rgb_r_gain) {
+      m_rgb_r_gain_ = config.rgb_r_gain;
+      if(device_) device_->setColorRedGain(m_rgb_r_gain_);
+    }
+    
+    if(m_rgb_g_gain_ != config.rgb_g_gain) {
+      m_rgb_g_gain_ = config.rgb_g_gain;
+      if(device_) device_->setColorGreenGain(m_rgb_g_gain_);
+    }
+    
+    if(m_rgb_b_gain_ != config.rgb_b_gain) {
+      m_rgb_b_gain_ = config.rgb_b_gain;
+      if(device_) device_->setColorBlueGain(m_rgb_b_gain_);
+    }
+    
+    if(m_rgb_exposure_time_ != config.rgb_exposure_time) {
+      m_rgb_exposure_time_ = config.rgb_exposure_time;
+      if(device_) device_->setColorExposureTime(m_rgb_exposure_time_);
+    }
   
-      //TODO
-      device_->setLaserPower(m_laser_power_);
-      device_->setAutoExposure(auto_exposure_);
-      device_->setAutoWhiteBalance(auto_white_balance_);
-      device_->setColorAnalogGain(m_rgb_analog_gain_);
-      device_->setColorRedGain(m_rgb_r_gain_);
-      device_->setColorGreenGain(m_rgb_g_gain_);
-      device_->setColorBlueGain(m_rgb_b_gain_);
-      device_->setColorExposureTime(m_rgb_exposure_time_);
-      device_->setIrGain(m_ir_gain_);
+    if(m_ir_gain_ != config.ir_gain) {
+      m_ir_gain_ = config.ir_gain;
+      if(device_) device_->setIrGain(m_ir_gain_);
     }
   }
   
-  ROS_INFO("##level: (%d), laser power = %d.", level, m_laser_power_);
+  //ROS_INFO("##level: (%d), laser power = %d.", level, m_laser_power_);
   
-  ROS_INFO("##level: (%d), auto exposure flag = %d.", level, auto_exposure_);
-  ROS_INFO("##level: (%d), auto white balance flag = %d.", level, auto_white_balance_);
+  //ROS_INFO("##level: (%d), auto exposure flag = %d.", level, auto_exposure_);
+  //ROS_INFO("##level: (%d), auto white balance flag = %d.", level, auto_white_balance_);
   
-  ROS_INFO("##level: (%d), rgb cam analog gain = %d.", level, m_rgb_analog_gain_);
-  ROS_INFO("##level: (%d), rgb cam r gain = %d.", level, m_rgb_r_gain_);
-  ROS_INFO("##level: (%d), rgb cam g gain = %d.", level, m_rgb_g_gain_);
-  ROS_INFO("##level: (%d), rgb cam b gain = %d.", level, m_rgb_b_gain_);
-  ROS_INFO("##level: (%d), rgb cam exposure time = %d.", level, m_rgb_exposure_time_);
+  //ROS_INFO("##level: (%d), rgb cam analog gain = %d.", level, m_rgb_analog_gain_);
+  //ROS_INFO("##level: (%d), rgb cam r gain = %d.", level, m_rgb_r_gain_);
+  //ROS_INFO("##level: (%d), rgb cam g gain = %d.", level, m_rgb_g_gain_);
+  //ROS_INFO("##level: (%d), rgb cam b gain = %d.", level, m_rgb_b_gain_);
+  //ROS_INFO("##level: (%d), rgb cam exposure time = %d.", level, m_rgb_exposure_time_);
   
-  ROS_INFO("##level: (%d), ir gain = %d.", level, m_ir_gain_);
+  //ROS_INFO("##level: (%d), ir gain = %d.", level, m_ir_gain_);
   
-  ROS_INFO("##level: (%d), device id = %s.", level, device_id_.c_str());
+  //ROS_INFO("##level: (%d), device id = %s.", level, device_id_.c_str());
   
-  depth_ir_offset_x_ = config.depth_ir_offset_x;
-  depth_ir_offset_y_ = config.depth_ir_offset_y;
-  z_offset_mm_ = config.z_offset_mm;
+  //depth_ir_offset_x_ = config.depth_ir_offset_x;
+  //depth_ir_offset_y_ = config.depth_ir_offset_y;
+  //z_offset_mm_ = config.z_offset_mm;
   z_scaling_ = config.z_scaling;
 
-  ir_time_offset_ = ros::Duration(config.ir_time_offset);
-  color_time_offset_ = ros::Duration(config.color_time_offset);
-  depth_time_offset_ = ros::Duration(config.depth_time_offset);
-
+//  ir_time_offset_ = ros::Duration(config.ir_time_offset);
+//  color_time_offset_ = ros::Duration(config.color_time_offset);
+//  depth_time_offset_ = ros::Duration(config.depth_time_offset);
+#if 0
   if (lookupVideoModeFromDynConfig(config.ir_mode, ir_video_mode_)<0)
   {
     ROS_ERROR("Undefined IR video mode received from dynamic reconfigure");
@@ -264,17 +300,18 @@ void OpenNI2Driver::configCb(Config &config, uint32_t level)
     ROS_ERROR("Undefined depth video mode received from dynamic reconfigure");
     exit(-1);
   }
-
+#endif
   // assign pixel format
-
   //ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY16;
   ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY8;
   color_video_mode_.pixel_format_ = PIXEL_FORMAT_RGB888;
   depth_video_mode_.pixel_format_ = PIXEL_FORMAT_DEPTH_1_MM;
 
-  color_depth_synchronization_ = config.color_depth_synchronization;
-  depth_registration_ = config.depth_registration;
-
+  //color_depth_synchronization_ = config.color_depth_synchronization;
+  if(depth_registration_ != config.depth_registration){
+    depth_registration_ = config.depth_registration;
+    loadedIRCameraInfo = false;
+  }
   auto_exposure_ = config.auto_exposure;
   auto_white_balance_ = config.auto_white_balance;
 
@@ -289,48 +326,19 @@ void OpenNI2Driver::configCb(Config &config, uint32_t level)
   old_config_ = config;
 }
 
-void OpenNI2Driver::setIRVideoMode(const OpenNI2VideoMode& ir_video_mode)
+OpenNI2VideoMode OpenNI2Driver::getIRVideoMode()
 {
-  if (device_->isIRVideoModeSupported(ir_video_mode))
-  {
-    if (ir_video_mode != device_->getIRVideoMode())
-    {
-      device_->setIRVideoMode(ir_video_mode);
-    }
-  }
-  else
-  {
-    ROS_INFO_STREAM("Unsupported IR video mode - " << ir_video_mode);
-  }
-}
-void OpenNI2Driver::setColorVideoMode(const OpenNI2VideoMode& color_video_mode)
-{
-  if (device_->isColorVideoModeSupported(color_video_mode))
-  {
-    if (color_video_mode != device_->getColorVideoMode())
-    {
-      device_->setColorVideoMode(color_video_mode);
-    }
-  }
-  else
-  {
-    ROS_INFO_STREAM("Unsupported color video mode - " << color_video_mode);
-  }
+  return device_->getIRVideoMode();
 }
 
-void OpenNI2Driver::setDepthVideoMode(const OpenNI2VideoMode& depth_video_mode)
+OpenNI2VideoMode OpenNI2Driver::getColorVideoMode()
 {
-  if (device_->isDepthVideoModeSupported(depth_video_mode))
-  {
-    if (depth_video_mode != device_->getDepthVideoMode())
-    {
-      device_->setDepthVideoMode(depth_video_mode);
-    }
-  }
-  else
-  {
-    ROS_INFO_STREAM("Unsupported depth video mode - " << depth_video_mode);
-  }
+  return device_->getColorVideoMode();
+}
+
+OpenNI2VideoMode OpenNI2Driver::getDepthVideoMode()
+{
+  return device_->getDepthVideoMode();
 }
 
 void OpenNI2Driver::applyConfigToOpenNIDevice()
@@ -338,18 +346,12 @@ void OpenNI2Driver::applyConfigToOpenNIDevice()
   data_skip_ir_counter_ = 0;
   data_skip_color_counter_= 0;
   data_skip_depth_counter_ = 0;
-
-  setIRVideoMode(ir_video_mode_);
-  setColorVideoMode(color_video_mode_);
-
-  //work-around here for Percipio depth sensor unsupported mode 600x460x10
-  if (!device_->isDepthVideoModeSupported(depth_video_mode_))
-  {
-	    // TODO work around for Percipo depth sensor
-	    depth_video_mode_ = device_->getDepthVideoMode();
-  } else
-	    setDepthVideoMode(depth_video_mode_);
-
+  
+  ir_video_mode_ = getIRVideoMode();
+  
+  color_video_mode_ = getColorVideoMode();
+  depth_video_mode_ = getDepthVideoMode();
+  
   if (device_->isImageRegistrationModeSupported())
   {
     try
@@ -363,36 +365,6 @@ void OpenNI2Driver::applyConfigToOpenNIDevice()
     }
   }
 
-  try
-  {
-    if (!config_init_ || (old_config_.color_depth_synchronization != color_depth_synchronization_))
-      device_->setDepthColorSync(color_depth_synchronization_);
-  }
-  catch (const OpenNI2Exception& exception)
-  {
-    ROS_ERROR("Could not set color depth synchronization. Reason: %s", exception.what());
-  }
-/*
-  try
-  {
-    if (!config_init_ || (old_config_.auto_exposure != auto_exposure_))
-      device_->setAutoExposure(auto_exposure_);
-  }
-  catch (const OpenNI2Exception& exception)
-  {
-    ROS_ERROR("Could not set auto exposure. Reason: %s", exception.what());
-  }
-
-  try
-  {
-    if (!config_init_ || (old_config_.auto_white_balance != auto_white_balance_))
-      device_->setAutoWhiteBalance(auto_white_balance_);
-  }
-  catch (const OpenNI2Exception& exception)
-  {
-    ROS_ERROR("Could not set auto white balance. Reason: %s", exception.what());
-  }
-*/
   device_->setUseDeviceTimer(use_device_time_);
 }
 
@@ -419,6 +391,7 @@ void OpenNI2Driver::colorConnectCb()
   }
   else if (!color_subscribers_ && device_->isColorStreamStarted())
   {
+#if 0  
     ROS_INFO("Stopping color stream.");
     device_->stopColorStream();
 
@@ -432,16 +405,18 @@ void OpenNI2Driver::colorConnectCb()
       device_->startIRStream();
       ROS_INFO("Starting IR stream finished.");
     }
+#else
+    ROS_INFO("Stopping color stream.");
+    device_->stopColorStream();
+#endif    
   }
 }
 
 void OpenNI2Driver::depthConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
-
   depth_subscribers_ = pub_depth_.getNumSubscribers() > 0;
   depth_raw_subscribers_ = pub_depth_raw_.getNumSubscribers() > 0;
-
   bool need_depth = depth_subscribers_ || depth_raw_subscribers_;
 
   if (need_depth && !device_->isDepthStreamStarted())
@@ -468,7 +443,8 @@ void OpenNI2Driver::irConnectCb()
   if (ir_subscribers_ && !device_->isIRStreamStarted())
   {
     // Can't stream IR and RGB at the same time
-    if (device_->isColorStreamStarted())
+    //if (device_->isColorStreamStarted())
+    if(0)
     {
       ROS_ERROR("Cannot stream RGB and IR at the same time. Streaming RGB only.");
     }
@@ -508,7 +484,6 @@ void OpenNI2Driver::newColorFrameCallback(sensor_msgs::ImagePtr image)
   if ((++data_skip_color_counter_)%data_skip_==0)
   {
     data_skip_color_counter_ = 0;
-
     if (color_subscribers_)
     {
       image->header.frame_id = color_frame_id_;
@@ -523,12 +498,13 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
 {
   if ((++data_skip_depth_counter_)%data_skip_==0)
   {
-
     data_skip_depth_counter_ = 0;
 
+    //printf("depth_raw_subscribers_ (%d), depth_subscribers_ (%d).\n", depth_raw_subscribers_, depth_subscribers_);
     if (depth_raw_subscribers_||depth_subscribers_)
+    //if(depth_subscribers_)
     {
-      image->header.stamp = image->header.stamp + depth_time_offset_;
+      image->header.stamp = image->header.stamp;// + depth_time_offset_;
 
       if (z_offset_mm_ != 0)
       {
@@ -550,13 +526,15 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
       if (depth_registration_)
       {
         image->header.frame_id = color_frame_id_;
-        cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp);
+        //cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp);
+        cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
       } 
       else
       {
         image->header.frame_id = depth_frame_id_;
         cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
       }
+      
       if (depth_raw_subscribers_)
       {
         pub_depth_raw_.publish(image, cam_info);
@@ -648,49 +626,50 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
 {
   if (device_->getVendor() == "Percipio")
   {
-	    info = boost::make_shared<sensor_msgs::CameraInfo>();
+    info = boost::make_shared<sensor_msgs::CameraInfo>();
 
-	    int size = sizeof(calibIntris);
-	    ir_cal.width = width;
-	    ir_cal.height = height;
+    int size = sizeof(calibIntris);
+    ir_cal.width = width;
+    ir_cal.height = height;
+    
     
     if (!loadedIRCameraInfo) {
-	      //get intristic from percipio firmware
-	      device_->getCalibIntristic((void*)&ir_cal, &size);
+      //get intristic from percipio firmware
+      device_->getCalibIntristic((void*)&ir_cal, &size);
       loadedIRCameraInfo = true;
     }
 
-	    info->width  = width;
-	    info->height = height;
+    info->width  = width;
+    info->height = height;
 
-	    // No distortion
-	    info->D.resize(5, 0.0);
-	    info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+    // No distortion
+    info->D.resize(5, 0.0);
+    info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
-	    // Simple camera matrix: square pixels (fx = fy), principal point at center
-	    info->K.assign(0.0);
-	    info->K[0] = ir_cal.data[0];
-	    info->K[4] = ir_cal.data[4];
-	    info->K[2] = ir_cal.data[2];
-	    info->K[5] = ir_cal.data[5];
-	    info->K[8] = 1.0;
+    // Simple camera matrix: square pixels (fx = fy), principal point at center
+    info->K.assign(0.0);
+    info->K[0] = ir_cal.data[0];
+    info->K[4] = ir_cal.data[4];
+    info->K[2] = ir_cal.data[2];
+    info->K[5] = ir_cal.data[5];
+    info->K[8] = 1.0;
 
-	    // No separate rectified image plane, so R = I
-	    info->R.assign(0.0);
-	    info->R[0] = info->R[4] = info->R[8] = 1.0;
+    // No separate rectified image plane, so R = I
+    info->R.assign(0.0);
+    info->R[0] = info->R[4] = info->R[8] = 1.0;
 
-	    // Then P=K(I|0) = (K|0)
-	    info->P.assign(0.0);
-	    info->P[0] = info->K[0]; //fx
-	    info->P[5] = info->K[4]; //fy
-	    info->P[2] = info->K[2]; // cx
-	    info->P[6] = info->K[5]; // cy
-	    info->P[10] = 1.0;
+    // Then P=K(I|0) = (K|0)
+    info->P.assign(0.0);
+    info->P[0] = info->K[0]; //fx
+    info->P[5] = info->K[4]; //fy
+    info->P[2] = info->K[2]; // cx
+    info->P[6] = info->K[5]; // cy
+    info->P[10] = 1.0;
 
-	    // Fill in header
-	    info->header.stamp  = time;
-	    info->header.frame_id = depth_frame_id_;
-	    return info;
+    // Fill in header
+    info->header.stamp  = time;
+    info->header.frame_id = depth_frame_id_;
+    return info;
   }
 
   if (ir_info_manager_->isCalibrated())
@@ -722,13 +701,13 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getDepthCameraInfo(int width, int heig
   // principal point is offset by half the size of the hardware correlation window
   // (probably 9x9 or 9x7 in 640x480 mode). See http://www.ros.org/wiki/kinect_calibration/technical
 
-  double scaling = (double)width / 640;
+  //double scaling = (double)width / 640;
 
   sensor_msgs::CameraInfoPtr info = getIRCameraInfo(width, height, time);
-  info->K[2] -= depth_ir_offset_x_*scaling; // cx
-  info->K[5] -= depth_ir_offset_y_*scaling; // cy
-  info->P[2] -= depth_ir_offset_x_*scaling; // cx
-  info->P[6] -= depth_ir_offset_y_*scaling; // cy
+  //info->K[2] -= depth_ir_offset_x_*scaling; // cx
+  //info->K[5] -= depth_ir_offset_y_*scaling; // cy
+  //info->P[2] -= depth_ir_offset_x_*scaling; // cx
+  //info->P[6] -= depth_ir_offset_y_*scaling; // cy
 
   //printf("depth_ir_offset_x = %f\n", depth_ir_offset_x_);
   //printf("depth_ir_offset_y = %f\n", depth_ir_offset_y_);
@@ -762,7 +741,8 @@ void OpenNI2Driver::readConfigFromParameterServer()
 
   pnh_.param("rgb_camera_info_url", color_info_url_, std::string());
   pnh_.param("depth_camera_info_url", ir_info_url_, std::string());
-
+  //pnh_.param("ir_camera_info_url", ir_info_url_, std::string());
+  //pnh_.param("depth_camera_info_url", depth_info_url_, std::string());
 }
 
 std::string OpenNI2Driver::resolveDeviceURI(const std::string& device_id) throw(OpenNI2Exception)
@@ -890,7 +870,6 @@ void OpenNI2Driver::initDevice()
   {
     try
     {
-      ROS_INFO("====================: %s", device_id_.c_str());
       std::string device_URI = resolveDeviceURI(device_id_);
       device_ = device_manager_->getDevice(device_URI);
     }

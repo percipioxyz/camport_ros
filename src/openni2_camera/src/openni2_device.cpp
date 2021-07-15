@@ -39,6 +39,8 @@
 #include "openni2_camera/openni2_convert.h"
 #include "openni2_camera/openni2_frame_listener.h"
 
+#include <ros/ros.h>
+
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 
@@ -436,7 +438,6 @@ const OpenNI2VideoMode OpenNI2Device::getIRVideoMode() throw (OpenNI2Exception)
   if (stream)
   {
     openni::VideoMode video_mode = stream->getVideoMode();
-
     ret = openni2_convert(video_mode);
   }
   else
@@ -458,7 +459,13 @@ const OpenNI2VideoMode OpenNI2Device::getColorVideoMode() throw (OpenNI2Exceptio
     ret = openni2_convert(video_mode);
   }
   else
-    THROW_OPENNI_EXCEPTION("Could not create video stream.");
+  {
+    OpenNI2VideoMode err_mode;
+    err_mode.x_resolution_ = 0;
+    err_mode.y_resolution_ = 0;
+    ret = err_mode;
+    //THROW_OPENNI_EXCEPTION("Could not create video stream.");
+  }
 
   return ret;
 }
@@ -520,9 +527,20 @@ void OpenNI2Device::setDepthVideoMode(const OpenNI2VideoMode& video_mode) throw 
   }
 }
 
-void OpenNI2Device::setLaserPower(int value) throw (OpenNI2Exception)
+void OpenNI2Device::setLaserPower(int power) throw (OpenNI2Exception)
 {
-  openni_device_->setProperty(ONI_DEVICE_PROPERTY_LASER_POWER, (void*)&value, sizeof(int));
+  boost::shared_ptr<openni::VideoStream> stream = getDepthVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      const openni::Status rc =  camera_seeting->setLaserPower(power);
+      if (rc != openni::STATUS_OK)
+        ROS_WARN("Couldn't set laser power: \n%s\n", openni::OpenNI::getExtendedError());
+    }
+  }
 }
 
 void OpenNI2Device::setAutoExposure(bool enable) throw (OpenNI2Exception)
@@ -536,9 +554,8 @@ void OpenNI2Device::setAutoExposure(bool enable) throw (OpenNI2Exception)
     {
       const openni::Status rc = camera_seeting->setAutoExposureEnabled(enable);
       if (rc != openni::STATUS_OK)
-        THROW_OPENNI_EXCEPTION("Couldn't set auto exposure: \n%s\n", openni::OpenNI::getExtendedError());
+        ROS_WARN("Couldn't set auto exposure: \n%s\n", openni::OpenNI::getExtendedError());
     }
-
   }
 }
 void OpenNI2Device::setAutoWhiteBalance(bool enable) throw (OpenNI2Exception)
@@ -552,15 +569,13 @@ void OpenNI2Device::setAutoWhiteBalance(bool enable) throw (OpenNI2Exception)
     {
       const openni::Status rc = camera_seeting->setAutoWhiteBalanceEnabled(enable);
       if (rc != openni::STATUS_OK)
-        THROW_OPENNI_EXCEPTION("Couldn't set auto white balance: \n%s\n", openni::OpenNI::getExtendedError());
+        ROS_WARN("Couldn't set auto white balance: \n%s\n", openni::OpenNI::getExtendedError());
     }
-
   }
 }
 
 void OpenNI2Device::setColorAnalogGain(int value) throw (OpenNI2Exception)
 {
-#if 0
   boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
   if (stream)
@@ -570,15 +585,13 @@ void OpenNI2Device::setColorAnalogGain(int value) throw (OpenNI2Exception)
     {
       const openni::Status rc = camera_seeting->setPixelsAnalogGain(value);
       if (rc != openni::STATUS_OK)
-        THROW_OPENNI_EXCEPTION("Couldn't set pixels analog gain: \n%s\n", openni::OpenNI::getExtendedError());
+        ROS_WARN("Couldn't set pixels analog gain: \n%s\n", openni::OpenNI::getExtendedError());
     }
   }
-  #endif
 }
 
 void OpenNI2Device::setColorRedGain(int value) throw (OpenNI2Exception)
 {
-#if 0
   boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
   if (stream)
@@ -588,15 +601,13 @@ void OpenNI2Device::setColorRedGain(int value) throw (OpenNI2Exception)
     {
       const openni::Status rc = camera_seeting->setPixelsRedGain(value);
       if (rc != openni::STATUS_OK)
-        THROW_OPENNI_EXCEPTION("Couldn't set pixels red gain: \n%s\n", openni::OpenNI::getExtendedError());
+        ROS_WARN("Couldn't set pixels red gain: \n%s\n", openni::OpenNI::getExtendedError());
     }
   }
-#endif
 }
 
 void OpenNI2Device::setColorGreenGain(int value) throw (OpenNI2Exception)
 {
-#if 0
   boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
   if (stream)
@@ -606,15 +617,13 @@ void OpenNI2Device::setColorGreenGain(int value) throw (OpenNI2Exception)
     {
       const openni::Status rc = camera_seeting->setPixelsGreenGain(value);
       if (rc != openni::STATUS_OK)
-        THROW_OPENNI_EXCEPTION("Couldn't set pixels green gain: \n%s\n", openni::OpenNI::getExtendedError());
+        ROS_WARN("Couldn't set pixels green gain: \n%s\n", openni::OpenNI::getExtendedError());
     }
   }
-#endif
 }
 
 void OpenNI2Device::setColorBlueGain(int value) throw (OpenNI2Exception)
 {
-#if 0
   boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
   if (stream)
@@ -624,15 +633,13 @@ void OpenNI2Device::setColorBlueGain(int value) throw (OpenNI2Exception)
     {
       const openni::Status rc = camera_seeting->setPixelsBlueGain(value);
       if (rc != openni::STATUS_OK)
-        THROW_OPENNI_EXCEPTION("Couldn't set pixels blue gain: \n%s\n", openni::OpenNI::getExtendedError());
+        ROS_WARN("Couldn't set pixels blue gain: \n%s\n", openni::OpenNI::getExtendedError());
     }
   }
-#endif
 }
 
 void OpenNI2Device::setColorExposureTime(int value) throw (OpenNI2Exception)
 {
-#if 0
   boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
   if (stream)
@@ -640,17 +647,15 @@ void OpenNI2Device::setColorExposureTime(int value) throw (OpenNI2Exception)
     openni::CameraSettings* camera_seeting = stream->getCameraSettings();
     if (camera_seeting)
     {
-      const openni::Status rc = camera_seeting->setExposureTime(value);
+      const openni::Status rc = camera_seeting->setExposure(value);
       if (rc != openni::STATUS_OK)
-        THROW_OPENNI_EXCEPTION("Couldn't set exposure time: \n%s\n", openni::OpenNI::getExtendedError());
+        ROS_WARN("Couldn't set exposure time: \n%s\n", openni::OpenNI::getExtendedError());
     }
   }
-#endif
 }
 
 void OpenNI2Device::setIrGain(int value) throw (OpenNI2Exception)
 {
-#if 0
   boost::shared_ptr<openni::VideoStream> stream = getIRVideoStream();
 
   if (stream)
@@ -658,60 +663,148 @@ void OpenNI2Device::setIrGain(int value) throw (OpenNI2Exception)
     openni::CameraSettings* camera_seeting = stream->getCameraSettings();
     if (camera_seeting)
     {
-      const openni::Status rc = camera_seeting->setIRGain(value);
+      const openni::Status rc = camera_seeting->setGain(value);
       if (rc != openni::STATUS_OK)
-        THROW_OPENNI_EXCEPTION("Couldn't set ir gain: \n%s\n", openni::OpenNI::getExtendedError());
+        ROS_WARN("Couldn't set ir gain: \n%s\n", openni::OpenNI::getExtendedError());
     }
   }
-#endif
 }
 
 bool OpenNI2Device::getLaserPower(int* value) const
 {
-  long unsigned int data;
-  int size;
-  printf("#####OpenNI2Device::getLaserPower.\n");
-  openni_device_->getProperty(ONI_DEVICE_PROPERTY_LASER_POWER, (void*)&data, &size);
+  bool ret = false;
+  
+  boost::shared_ptr<openni::VideoStream> stream = getDepthVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret =  camera_seeting->getLaserPower(value);
+  }
+  return ret;
 }
 
-bool OpenNI2Device::getAutoExposure(bool* enable) const
+bool OpenNI2Device::getAutoExposure() const
 {
+  bool ret = false;
 
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret = camera_seeting->getAutoExposureEnabled();
+  }
+
+  return ret;
 }
 
-bool OpenNI2Device::getAutoWhiteBalance(bool* enable) const
+bool OpenNI2Device::getAutoWhiteBalance() const
 {
+  bool ret = false;
 
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
+
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret = camera_seeting->getAutoWhiteBalanceEnabled();
+  }
+
+  return ret;
 }
 
 bool OpenNI2Device::getColorAnalogGain(int* value) const
 {
+  bool ret = false;
+  
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret =  camera_seeting->getAnalogGain(value);
+  }
+  return ret;
 }
 
 bool OpenNI2Device::getColorRedGain(int* value) const
 {
+  bool ret = false;
+  
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret =  camera_seeting->getRedGain(value);
+  }
+  return ret;
 }
 
 bool OpenNI2Device::getColorGreenGain(int* value) const
 {
+  bool ret = false;
+  
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret =  camera_seeting->getGreenGain(value);
+  }
+  return ret;
 }
 
 bool OpenNI2Device::getColorBlueGain(int* value) const
 {
+  bool ret = false;
+  
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret =  camera_seeting->getBlueGain(value);
+  }
+  return ret;
 }
 
 bool OpenNI2Device::getColorExposureTime(int* value) const
 {
+  bool ret = false;
+  
+  boost::shared_ptr<openni::VideoStream> stream = getColorVideoStream();
 
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret =  camera_seeting->getExposure(value);
+  }
+  return ret;
 }
 
 bool OpenNI2Device::getIrGain(int* value) const
 {
+  bool ret = false;
+  
+  boost::shared_ptr<openni::VideoStream> stream = getIRVideoStream();
 
+  if (stream)
+  {
+    openni::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret =  camera_seeting->getGain(value);
+  }
+  return ret;
 }
   
 /*

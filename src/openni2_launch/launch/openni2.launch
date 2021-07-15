@@ -17,7 +17,8 @@
        See camera_info_manager docs for calibration URL details. -->
   <arg name="rgb_camera_info_url"   default="" />
   <arg name="depth_camera_info_url" default="" />
-
+  <arg name="ir_camera_info_url"    default="" />
+  
   <!-- Hardware depth registration -->
   <arg name="depth_registration" default="false" />
 
@@ -76,6 +77,7 @@
       <arg name="depth_frame_id"                  value="$(arg depth_frame_id)" />
       <arg name="rgb_camera_info_url"             value="$(arg rgb_camera_info_url)" />
       <arg name="depth_camera_info_url"           value="$(arg depth_camera_info_url)" />
+      <arg name="ir_camera_info_url"              value="$(arg ir_camera_info_url)" />
       <arg name="rgb"                             value="$(arg rgb)" />
       <arg name="ir"                              value="$(arg ir)" />
       <arg name="depth"                           value="$(arg depth)" />

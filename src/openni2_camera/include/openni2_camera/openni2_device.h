@@ -136,8 +136,8 @@ public:
   void setIrGain(int value) throw (OpenNI2Exception);
   
   bool getLaserPower(int* value) const;
-  bool getAutoExposure(bool* enable) const;
-  bool getAutoWhiteBalance(bool* enable) const;
+  bool getAutoExposure() const;
+  bool getAutoWhiteBalance() const;
   bool getColorAnalogGain(int* value) const;
   bool getColorRedGain(int* value) const;
   bool getColorGreenGain(int* value) const;
