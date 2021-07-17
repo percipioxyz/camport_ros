@@ -139,12 +139,8 @@ void OpenNI2Driver::advertiseROSTopics()
     {
       image_transport::SubscriberStatusCallback itssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
       ros::SubscriberStatusCallback rssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
-      pub_depth_raw_ = depth_it.advertiseCamera("image_raw", 1, itssc, itssc, rssc, rssc); //jet
+      pub_depth_raw_ = depth_it.advertiseCamera("image_raw", 1, itssc, itssc, rssc, rssc);
       pub_depth_ = depth_raw_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
-
-      //image_transport::SubscriberStatusCallback itssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
-      //ros::SubscriberStatusCallback rssc = boost::bind(&OpenNI2Driver::depthConnectCb, this);
-      //pub_depth_ = depth_it.advertiseCamera("image", 0, itssc, itssc, rssc, rssc);
     }
   }
 
@@ -159,19 +155,16 @@ void OpenNI2Driver::advertiseROSTopics()
   // The camera names are set to [rgb|depth]_[serial#], e.g. depth_B00367707227042B.
   // camera_info_manager substitutes this for ${NAME} in the URL.
   std::string serial_number = device_->getStringID();
-  std::string color_name, ir_name;//, depth_name;
+  std::string color_name, depth_name, ir_name;//, ;
 
   color_name = "rgb_"   + serial_number;
-  ir_name  = "depth_" + serial_number;
-  //ir_name  = "ir_" + serial_number;
-  //depth_name = "depth_" + serial_number;
+  depth_name  = "depth" + serial_number;
+  ir_name    = "ir" + serial_number;
 
   // Load the saved calibrations, if they exist
   color_info_manager_ = boost::make_shared<camera_info_manager::CameraInfoManager>(color_nh, color_name, color_info_url_);
-  ir_info_manager_  = boost::make_shared<camera_info_manager::CameraInfoManager>(ir_nh,  ir_name,  ir_info_url_);
-  //color_info_manager_  = boost::make_shared<camera_info_manager::CameraInfoManager>(color_nh,  color_name,  color_info_url_);
-  //ir_info_manager_     = boost::make_shared<camera_info_manager::CameraInfoManager>(ir_nh,     ir_name,     ir_info_url_);
-  //depth_info_manager_  = boost::make_shared<camera_info_manager::CameraInfoManager>(depth_nh,  depth_name,  depth_info_url_);
+  depth_info_manager_  = boost::make_shared<camera_info_manager::CameraInfoManager>(depth_nh,  depth_name,  depth_info_url_);
+  ir_info_manager     = boost::make_shared<camera_info_manager::CameraInfoManager>(ir_nh,  ir_name,  ir_info_url_);
 
   get_serial_server = nh_.advertiseService("get_serial", &OpenNI2Driver::getSerialCb,this);
 
@@ -259,48 +252,8 @@ void OpenNI2Driver::configCb(Config &config, uint32_t level)
     }
   }
   
-  //ROS_INFO("##level: (%d), laser power = %d.", level, m_laser_power_);
-  
-  //ROS_INFO("##level: (%d), auto exposure flag = %d.", level, auto_exposure_);
-  //ROS_INFO("##level: (%d), auto white balance flag = %d.", level, auto_white_balance_);
-  
-  //ROS_INFO("##level: (%d), rgb cam analog gain = %d.", level, m_rgb_analog_gain_);
-  //ROS_INFO("##level: (%d), rgb cam r gain = %d.", level, m_rgb_r_gain_);
-  //ROS_INFO("##level: (%d), rgb cam g gain = %d.", level, m_rgb_g_gain_);
-  //ROS_INFO("##level: (%d), rgb cam b gain = %d.", level, m_rgb_b_gain_);
-  //ROS_INFO("##level: (%d), rgb cam exposure time = %d.", level, m_rgb_exposure_time_);
-  
-  //ROS_INFO("##level: (%d), ir gain = %d.", level, m_ir_gain_);
-  
-  //ROS_INFO("##level: (%d), device id = %s.", level, device_id_.c_str());
-  
-  //depth_ir_offset_x_ = config.depth_ir_offset_x;
-  //depth_ir_offset_y_ = config.depth_ir_offset_y;
-  //z_offset_mm_ = config.z_offset_mm;
   z_scaling_ = config.z_scaling;
 
-//  ir_time_offset_ = ros::Duration(config.ir_time_offset);
-//  color_time_offset_ = ros::Duration(config.color_time_offset);
-//  depth_time_offset_ = ros::Duration(config.depth_time_offset);
-#if 0
-  if (lookupVideoModeFromDynConfig(config.ir_mode, ir_video_mode_)<0)
-  {
-    ROS_ERROR("Undefined IR video mode received from dynamic reconfigure");
-    exit(-1);
-  }
-
-  if (lookupVideoModeFromDynConfig(config.color_mode, color_video_mode_)<0)
-  {
-    ROS_ERROR("Undefined color video mode received from dynamic reconfigure");
-    exit(-1);
-  }
-
-  if (lookupVideoModeFromDynConfig(config.depth_mode, depth_video_mode_)<0)
-  {
-    ROS_ERROR("Undefined depth video mode received from dynamic reconfigure");
-    exit(-1);
-  }
-#endif
   // assign pixel format
   //ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY16;
   ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY8;
@@ -377,7 +330,8 @@ void OpenNI2Driver::colorConnectCb()
   if (color_subscribers_ && !device_->isColorStreamStarted())
   {
     // Can't stream IR and RGB at the same time. Give RGB preference.
-    if (device_->isIRStreamStarted())
+    //if (device_->isIRStreamStarted())
+    if(0)
     {
       ROS_ERROR("Cannot stream RGB and IR at the same time. Streaming RGB only.");
       ROS_INFO("Stopping IR stream.");
@@ -500,11 +454,9 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
   {
     data_skip_depth_counter_ = 0;
 
-    //printf("depth_raw_subscribers_ (%d), depth_subscribers_ (%d).\n", depth_raw_subscribers_, depth_subscribers_);
     if (depth_raw_subscribers_||depth_subscribers_)
-    //if(depth_subscribers_)
     {
-      image->header.stamp = image->header.stamp;// + depth_time_offset_;
+      image->header.stamp = image->header.stamp;
 
       if (z_offset_mm_ != 0)
       {
@@ -526,7 +478,6 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
       if (depth_registration_)
       {
         image->header.frame_id = color_frame_id_;
-        //cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp);
         cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
       } 
       else
@@ -672,9 +623,9 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
     return info;
   }
 
-  if (ir_info_manager_->isCalibrated())
+  if (depth_info_manager_->isCalibrated())
   {
-    info = boost::make_shared<sensor_msgs::CameraInfo>(ir_info_manager_->getCameraInfo());
+    info = boost::make_shared<sensor_msgs::CameraInfo>(depth_info_manager_->getCameraInfo());
     if ( info->width != width )
     {
       // Use uncalibrated values
@@ -740,9 +691,8 @@ void OpenNI2Driver::readConfigFromParameterServer()
   ROS_DEBUG("depth_frame_id = '%s' ", depth_frame_id_.c_str());
 
   pnh_.param("rgb_camera_info_url", color_info_url_, std::string());
-  pnh_.param("depth_camera_info_url", ir_info_url_, std::string());
-  //pnh_.param("ir_camera_info_url", ir_info_url_, std::string());
-  //pnh_.param("depth_camera_info_url", depth_info_url_, std::string());
+  pnh_.param("depth_camera_info_url", depth_info_url_, std::string());
+  pnh_.param("ir_camera_info_url", ir_info_url_, std::string());
 }
 
 std::string OpenNI2Driver::resolveDeviceURI(const std::string& device_id) throw(OpenNI2Exception)
@@ -899,23 +849,6 @@ void OpenNI2Driver::initDevice()
 
 void OpenNI2Driver::genVideoModeTableMap()
 {
-  /*
-   * #  Video modes defined by dynamic reconfigure:
-  output_mode_enum = gen.enum([  gen.const(  "SXGA_30Hz", int_t, 1,  "1280x1024@30Hz"),
-             gen.const(  "SXGA_15Hz", int_t, 2,  "1280x1024@15Hz"),
-             gen.const(   "XGA_30Hz", int_t, 3,  "1280x720@30Hz"),
-             gen.const(   "XGA_15Hz", int_t, 4,  "1280x720@15Hz"),
-             gen.const(   "VGA_30Hz", int_t, 5,  "640x480@30Hz"),
-             gen.const(   "VGA_25Hz", int_t, 6,  "640x480@25Hz"),
-             gen.const(  "QVGA_25Hz", int_t, 7,  "320x240@25Hz"),
-             gen.const(  "QVGA_30Hz", int_t, 8,  "320x240@30Hz"),
-             gen.const(  "QVGA_60Hz", int_t, 9,  "320x240@60Hz"),
-             gen.const( "QQVGA_25Hz", int_t, 10, "160x120@25Hz"),
-             gen.const( "QQVGA_30Hz", int_t, 11, "160x120@30Hz"),
-             gen.const( "QQVGA_60Hz", int_t, 12, "160x120@60Hz")],
-             "output mode")
-  */
-
   video_modes_lookup_.clear();
 
   OpenNI2VideoMode video_mode;

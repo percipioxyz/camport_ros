@@ -135,7 +135,7 @@ private:
   ros::Publisher pub_projector_info_;
 
   /** \brief Camera info manager objects. */
-  boost::shared_ptr<camera_info_manager::CameraInfoManager> color_info_manager_, ir_info_manager_;
+  boost::shared_ptr<camera_info_manager::CameraInfoManager> color_info_manager_, depth_info_manager_, ir_info_manager;
 
   OpenNI2VideoMode ir_video_mode_;
   OpenNI2VideoMode color_video_mode_;
@@ -145,7 +145,7 @@ private:
   std::string color_frame_id_;
   std::string depth_frame_id_ ;
 
-  std::string color_info_url_, ir_info_url_;
+  std::string color_info_url_, depth_info_url_, ir_info_url_;
 
   bool color_depth_synchronization_;
   bool depth_registration_;
