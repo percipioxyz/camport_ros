@@ -38,16 +38,18 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread/thread.hpp>
 
+#include <opencv2/opencv.hpp>
+#include <opencv2/highgui/highgui.hpp>
+
 namespace openni2_wrapper
 {
-
 struct calibIntris{
   uint32_t width;
   uint32_t height;
   float data[9];
 };
 
-struct calibIntris ir_cal;
+struct calibIntris ir_cal, color_cal;
 
 sensor_msgs::CameraInfoPtr info;
 bool loadedIRCameraInfo = false;
@@ -93,10 +95,13 @@ void OpenNI2Driver::advertiseROSTopics()
   // Allow remapping namespaces rgb, ir, depth, depth_registered
   ros::NodeHandle color_nh(nh_, "rgb");
   image_transport::ImageTransport color_it(color_nh);
+  
   ros::NodeHandle ir_nh(nh_, "ir");
   image_transport::ImageTransport ir_it(ir_nh);
+  
   ros::NodeHandle depth_nh(nh_, "depth");
   image_transport::ImageTransport depth_it(depth_nh);
+  
   ros::NodeHandle depth_raw_nh(nh_, "depth");
   image_transport::ImageTransport depth_raw_it(depth_raw_nh);
   
@@ -157,7 +162,7 @@ void OpenNI2Driver::advertiseROSTopics()
   std::string serial_number = device_->getStringID();
   std::string color_name, depth_name, ir_name;//, ;
 
-  color_name = "rgb_"   + serial_number;
+  color_name = "rgb"   + serial_number;
   depth_name  = "depth" + serial_number;
   ir_name    = "ir" + serial_number;
 
@@ -301,7 +306,6 @@ void OpenNI2Driver::applyConfigToOpenNIDevice()
   data_skip_depth_counter_ = 0;
   
   ir_video_mode_ = getIRVideoMode();
-  
   color_video_mode_ = getColorVideoMode();
   depth_video_mode_ = getDepthVideoMode();
   
@@ -369,6 +373,7 @@ void OpenNI2Driver::colorConnectCb()
 void OpenNI2Driver::depthConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
+  
   depth_subscribers_ = pub_depth_.getNumSubscribers() > 0;
   depth_raw_subscribers_ = pub_depth_raw_.getNumSubscribers() > 0;
   bool need_depth = depth_subscribers_ || depth_raw_subscribers_;
@@ -417,6 +422,49 @@ void OpenNI2Driver::irConnectCb()
   }
 }
 
+void OpenNI2Driver::resize(sensor_msgs::ImagePtr ptr, int width, int height, int type)
+{
+  if(!width) return ;
+  if(!height) return ;
+  
+  if((ptr->width != width) || 
+    (ptr->height != height))
+  {
+     cv::Mat src, dst, temp;
+     switch(type) {
+      case CV_8U:
+        src = cv::Mat(ptr->height, ptr->width, CV_8U, &ptr->data[0]);
+        cv::resize(src, dst, cv::Size(width, height));
+        ptr->data.resize(width*height);
+        ptr->width = width;
+        ptr->height = height;
+        memcpy(&ptr->data[0], dst.data, width*height);
+        break;
+      case CV_16U:
+        src = cv::Mat(ptr->height, ptr->width, CV_16U, &ptr->data[0]);
+        dst = cv::Mat::zeros(height, width, CV_16U);
+        float f_x_scale = 1.0f * width / src.cols;
+        float f_y_scale = 1.0f * height / src.rows;
+        for(int i = 0; i < src.rows; i++) {
+          for(int j = 0; j < src.cols; j++) {
+            int _x_offset = (int)(j * f_x_scale + 0.5);
+            int _y_offset = (int)(i * f_y_scale + 0.5);
+            if((_x_offset < width) && (_y_offset < height))
+              dst.at<unsigned short>(_y_offset, _x_offset) = dst.at<unsigned short>(i, j);
+          }
+        }
+        
+        //TODO
+        cv::medianBlur(dst, temp, 5);
+        ptr->data.resize(width*height*2);
+        ptr->width = width;
+        ptr->height = height;
+        memcpy(&ptr->data[0], temp.data, width*height*2);
+        break;
+     }
+  }
+}
+
 void OpenNI2Driver::newIRFrameCallback(sensor_msgs::ImagePtr image)
 {
   if ((++data_skip_ir_counter_)%data_skip_==0)
@@ -427,7 +475,9 @@ void OpenNI2Driver::newIRFrameCallback(sensor_msgs::ImagePtr image)
     {
       image->header.frame_id = ir_frame_id_;
       image->header.stamp = image->header.stamp + ir_time_offset_;
-
+      
+      if(depth_registration_)
+        resize(image, color_video_mode_.x_resolution_, color_video_mode_.y_resolution_, CV_8U);
       pub_ir_.publish(image, getIRCameraInfo(image->width, image->height, image->header.stamp));
     }
   }
@@ -456,8 +506,11 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
 
     if (depth_raw_subscribers_||depth_subscribers_)
     {
-      image->header.stamp = image->header.stamp;
+      //image->header.stamp = image->header.stamp;
 
+      if(depth_registration_)
+        resize(image, color_video_mode_.x_resolution_, color_video_mode_.y_resolution_, CV_16U);
+      
       if (z_offset_mm_ != 0)
       {
         uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
@@ -473,18 +526,20 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
           if (data[i] != 0)
         data[i] = static_cast<uint16_t>(data[i] * z_scaling_);
       }
-
+      
       sensor_msgs::CameraInfoPtr cam_info;
       if (depth_registration_)
       {
         image->header.frame_id = color_frame_id_;
-        cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
-      } 
+        cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp);//getDepthCameraInfo(image->width,image->height, image->header.stamp);
+      }
       else
       {
         image->header.frame_id = depth_frame_id_;
         cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
       }
+      
+      
       
       if (depth_raw_subscribers_)
       {
@@ -501,7 +556,7 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
 }
 
 // Methods to get calibration parameters for the various cameras
-sensor_msgs::CameraInfoPtr OpenNI2Driver::getDefaultCameraInfo(int width, int height, double f) const
+sensor_msgs::CameraInfoPtr OpenNI2Driver::getDefaultCameraInfo(int width, int height, double f)
 {
   sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
 
@@ -536,55 +591,96 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getDefaultCameraInfo(int width, int he
 }
 
 /// @todo Use binning/ROI properly in publishing camera infos
-sensor_msgs::CameraInfoPtr OpenNI2Driver::getColorCameraInfo(int width, int height, ros::Time time) const
+sensor_msgs::CameraInfoPtr OpenNI2Driver::getColorCameraInfo(int width, int height, ros::Time time)
 {
-  if (loadedColorCameraInfo)
+  boost::lock_guard<boost::mutex> lock(connect_mutex_);
+  if (device_->getVendor() == "Percipio")
   {
+    info = boost::make_shared<sensor_msgs::CameraInfo>();
+
+    int size = sizeof(color_cal);
+    color_cal.width = width;
+    color_cal.height = height;
+    
+    //if (!loadedIRCameraInfo) {
+    if(1) {
+      //get intristic from percipio firmware
+      device_->getColorCalibIntristic((void*)&color_cal, &size);
+      loadedIRCameraInfo = true;
+    }
+
+    info->width  = width;
+    info->height = height;
+    
+    // No distortion
+    info->D.resize(5, 0.0);
+    info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+
+    // Simple camera matrix: square pixels (fx = fy), principal point at center
+    info->K.assign(0.0);
+    info->K[0] = color_cal.data[0];
+    info->K[4] = color_cal.data[4];
+    info->K[2] = color_cal.data[2];
+    info->K[5] = color_cal.data[5];
+    info->K[8] = 1.0;
+
+    // No separate rectified image plane, so R = I
+    info->R.assign(0.0);
+    info->R[0] = info->R[4] = info->R[8] = 1.0;
+
+    // Then P=K(I|0) = (K|0)
+    info->P.assign(0.0);
+    info->P[0] = info->K[0]; //fx
+    info->P[5] = info->K[4]; //fy
+    info->P[2] = info->K[2]; // cx
+    info->P[6] = info->K[5]; // cy
+    info->P[10] = 1.0;
+
     // Fill in header
-    color_info->header.stamp  = time;
-    color_info->header.frame_id = color_frame_id_;
-  
-    return color_info; 
+    info->header.stamp  = time;
+    info->header.frame_id = color_frame_id_;
+    
+    return info;
   }
 
-  if (color_info_manager_->isCalibrated())
+  if (depth_info_manager_->isCalibrated())
   {
-    color_info = boost::make_shared<sensor_msgs::CameraInfo>(color_info_manager_->getCameraInfo());
+    info = boost::make_shared<sensor_msgs::CameraInfo>(depth_info_manager_->getCameraInfo());
+    
     if ( info->width != width )
     {
       // Use uncalibrated values
-      ROS_WARN_ONCE("Image resolution doesn't match calibration of the RGB camera. Using default parameters.");
-      info = getDefaultCameraInfo(width, height, device_->getColorFocalLength(height));
+      ROS_WARN_ONCE("Image resolution doesn't match calibration of the IR camera. Using default parameters.");
+      info = getDefaultCameraInfo(width, height, device_->getIRFocalLength(height));
     }
   }
   else
   {
     // If uncalibrated, fill in default values
-    color_info = getDefaultCameraInfo(width, height, device_->getColorFocalLength(height));
+    info = getDefaultCameraInfo(width, height, device_->getDepthFocalLength(height));
   }
 
   // Fill in header
-  color_info->header.stamp  = time;
-  color_info->header.frame_id = color_frame_id_;
-  
-  loadedColorCameraInfo = true;
+  info->header.stamp  = time;
+  info->header.frame_id = color_frame_id_;
 
-  return color_info;
+  return info;
 }
 
 
-sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height, ros::Time time) const
+sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height, ros::Time time)
 {
+  boost::lock_guard<boost::mutex> lock(connect_mutex_);
   if (device_->getVendor() == "Percipio")
   {
     info = boost::make_shared<sensor_msgs::CameraInfo>();
 
-    int size = sizeof(calibIntris);
+    int size = sizeof(ir_cal);
     ir_cal.width = width;
     ir_cal.height = height;
     
-    
-    if (!loadedIRCameraInfo) {
+    //if (!loadedIRCameraInfo) {
+    if(1) {
       //get intristic from percipio firmware
       device_->getCalibIntristic((void*)&ir_cal, &size);
       loadedIRCameraInfo = true;
@@ -592,7 +688,7 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
 
     info->width  = width;
     info->height = height;
-
+    
     // No distortion
     info->D.resize(5, 0.0);
     info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
@@ -620,12 +716,14 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
     // Fill in header
     info->header.stamp  = time;
     info->header.frame_id = depth_frame_id_;
+    
     return info;
   }
 
   if (depth_info_manager_->isCalibrated())
   {
     info = boost::make_shared<sensor_msgs::CameraInfo>(depth_info_manager_->getCameraInfo());
+    
     if ( info->width != width )
     {
       // Use uncalibrated values
@@ -646,14 +744,13 @@ sensor_msgs::CameraInfoPtr OpenNI2Driver::getIRCameraInfo(int width, int height,
   return info;
 }
 
-sensor_msgs::CameraInfoPtr OpenNI2Driver::getDepthCameraInfo(int width, int height, ros::Time time) const
+sensor_msgs::CameraInfoPtr OpenNI2Driver::getDepthCameraInfo(int width, int height, ros::Time time)
 {
   // The depth image has essentially the same intrinsics as the IR image, BUT the
   // principal point is offset by half the size of the hardware correlation window
   // (probably 9x9 or 9x7 in 640x480 mode). See http://www.ros.org/wiki/kinect_calibration/technical
 
   //double scaling = (double)width / 640;
-
   sensor_msgs::CameraInfoPtr info = getIRCameraInfo(width, height, time);
   //info->K[2] -= depth_ir_offset_x_*scaling; // cx
   //info->K[5] -= depth_ir_offset_y_*scaling; // cy

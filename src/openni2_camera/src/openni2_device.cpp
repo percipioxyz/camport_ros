@@ -918,10 +918,19 @@ bool OpenNI2Device::getCalibIntristic(void* data, int* size)
 {
 	if (openni::STATUS_OK != openni_device_->getProperty(ONI_DEVICE_PROPERTY_CALIB_INTRISTIC, (void*)data, size))
 	{
-		std::cout<<"Failed to load calib intristic!"<<std::endl;
+		std::cout<<"[IR]Failed to load calib intristic!"<<std::endl;
 		return false;
 	}
+	return true;
+}
 
+bool OpenNI2Device::getColorCalibIntristic(void* data, int* size)
+{
+  if (openni::STATUS_OK != openni_device_->getProperty(ONI_DEVICE_PROPERTY_COLOR_CALIB_INTRISTIC, (void*)data, size))
+	{
+		std::cout<<"[COLOR]Failed to load calib intristic!"<<std::endl;
+		return false;
+	}
 	return true;
 }
 

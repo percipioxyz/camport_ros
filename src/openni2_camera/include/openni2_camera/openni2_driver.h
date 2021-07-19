@@ -75,10 +75,10 @@ private:
   void newDepthFrameCallback(sensor_msgs::ImagePtr image);
 
   // Methods to get calibration parameters for the various cameras
-  sensor_msgs::CameraInfoPtr getDefaultCameraInfo(int width, int height, double f) const;
-  sensor_msgs::CameraInfoPtr getColorCameraInfo(int width, int height, ros::Time time) const;
-  sensor_msgs::CameraInfoPtr getIRCameraInfo(int width, int height, ros::Time time) const;
-  sensor_msgs::CameraInfoPtr getDepthCameraInfo(int width, int height, ros::Time time) const;
+  sensor_msgs::CameraInfoPtr getDefaultCameraInfo(int width, int height, double f);
+  sensor_msgs::CameraInfoPtr getColorCameraInfo(int width, int height, ros::Time time);
+  sensor_msgs::CameraInfoPtr getIRCameraInfo(int width, int height, ros::Time time);
+  sensor_msgs::CameraInfoPtr getDepthCameraInfo(int width, int height, ros::Time time);
 
   void readConfigFromParameterServer();
 
@@ -118,7 +118,7 @@ private:
   boost::shared_ptr<OpenNI2Device> device_;
 
   std::string device_id_;
-
+  
   /** \brief get_serial server*/
   ros::ServiceServer get_serial_server;
 
@@ -133,6 +133,8 @@ private:
   image_transport::CameraPublisher pub_depth_raw_;
   image_transport::CameraPublisher pub_ir_;
   ros::Publisher pub_projector_info_;
+  
+  void resize(sensor_msgs::ImagePtr ptr, int width, int height, int type);
 
   /** \brief Camera info manager objects. */
   boost::shared_ptr<camera_info_manager::CameraInfoManager> color_info_manager_, depth_info_manager_, ir_info_manager;

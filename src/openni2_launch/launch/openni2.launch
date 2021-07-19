@@ -6,6 +6,7 @@
   <arg name="camera" default="camera" />
   <arg name="rgb_frame_id"   default="$(arg camera)_rgb_optical_frame" />
   <arg name="depth_frame_id" default="$(arg camera)_depth_optical_frame" />
+  <arg name="ir_frame_id" default="$(arg camera)_ir_optical_frame" />
 
   <!-- device_id can have the following formats:
          "#1"  : the first device found

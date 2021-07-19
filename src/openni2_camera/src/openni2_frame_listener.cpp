@@ -127,7 +127,6 @@ void OpenNI2FrameListener::onNewFrame(openni::VideoStream& stream)
         image->encoding = sensor_msgs::image_encodings::TYPE_16UC1;
         image->step = sizeof(unsigned char) * 2 * image->width;
         break;
-
       case openni::PIXEL_FORMAT_RGB888:
         image->encoding = sensor_msgs::image_encodings::RGB8;
         image->step = sizeof(unsigned char) * 3 * image->width;

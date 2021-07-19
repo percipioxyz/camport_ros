@@ -50,6 +50,16 @@ target_link_libraries(test_wrapper openni2_wrapper ${Boost_LIBRARIES})
 add_library(openni2_driver_lib
    src/openni2_driver.cpp
 )
+
+find_package(OpenCV REQUIRED)
+if (NOT OpenCV_FOUND)
+    message(FATAL_ERROR "OpenCV library not found")
+else()
+    message(STATUS "OpenCV version: ${OpenCV_VERSION}")
+    include_directories(${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(openni2_driver_lib ${OpenCV_LIBS})
+endif()
+
 target_link_libraries(openni2_driver_lib openni2_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} )
 add_dependencies(openni2_driver_lib ${PROJECT_NAME}_gencfg)
 
