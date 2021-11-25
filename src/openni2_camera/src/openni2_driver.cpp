@@ -258,6 +258,7 @@ void OpenNI2Driver::configCb(Config &config, uint32_t level)
   }
   
   z_scaling_ = config.z_scaling;
+  z_offset_mm_ = 0;
 
   // assign pixel format
   //ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY16;
