@@ -455,12 +455,37 @@ void OpenNI2Driver::resize(sensor_msgs::ImagePtr ptr, int width, int height, int
           }
         }
         
-        //TODO
-        cv::medianBlur(dst, temp, 5);
         ptr->data.resize(width*height*2);
+
+        //TODO
+        const int kthresh = 16 * 3;
+        const int kOffset[8] = {
+          -1, 1, (int)width, -(int)width, (int)width - 1, (int)width + 1
+          , -(int)width - 1, -(int)width + 1
+        };
+        for (int y = 1; y < (int)height - 1; y++) {
+          uint16_t *srcptr = (uint16_t*)(dst.data) + y * width + 1;
+          uint16_t *dstptr = (uint16_t*)(&ptr->data[0]) + y * width + 1;
+          for (int x = 1; x < (int)width - 1; x++, srcptr++,dstptr++) {
+            *dstptr = *srcptr;
+            for (int idx = 0; idx < 8; idx++) {
+              int k = kOffset[idx];
+              if (*dstptr != 0 && srcptr[k] != 0){
+                *dstptr = (*dstptr < srcptr[k] ? *dstptr : srcptr[k]);
+              }
+              else if (srcptr[k] != 0){
+                *dstptr = srcptr[k];
+              }
+            }
+          }
+        }
+
+
+        //cv::medianBlur(dst, temp, 5);
+        
         ptr->width = width;
         ptr->height = height;
-        memcpy(&ptr->data[0], temp.data, width*height*2);
+        //memcpy(&ptr->data[0], temp.data, width*height*2);
         break;
      }
   }
