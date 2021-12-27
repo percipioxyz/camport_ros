@@ -451,7 +451,7 @@ void OpenNI2Driver::resize(sensor_msgs::ImagePtr ptr, int width, int height, int
             int _x_offset = (int)(j * f_x_scale + 0.5);
             int _y_offset = (int)(i * f_y_scale + 0.5);
             if((_x_offset < width) && (_y_offset < height))
-              dst.at<unsigned short>(_y_offset, _x_offset) = dst.at<unsigned short>(i, j);
+              dst.at<unsigned short>(_y_offset, _x_offset) = src.at<unsigned short>(i, j);
           }
         }
         
