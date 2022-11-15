@@ -81,12 +81,31 @@ OpenNI2Device::OpenNI2Device(const std::string& device_URI) throw (OpenNI2Except
   ir_frame_listener = boost::make_shared<OpenNI2FrameListener>();
   color_frame_listener = boost::make_shared<OpenNI2FrameListener>();
   depth_frame_listener = boost::make_shared<OpenNI2FrameListener>();
+
+  boost::shared_ptr<openni::VideoStream> ir_stream = getIRVideoStream();
+  if (ir_stream)
+    ir_stream->addNewFrameListener(ir_frame_listener.get());
+
+  boost::shared_ptr<openni::VideoStream> color_stream = getColorVideoStream();
+  if (color_stream)
+    color_stream->addNewFrameListener(color_frame_listener.get());
+
+  boost::shared_ptr<openni::VideoStream> depth_stream = getDepthVideoStream();
+  if (depth_stream)
+    depth_stream->addNewFrameListener(depth_frame_listener.get());
+
 }
 
 OpenNI2Device::~OpenNI2Device()
 {
   stopAllStreams();
 
+  if (ir_video_stream_.get() != 0)
+    ir_video_stream_->removeNewFrameListener(ir_frame_listener.get());
+  if(color_video_stream_.get() != 0)
+    color_video_stream_->removeNewFrameListener(color_frame_listener.get());
+  if(depth_video_stream_.get() != 0)
+    depth_video_stream_->removeNewFrameListener(depth_frame_listener.get());
   shutdown();
 
   openni_device_->close();
@@ -250,7 +269,6 @@ void OpenNI2Device::startIRStream()
   {
     stream->setMirroringEnabled(false);
     stream->start();
-    stream->addNewFrameListener(ir_frame_listener.get());
     ir_video_started_ = true;
   }
 
@@ -264,7 +282,6 @@ void OpenNI2Device::startColorStream()
   {
     stream->setMirroringEnabled(false);
     stream->start();
-    stream->addNewFrameListener(color_frame_listener.get());
     color_video_started_ = true;
   }
 }
@@ -276,7 +293,6 @@ void OpenNI2Device::startDepthStream()
   {
     stream->setMirroringEnabled(false);
     stream->start();
-    stream->addNewFrameListener(depth_frame_listener.get());
     depth_video_started_ = true;
   }
 }
@@ -293,29 +309,24 @@ void OpenNI2Device::stopIRStream()
   if (ir_video_stream_.get() != 0)
   {
     ir_video_started_ = false;
-
-    //ir_video_stream_->removeNewFrameListener(ir_frame_listener.get());
-
     ir_video_stream_->stop();
   }
 }
+
 void OpenNI2Device::stopColorStream()
 {
   if (color_video_stream_.get() != 0)
   {
     color_video_started_ = false;
-    //color_video_stream_->removeNewFrameListener(color_frame_listener.get());
     color_video_stream_->stop();
   }
 }
+
 void OpenNI2Device::stopDepthStream()
 {
   if (depth_video_stream_.get() != 0)
   {
     depth_video_started_ = false;
-
-    //depth_video_stream_->removeNewFrameListener(depth_frame_listener.get());
-
     depth_video_stream_->stop();
   }
 }
