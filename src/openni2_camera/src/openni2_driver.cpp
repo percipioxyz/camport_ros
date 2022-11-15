@@ -329,52 +329,27 @@ void OpenNI2Driver::applyConfigToOpenNIDevice()
 void OpenNI2Driver::colorConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
-
   color_subscribers_ = pub_color_.getNumSubscribers() > 0;
-
   if (color_subscribers_ && !device_->isColorStreamStarted())
   {
-    // Can't stream IR and RGB at the same time. Give RGB preference.
-    //if (device_->isIRStreamStarted())
-    if(0)
-    {
-      ROS_ERROR("Cannot stream RGB and IR at the same time. Streaming RGB only.");
-      ROS_INFO("Stopping IR stream.");
-      device_->stopIRStream();
-    }
-
+    
     device_->setColorFrameCallback(boost::bind(&OpenNI2Driver::newColorFrameCallback, this, _1));
 
     ROS_INFO("Starting color stream.");
     device_->startColorStream();
+    ROS_INFO("Starting color stream finished.");
   }
   else if (!color_subscribers_ && device_->isColorStreamStarted())
   {
-#if 0  
     ROS_INFO("Stopping color stream.");
     device_->stopColorStream();
-
-    // Start IR if it's been blocked on RGB subscribers
-    bool need_ir = pub_ir_.getNumSubscribers() > 0;
-    if (need_ir && !device_->isIRStreamStarted())
-    {
-      device_->setIRFrameCallback(boost::bind(&OpenNI2Driver::newIRFrameCallback, this, _1));
-
-      ROS_INFO("Starting IR stream.");
-      device_->startIRStream();
-      ROS_INFO("Starting IR stream finished.");
-    }
-#else
-    ROS_INFO("Stopping color stream.");
-    device_->stopColorStream();
-#endif    
+    ROS_INFO("Stopping color stream finished.");
   }
 }
 
 void OpenNI2Driver::depthConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
-  
   depth_subscribers_ = pub_depth_.getNumSubscribers() > 0;
   depth_raw_subscribers_ = pub_depth_raw_.getNumSubscribers() > 0;
   bool need_depth = depth_subscribers_ || depth_raw_subscribers_;
@@ -391,35 +366,28 @@ void OpenNI2Driver::depthConnectCb()
   {
     ROS_INFO("Stopping depth stream.");
     device_->stopDepthStream();
+    ROS_INFO("Stopping depth stream finished.");
   }
 }
 
 void OpenNI2Driver::irConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
-
   ir_subscribers_ = pub_ir_.getNumSubscribers() > 0;
 
   if (ir_subscribers_ && !device_->isIRStreamStarted())
   {
-    // Can't stream IR and RGB at the same time
-    //if (device_->isColorStreamStarted())
-    if(0)
-    {
-      ROS_ERROR("Cannot stream RGB and IR at the same time. Streaming RGB only.");
-    }
-    else
-    {
-      device_->setIRFrameCallback(boost::bind(&OpenNI2Driver::newIRFrameCallback, this, _1));
+    device_->setIRFrameCallback(boost::bind(&OpenNI2Driver::newIRFrameCallback, this, _1));
 
-      ROS_INFO("Starting IR stream.");
-      device_->startIRStream();
-    }
+    ROS_INFO("Starting IR stream.");
+    device_->startIRStream();
+    ROS_INFO("Starting IR stream finished.");
   }
   else if (!ir_subscribers_ && device_->isIRStreamStarted())
   {
     ROS_INFO("Stopping IR stream.");
     device_->stopIRStream();
+    ROS_INFO("Stopping IR stream finished.");
   }
 }
 
