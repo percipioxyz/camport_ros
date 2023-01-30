@@ -101,7 +101,7 @@ private:
   void genVideoModeTableMap();
   int lookupVideoModeFromDynConfig(int mode_nr, OpenNI2VideoMode& video_mode);
 
-  sensor_msgs::ImageConstPtr rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image);
+  sensor_msgs::ImageConstPtr rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, int scale);
 
   //void setIRVideoMode(const OpenNI2VideoMode& ir_video_mode);
   //void setColorVideoMode(const OpenNI2VideoMode& color_video_mode);
@@ -172,7 +172,7 @@ private:
   double depth_ir_offset_x_;
   double depth_ir_offset_y_;
   int z_offset_mm_;
-  double z_scaling_;
+  int z_scaling_;
 
   ros::Duration ir_time_offset_;
   ros::Duration color_time_offset_;

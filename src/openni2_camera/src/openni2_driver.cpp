@@ -500,6 +500,7 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
 
     if (depth_raw_subscribers_||depth_subscribers_)
     {
+      sensor_msgs::ImageConstPtr floating_point_image = nullptr;
       //image->header.stamp = image->header.stamp;
 
       if(depth_registration_)
@@ -513,12 +514,15 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
             data[i] += z_offset_mm_;
       }
 
-      if (fabs(z_scaling_ - 1.0) > 1e-6)
+      if (depth_subscribers_ )
+        floating_point_image = rawToFloatingPointConversion(image, z_scaling_);
+
+      if(z_scaling_ != 1)
       {
         uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
         for (unsigned int i = 0; i < image->width * image->height; ++i)
           if (data[i] != 0)
-        data[i] = static_cast<uint16_t>(data[i] * z_scaling_);
+        data[i] = static_cast<uint16_t>(data[i] /(1.0f *  z_scaling_) + 0.5f);
       }
       
       sensor_msgs::CameraInfoPtr cam_info;
@@ -542,8 +546,8 @@ void OpenNI2Driver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
 
       if (depth_subscribers_ )
       {
-        sensor_msgs::ImageConstPtr floating_point_image = rawToFloatingPointConversion(image);
-        pub_depth_.publish(floating_point_image, cam_info);
+        if(floating_point_image != nullptr)
+          pub_depth_.publish(floating_point_image, cam_info);
       }
     }
   }
@@ -1091,7 +1095,7 @@ int OpenNI2Driver::lookupVideoModeFromDynConfig(int mode_nr, OpenNI2VideoMode& v
   return ret;
 }
 
-sensor_msgs::ImageConstPtr OpenNI2Driver::rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image)
+sensor_msgs::ImageConstPtr OpenNI2Driver::rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, int scale)
 {
   static const float bad_point = std::numeric_limits<float>::quiet_NaN ();
 
@@ -1112,13 +1116,13 @@ sensor_msgs::ImageConstPtr OpenNI2Driver::rawToFloatingPointConversion(sensor_ms
 
   for (std::size_t i = 0; i<data_size; ++i, ++in_ptr, ++out_ptr)
   {
-    if (*in_ptr==0 || *in_ptr==0x7FF)
+    if (*in_ptr==0)
     {
       *out_ptr = bad_point;
     } 
     else
     {
-      *out_ptr = static_cast<float>(*in_ptr)/1000.0f;
+      *out_ptr = static_cast<float>(*in_ptr)/(1000.0f * scale);
     }
   }
 
