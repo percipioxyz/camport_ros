@@ -5,6 +5,7 @@ $catkin_make
 2. config system env
 
 $echo "source ~/camport_ros/devel/setup.bash" >> ~/.bashrc
+
 $source ~/.bashrc
 
-Please refer to https://percipiodc.readthedocs.io/ for more detais.
+Please refer to http://doc.percipio.xyz/cam/last/getstarted/sdk-compile.html#ros for more detais.
