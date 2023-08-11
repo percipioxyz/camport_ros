@@ -106,7 +106,7 @@ namespace depthimage_to_laserscan
      * Sets the frame_id for the output LaserScan.
      * 
      * Output frame_id for the LaserScan.  Will probably NOT be the same frame_id as the depth image.
-     * Example: For OpenNI cameras, this should be set to 'camera_depth_frame' while the camera uses 'camera_depth_optical_frame'.
+     * Example: For Percipio cameras, this should be set to 'camera_depth_frame' while the camera uses 'camera_depth_optical_frame'.
      * 
      * @param output_frame_id Frame_id to use for the output sensor_msgs::LaserScan.
      * 

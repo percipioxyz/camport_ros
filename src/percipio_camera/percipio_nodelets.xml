@@ -1,0 +1,10 @@
+<!-- Percipio driver nodelet publisher -->
+<library path="lib/libpercipio_camera_nodelet">
+
+  <class name="percipio_camera/PercipioDriverNodelet" type="percipio_camera::PercipioDriverNodelet" base_class_type="nodelet::Nodelet">
+    <description>
+      Percipio camera driver nodelet.
+    </description>
+  </class>
+
+</library>

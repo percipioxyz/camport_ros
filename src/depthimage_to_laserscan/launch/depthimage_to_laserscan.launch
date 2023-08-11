@@ -24,7 +24,7 @@
   <!-- Laserscan topic -->
   <arg name="scan_topic" default="scan"/>
  
-  <include file="$(find openni2_launch)/launch/openni2.launch">
+  <include file="$(find percipio_launch)/launch/percipio.launch">
     <arg name="camera"                          value="$(arg camera)"/>
     <arg name="publish_tf"                      value="$(arg publish_tf)"/>
     <arg name="depth_registration"              value="$(arg depth_registration)"/>
