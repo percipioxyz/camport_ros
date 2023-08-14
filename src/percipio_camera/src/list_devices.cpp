@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 13:54:30
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-08 17:26:50
+ * @LastEditTime: 2023-08-14 17:48:02
  */
 /*
  * Copyright (c) 2014, Savioke, Inc.
@@ -51,9 +51,7 @@ using percipio_wrapper::PercipioException;
 
 int main(int arc, char** argv)
 {
-  printf("----------------------------------------1\n");
   percipio_wrapper::PercipioDeviceManager manager;
-  printf("----------------------------------------2\n");
   boost::shared_ptr<std::vector<percipio_wrapper::PercipioDeviceInfo> > device_infos = manager.getConnectedDeviceInfos();
   std::cout << "Found " << device_infos->size() << " devices:" << std::endl << std::endl;
   for (size_t i = 0; i < device_infos->size(); ++i)

@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-07-18 15:55:24
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-11 15:25:43
+ * @LastEditTime: 2023-08-14 18:30:27
  */
 
 #include <iostream>
@@ -19,6 +19,7 @@
 #include <turbojpeg.h>
 
 #include "percipio_interface.h"
+#include "TYImageProc.h"
 #include "TYCoordinateMapper.h"
 
 #define MAX_DEPTH 0x10000 
@@ -471,48 +472,106 @@ public:
         ~jpeg_decoder() {tjDestroy(jpeg);};
     };
 
-    static int MapDepthImageToColorCoordinate(const TY_CAMERA_CALIB_INFO* depth_calib, 
-                                              const TY_CAMERA_CALIB_INFO* color_calib, 
-                                              int target_width,
-                                              int target_height,
-                                              percipio::VideoFrameData& src, 
-                                              percipio::VideoFrameData& dst,
-                                              float f_scale_unit)
+    static int doDepthUndistortion(const TY_CAMERA_CALIB_INFO* depth_calib,
+                                percipio::VideoFrameData* src, 
+                                percipio::VideoFrameData* dst)
     {
-      if(src.getPixelFormat() != TY_PIXEL_FORMAT_DEPTH16) {
+      if(src->getPixelFormat() != TY_PIXEL_FORMAT_DEPTH16) {
         printf("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
         return-1;
       }
 
-      dst.setTimestamp(src.getTimestamp());
-      dst.setFrameIndex(src.getFrameIndex());
-      dst.setPixelFormat(src.getPixelFormat());
+      dst->setTimestamp(src->getTimestamp());
+      dst->setFrameIndex(src->getFrameIndex());
+      dst->setComponentID(src->getComponentID());
+      dst->setWidth(src->getWidth());
+      dst->setHeight(src->getHeight());
+      dst->setPixelFormat(src->getPixelFormat());
+      dst->Resize(src->getDataSize());
+
+      TY_IMAGE_DATA src_image, dst_image;
+      src_image.width  = src->getWidth();
+      src_image.height = src->getHeight();
+      src_image.pixelFormat = src->getPixelFormat();
+      src_image.buffer = src->getData();
+
+      dst_image.width  = dst->getWidth();
+      dst_image.height = dst->getHeight();
+      dst_image.pixelFormat = dst->getPixelFormat();
+      dst_image.buffer = dst->getData();
+
+      return TYUndistortImage(depth_calib, &src_image, NULL, &dst_image);
+    }
+
+    static int doRGBUndistortion(const TY_CAMERA_CALIB_INFO* color_calib, 
+                                percipio::VideoFrameData* src, 
+                                percipio::VideoFrameData* dst)
+    {
+      if(src->getPixelFormat() != TY_PIXEL_FORMAT_RGB) {
+        printf("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
+        return-1;
+      }
+
+      dst->setTimestamp(src->getTimestamp());
+      dst->setFrameIndex(src->getFrameIndex());
+      dst->setComponentID(src->getComponentID());
+      dst->setWidth(src->getWidth());
+      dst->setHeight(src->getHeight());
+      dst->setPixelFormat(src->getPixelFormat());
+      dst->Resize(src->getDataSize());
+
+      TY_IMAGE_DATA src_image, dst_image;
+      src_image.width  = src->getWidth();
+      src_image.height = src->getHeight();
+      src_image.pixelFormat = src->getPixelFormat();
+      src_image.buffer = src->getData();
+
+      dst_image.width  = dst->getWidth();
+      dst_image.height = dst->getHeight();
+      dst_image.pixelFormat = dst->getPixelFormat();
+      dst_image.buffer = dst->getData();
+
+      return TYUndistortImage(color_calib, &src_image, NULL, &dst_image);
+    }
+
+    static int MapDepthImageToColorCoordinate(const TY_CAMERA_CALIB_INFO* depth_calib, 
+                                              const TY_CAMERA_CALIB_INFO* color_calib, 
+                                              int target_width,
+                                              int target_height,
+                                              percipio::VideoFrameData* src, 
+                                              percipio::VideoFrameData* dst,
+                                              float f_scale_unit)
+    {
+      if(src->getPixelFormat() != TY_PIXEL_FORMAT_DEPTH16) {
+        printf("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
+        return-1;
+      }
+
+      dst->setTimestamp(src->getTimestamp());
+      dst->setFrameIndex(src->getFrameIndex());
+      dst->setPixelFormat(src->getPixelFormat());
       if((target_width != 0) && (target_height != 0)) {
-        dst.setWidth(target_width);
-        dst.setHeight(target_height);
-        dst.Resize(2 * target_width * target_height);
+        dst->setWidth(target_width);
+        dst->setHeight(target_height);
+        dst->Resize(2 * target_width * target_height);
       } else {
-        dst.setWidth(src.getWidth());
-        dst.setHeight(src.getHeight());
-        dst.Resize(2 * src.getWidth() * src.getHeight());
+        dst->setWidth(src->getWidth());
+        dst->setHeight(src->getHeight());
+        dst->Resize(2 * src->getWidth() * src->getHeight());
       }
 
       TY_IMAGE_DATA src_image, dst_image;
-      src_image.width  = src.getWidth();
-      src_image.height = src.getHeight();
-      src_image.pixelFormat = src.getPixelFormat();
-      src_image.buffer = src.getData();
+      src_image.width  = src->getWidth();
+      src_image.height = src->getHeight();
+      src_image.pixelFormat = src->getPixelFormat();
+      src_image.buffer = src->getData();
 
-      dst_image.width  = dst.getWidth();
-      dst_image.height = dst.getHeight();
-      dst_image.pixelFormat = dst.getPixelFormat();
-      dst_image.buffer = dst.getData();
+      dst_image.width  = dst->getWidth();
+      dst_image.height = dst->getHeight();
+      dst_image.pixelFormat = dst->getPixelFormat();
+      dst_image.buffer = dst->getData();
 
-      printf("depth_calib : %d X %d\n", depth_calib->intrinsicWidth, depth_calib->intrinsicHeight);
-      printf("color_calib : %d X %d\n", color_calib->intrinsicWidth, color_calib->intrinsicHeight);
-      printf("%d x %d  ->target size : %d x %d, f_scale_unit = %f\n", src_image.width, src_image.height, dst_image.width, dst_image.height, f_scale_unit);
-
-      return TYMapDepthImageToColorCoordinate(
+      return  TYMapDepthImageToColorCoordinate(
                   depth_calib,
                   src_image.width, src_image.height, (const uint16_t*)src_image.buffer,
                   color_calib,
@@ -528,6 +587,7 @@ public:
       dst.setWidth(src.getWidth());
       dst.setHeight(src.getHeight());
       dst.setFrameIndex(src.getFrameIndex());
+      dst.setComponentID(src.getComponentID());
       dst.setPixelFormat(TY_PIXEL_FORMAT_RGB);
       dst.Resize(3 * src.getWidth() * src.getHeight());
 

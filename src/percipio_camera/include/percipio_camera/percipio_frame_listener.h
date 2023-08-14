@@ -61,7 +61,7 @@ public:
     callback_ = callback;
   }
 
-  void setPercipioDeviceTimer(bool enable);
+  void setUseDeviceTimer(bool enable);
 
 private:
   percipio::VideoFrameRef m_frame;

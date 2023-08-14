@@ -32,6 +32,8 @@
 #ifndef PERCIPIO_DEVICE_H
 #define PERCIPIO_DEVICE_H
 
+#include "percipio_camera/percipio_interface.h"
+
 #include "percipio_camera/percipio_video_mode.h"
 
 #include "percipio_camera/percipio_exception.h"
@@ -64,7 +66,7 @@ class PercipioFrameListener;
 class PercipioDevice
 {
 public:
-  PercipioDevice(const std::string& device_URI) throw (PercipioException);
+  PercipioDevice(const std::string& device_URI);
   virtual ~PercipioDevice();
 
   const std::string getUri() const;
@@ -98,13 +100,19 @@ public:
   bool isColorStreamStarted();
   bool isDepthStreamStarted();
 
-  bool isImageRegistrationModeSupported() const;
-  void setImageRegistrationMode(bool enabled) throw (PercipioException);
-  void setDepthColorSync(bool enabled) throw (PercipioException);
+  void setColorUndistortion(bool enabled);
 
-  const PercipioVideoMode getIRVideoMode() throw (PercipioException);
-  const PercipioVideoMode getColorVideoMode() throw (PercipioException);
-  const PercipioVideoMode getDepthVideoMode() throw (PercipioException);
+  bool isImageRegistrationModeSupported() const;
+  void setImageRegistrationMode(bool enabled);
+  percipio::ImageRegistrationMode getImageRegistrationMode() const;
+
+  bool isDeviceRGBDSyncSupported() const;
+  void setDeviceRGBDSynchronization(bool enabled);
+
+
+  const PercipioVideoMode getIRVideoMode();
+  const PercipioVideoMode getColorVideoMode();
+  const PercipioVideoMode getDepthVideoMode();
 
   const std::vector<PercipioVideoMode>& getSupportedIRVideoModes() const;
   const std::vector<PercipioVideoMode>& getSupportedColorVideoModes() const;
@@ -114,9 +122,9 @@ public:
   bool isColorVideoModeSupported(const PercipioVideoMode& video_mode) const;
   bool isDepthVideoModeSupported(const PercipioVideoMode& video_mode) const;
 
-  void setIRVideoMode(const PercipioVideoMode& video_mode) throw (PercipioException);
-  void setColorVideoMode(const PercipioVideoMode& video_mode) throw (PercipioException);
-  void setDepthVideoMode(const PercipioVideoMode& video_mode) throw (PercipioException);
+  void setIRVideoMode(const PercipioVideoMode& video_mode);
+  void setColorVideoMode(const PercipioVideoMode& video_mode);
+  void setDepthVideoMode(const PercipioVideoMode& video_mode);
 
   void setIRFrameCallback(FrameCallbackFunction callback);
   void setColorFrameCallback(FrameCallbackFunction callback);
@@ -139,17 +147,34 @@ public:
   bool hasTofDepthChannel() const;
   bool hasTofDepthQuality() const;
   
-  void setLaserPower(int value) throw (PercipioException);
-  void setAutoExposure(bool enable) throw (PercipioException);
-  void setAutoWhiteBalance(bool enable) throw (PercipioException);
-  void setColorAnalogGain(int value) throw (PercipioException);
-  void setColorRedGain(int value) throw (PercipioException);
-  void setColorGreenGain(int value) throw (PercipioException);
-  void setColorBlueGain(int value) throw (PercipioException);
-  void setColorExposureTime(int value) throw (PercipioException);
-  void setIrGain(int value) throw (PercipioException);
-  void setTofDepthChannel(int value) throw (PercipioException);
-  void setTofDepthQuality(int value) throw (PercipioException);
+  void setLaserPower(int value);
+  void setAutoExposure(bool enable);
+  void setAutoWhiteBalance(bool enable);
+  void setColorAnalogGain(int value);
+  void setColorRedGain(int value);
+  void setColorGreenGain(int value);
+  void setColorBlueGain(int value);
+  void setColorExposureTime(int value);
+  void setIrGain(int value);
+  void setTofDepthChannel(int value);
+  void setTofDepthQuality(int value);
+
+  void setSgbmImageChanNumber(int value);
+  void setSgbmDispNumber(int value);
+  void setSgbmDispOffset(int value);
+  void setSgbmMatchWinHeight(int value);
+  void setSgbmSemiP1(int value);
+  void setSgbmSemiP2(int value);
+  void setSgbmUniqueFactor(int value);
+  void setSgbmUniqueAbsDiff(int value);
+  void setSgbmCostParam(int value);
+  void setSgbmHalfWinSizeEn(int value);
+  void setSgbmMatchWinWidth(int value);
+  void setSgbmMedianFilterEn(int value);
+  void setSgbmLRCCheckEn(int value);
+  void setSgbmLRCMaxDiff(int value);
+  void setSgbmMedianFilterThresh(int value);
+  void setSgbmSemiP1Scale(int value);
   
   bool getLaserPower(int* value) const;
   bool getAutoExposure() const;
@@ -168,7 +193,7 @@ public:
   bool getAutoExposure() const;
   bool getAutoWhiteBalance() const;
 */
-  void setPercipioDeviceTimer(bool enable);
+  void setUseDeviceTimer(bool enable);
 
   //PERCIPIO
   bool getDepthCalibIntristic(void* data, int* size);
@@ -178,8 +203,8 @@ protected:
   void shutdown();
 
   boost::shared_ptr<percipio::VideoStream> getIRVideoStream() const;
-  boost::shared_ptr<percipio::VideoStream> getColorVideoStream() const throw (PercipioException);
-  boost::shared_ptr<percipio::VideoStream> getDepthVideoStream() const throw (PercipioException);
+  boost::shared_ptr<percipio::VideoStream> getColorVideoStream() const;
+  boost::shared_ptr<percipio::VideoStream> getDepthVideoStream() const;
 
   boost::shared_ptr<percipio::Device> percipio_device_;
   boost::shared_ptr<percipio::DeviceInfo> device_info_;

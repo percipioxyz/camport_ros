@@ -28,6 +28,8 @@
  *
  *    Author: Julius Kammerl (jkammerl@willowgarage.com)
  */
+#include <iostream>
+#include <algorithm>
 
 #include "percipio_camera/percipio_driver.h"
 #include "percipio_camera/percipio_exception.h"
@@ -44,8 +46,6 @@
 namespace percipio_wrapper
 {
 struct calibIntris{
-  uint32_t width;
-  uint32_t height;
   float data[9];
 };
 
@@ -62,6 +62,10 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   device_manager_(PercipioDeviceManager::getSingelton()),
   config_init_(false),
   depth_registration_(false),
+  color_depth_synchronization_(true),
+  use_device_time_(false),
+  tof_depth_channel_(0),
+  tof_depth_quality_(4),
   data_skip_ir_counter_(0),
   data_skip_color_counter_(0),
   data_skip_depth_counter_ (0),
@@ -70,8 +74,6 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   point3d_subscribers_(false),
   depth_subscribers_(false)
 {
-  genVideoModeTableMap();
-
   readConfigFromParameterServer();
 
   initDevice();
@@ -94,10 +96,6 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("rgb_exposure_time");
   if(!device_->hasIrGain())
     pnh.deleteParam("ir_gain");
-  if(!device_->hasTofDepthChannel())
-    pnh.deleteParam("tof_depth_channel");
-  if(!device_->hasTofDepthQuality())
-    pnh.deleteParam("tof_depth_quality");
 
   // Initialize dynamic reconfigure
   reconfigure_server_.reset(new ReconfigureServer(pnh_));
@@ -168,7 +166,7 @@ void PercipioDriver::advertiseROSTopics()
       image_transport::SubscriberStatusCallback itssc = boost::bind(&PercipioDriver::depthConnectCb, this);
       ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::depthConnectCb, this);
       pub_depth_ = depth_it.advertiseCamera("image_raw", 1, itssc, itssc, rssc, rssc);
-      pub_point3d_ = point3d_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
+      //pub_point3d_ = point3d_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
     }
   }
 
@@ -217,8 +215,6 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       device_->getColorBlueGain(&m_rgb_b_gain_);
       device_->getColorExposureTime(&m_rgb_exposure_time_);
       device_->getIrGain(&m_ir_gain_);
-      device_->getTofDepthChannel(&tof_depth_channel_);
-      device_->getTofDepthQuality(&tof_depth_quality_);
       
       config.laser_power = m_laser_power_;
   
@@ -232,9 +228,6 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       config.rgb_exposure_time = m_rgb_exposure_time_;
 
       config.ir_gain = m_ir_gain_;
-
-      config.tof_depth_channel = tof_depth_channel_;
-      config.tof_depth_quality = tof_depth_quality_;
     }
   }
   else {
@@ -282,24 +275,9 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       m_ir_gain_ = config.ir_gain;
       if(device_) device_->setIrGain(m_ir_gain_);
     }
-
-    if(tof_depth_channel_ != config.tof_depth_channel) {
-      tof_depth_channel_ = config.tof_depth_channel;
-      if(device_) device_->setTofDepthChannel(tof_depth_channel_);
-    }
-
-    if(tof_depth_quality_ != config.tof_depth_quality) {
-      tof_depth_quality_ = config.tof_depth_quality;
-      if(device_) device_->setTofDepthQuality(tof_depth_quality_);
-    }
-
-    if(depth_registration_ != config.depth_registration) {
-      depth_registration_ = config.depth_registration;
-    }
   }
   
   z_scaling_ = config.z_scaling;
-  z_offset_mm_ = 0;
 
   // assign pixel format
   //ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY16;
@@ -310,9 +288,9 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
   auto_exposure_ = config.auto_exposure;
   auto_white_balance_ = config.auto_white_balance;
 
-  percipio_device_time_ = config.use_device_time;
-
   data_skip_ = config.data_skip+1;
+
+  use_device_time_ = config.use_device_time;
 
   applyConfigToPercipioDevice();
 
@@ -345,13 +323,8 @@ void PercipioDriver::applyConfigToPercipioDevice()
   ir_video_mode_ = getIRVideoMode();
   color_video_mode_ = getColorVideoMode();
   depth_video_mode_ = getDepthVideoMode();
-  
-  if (device_->isImageRegistrationModeSupported())
-  {
-    device_->setImageRegistrationMode(depth_registration_);
-  }
 
-  device_->setPercipioDeviceTimer(percipio_device_time_);
+  device_->setUseDeviceTimer(use_device_time_);
 }
 
 void PercipioDriver::colorConnectCb()
@@ -359,8 +332,7 @@ void PercipioDriver::colorConnectCb()
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
   color_subscribers_ = pub_color_.getNumSubscribers() > 0;
   if (color_subscribers_ && !device_->isColorStreamStarted())
-  {
-    
+  { 
     device_->setColorFrameCallback(boost::bind(&PercipioDriver::newColorFrameCallback, this, _1));
 
     ROS_INFO("Starting color stream.");
@@ -378,9 +350,10 @@ void PercipioDriver::colorConnectCb()
 void PercipioDriver::depthConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
-  point3d_subscribers_ = pub_point3d_.getNumSubscribers() > 0;
+  //point3d_subscribers_ = pub_point3d_.getNumSubscribers() > 0;
   depth_subscribers_ = pub_depth_.getNumSubscribers() > 0;
-  bool need_depth = point3d_subscribers_ || depth_subscribers_;
+  //bool need_depth = point3d_subscribers_ || depth_subscribers_;
+  bool need_depth = depth_subscribers_;
 
   if (need_depth && !device_->isDepthStreamStarted())
   {
@@ -415,70 +388,6 @@ void PercipioDriver::irConnectCb()
   }
 }
 
-void PercipioDriver::resize(sensor_msgs::ImagePtr ptr, int width, int height, int type)
-{
-  if(!width) return ;
-  if(!height) return ;
-  
-  if((ptr->width != width) || 
-    (ptr->height != height))
-  {
-     cv::Mat src, dst, temp;
-     switch(type) {
-      case CV_8U:
-        src = cv::Mat(ptr->height, ptr->width, CV_8U, &ptr->data[0]);
-        cv::resize(src, dst, cv::Size(width, height));
-        ptr->data.resize(width*height);
-        ptr->width = width;
-        ptr->height = height;
-        memcpy(&ptr->data[0], dst.data, width*height);
-        break;
-      case CV_16U:
-        src = cv::Mat(ptr->height, ptr->width, CV_16U, &ptr->data[0]);
-        dst = cv::Mat::zeros(height, width, CV_16U);
-        float f_x_scale = 1.0f * width / src.cols;
-        float f_y_scale = 1.0f * height / src.rows;
-        for(int i = 0; i < src.rows; i++) {
-          for(int j = 0; j < src.cols; j++) {
-            int _x_offset = (int)(j * f_x_scale + 0.5);
-            int _y_offset = (int)(i * f_y_scale + 0.5);
-            if((_x_offset < width) && (_y_offset < height))
-              dst.at<unsigned short>(_y_offset, _x_offset) = src.at<unsigned short>(i, j);
-          }
-        }
-        
-        ptr->data.resize(width*height*2);
-
-        //TODO
-        const int kthresh = 16 * 3;
-        const int kOffset[8] = {
-          -1, 1, (int)width, -(int)width, (int)width - 1, (int)width + 1
-          , -(int)width - 1, -(int)width + 1
-        };
-        for (int y = 1; y < (int)height - 1; y++) {
-          uint16_t *srcptr = (uint16_t*)(dst.data) + y * width + 1;
-          uint16_t *dstptr = (uint16_t*)(&ptr->data[0]) + y * width + 1;
-          for (int x = 1; x < (int)width - 1; x++, srcptr++,dstptr++) {
-            *dstptr = *srcptr;
-            for (int idx = 0; idx < 8; idx++) {
-              int k = kOffset[idx];
-              if (*dstptr != 0 && srcptr[k] != 0){
-                *dstptr = (*dstptr < srcptr[k] ? *dstptr : srcptr[k]);
-              }
-              else if (srcptr[k] != 0){
-                *dstptr = srcptr[k];
-              }
-            }
-          }
-        }
-
-        ptr->width = width;
-        ptr->height = height;
-        break;
-     }
-  }
-}
-
 void PercipioDriver::newIRFrameCallback(sensor_msgs::ImagePtr image)
 {
   if ((++data_skip_ir_counter_)%data_skip_==0)
@@ -490,8 +399,6 @@ void PercipioDriver::newIRFrameCallback(sensor_msgs::ImagePtr image)
       image->header.frame_id = ir_frame_id_;
       image->header.stamp = image->header.stamp + ir_time_offset_;
       
-      //if(depth_registration_)
-      //  resize(image, color_video_mode_.x_resolution_, color_video_mode_.y_resolution_, CV_8U);
       pub_ir_.publish(image, getDepthCameraInfo(image->width, image->height, image->header.stamp));
     }
   }
@@ -521,32 +428,20 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
     if (depth_subscribers_||point3d_subscribers_)
     {
       sensor_msgs::ImageConstPtr floating_point_image = nullptr;
-      //image->header.stamp = image->header.stamp;
-
-      //if(depth_registration_)
-      //  resize(image, color_video_mode_.x_resolution_, color_video_mode_.y_resolution_, CV_16U);
-      
-      if (z_offset_mm_ != 0)
-      {
-        uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
-        for (unsigned int i = 0; i < image->width * image->height; ++i)
-          if (data[i] != 0)
-            data[i] += z_offset_mm_;
-      }
 
       if (point3d_subscribers_ )
         floating_point_image = rawToFloatingPointConversion(image, z_scaling_);
 
-      if(z_scaling_ != 1)
+      if(std::abs(z_scaling_ - 1.f ) > 0.001)
       {
         uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
         for (unsigned int i = 0; i < image->width * image->height; ++i)
           if (data[i] != 0)
-        data[i] = static_cast<uint16_t>(data[i] /(1.0f *  z_scaling_) + 0.5f);
+        data[i] = static_cast<uint16_t>(data[i]  *  z_scaling_) + 0.5f;
       }
 
       sensor_msgs::CameraInfoPtr cam_info;
-      if (depth_registration_)
+      if(percipio::IMAGE_REGISTRATION_DEPTH_TO_COLOR == device_.get()->getImageRegistrationMode())
       {
         image->header.frame_id = color_frame_id_;
         cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp);
@@ -556,16 +451,17 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
         image->header.frame_id = depth_frame_id_;
         cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
       }
+
       if (depth_subscribers_)
       {
         pub_depth_.publish(image, cam_info);
       }
 
-      if (point3d_subscribers_ )
-      {
-        if(floating_point_image != nullptr)
-          pub_point3d_.publish(floating_point_image, cam_info);
-      }
+      //if (point3d_subscribers_ )
+      //{
+      //  if(floating_point_image != nullptr)
+      //    pub_point3d_.publish(floating_point_image, cam_info);
+      //}
     }
   }
 }
@@ -614,9 +510,7 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int hei
     info = boost::make_shared<sensor_msgs::CameraInfo>();
 
     int size = sizeof(color_cal.data);
-    color_cal.width = width;
-    color_cal.height = height;
-    
+
     //get intristic from percipio firmware
     device_->getColorCalibIntristic((void*)color_cal.data, &size);
     
@@ -643,8 +537,8 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int hei
     info->P.assign(0.0);
     info->P[0] = info->K[0]; //fx
     info->P[5] = info->K[4]; //fy
-    info->P[2] = info->K[2]; // cx
-    info->P[6] = info->K[5]; // cy
+    info->P[2] = info->K[2]; //cx
+    info->P[6] = info->K[5]; //cy
     info->P[10] = 1.0;
 
     // Fill in header
@@ -687,8 +581,6 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDepthCameraInfo(int width, int hei
     info = boost::make_shared<sensor_msgs::CameraInfo>();
 
     int size = sizeof(depth_cal.data);
-    depth_cal.width = width;
-    depth_cal.height = height;
     
     //get intristic from percipio firmware
     device_->getDepthCalibIntristic((void*)&depth_cal.data, &size);
@@ -761,16 +653,65 @@ void PercipioDriver::readConfigFromParameterServer()
 
   if (!pnh_.getParam("rgb_resolution", rgb_resolution_))
   {
-    ROS_WARN ("~device_id is not set! Using first device.");
+    ROS_WARN ("~rgb_resolution is not set! Try using default.");
     rgb_resolution_ = "640x480";
   }
 
-  if (!pnh_.getParam("rgb_resolution", depth_resolution_))
+  if (!pnh_.getParam("depth_resolution", depth_resolution_))
   {
-    ROS_WARN ("~device_id is not set! Using first device.");
+    ROS_WARN ("~depth_resolution is not set! Try using default.");
     depth_resolution_ = "640x480";
   }
-  
+
+  if (!pnh_.getParam("color_undistortion", color_undistortion_))
+  {
+    ROS_WARN ("~color_undistortion is not set! Using default.");
+    color_undistortion_ = true;
+  }
+
+  if (!pnh_.getParam("depth_registration", depth_registration_))
+  {
+    ROS_WARN ("~depth_registration is not set! Using default.");
+    depth_registration_ = false;
+  }
+
+  if (!pnh_.getParam("color_depth_synchronization", color_depth_synchronization_))
+  {
+    ROS_WARN ("~color_depth_synchronization is not set! Using default.");
+    color_depth_synchronization_ = true;
+  }
+
+  if (!pnh_.getParam("tof_channel", tof_depth_channel_))
+  {
+    tof_depth_channel_ = PARAMTER_DEFAULT;
+  }
+
+  if (!pnh_.getParam("tof_depth_quality", tof_depth_quality_))
+  {
+    tof_depth_quality_ = PARAMTER_DEFAULT;
+  }
+
+  //SGBM paramters
+  {
+    pnh_.getParam("sgbm_image_channel_num",             sgbm_image_channel_num_);
+    pnh_.getParam("sgbm_disparity_num",                 sgbm_disparity_num_);
+    pnh_.getParam("sgbm_disparity_offset",              sgbm_disparity_offset_);
+    pnh_.getParam("sgbm_match_window_height",           sgbm_match_window_height_);
+    pnh_.getParam("sgbm_semi_global_param_p1",          sgbm_semi_global_param_p1_);
+    pnh_.getParam("sgbm_semi_global_param_p2",          sgbm_semi_global_param_p2_);
+    pnh_.getParam("sgbm_unique_factor_param",           sgbm_unique_factor_param_);
+    pnh_.getParam("sgbm_unique_min_absolute_diff",      sgbm_unique_min_absolute_diff_);
+    pnh_.getParam("sgbm_cost_param",                    sgbm_cost_param_);
+    pnh_.getParam("sgbm_enable_half_window_size",       sgbm_enable_half_window_size_);
+    pnh_.getParam("sgbm_match_window_width",            sgbm_match_window_width_);
+    pnh_.getParam("sgbm_enable_median_filter",          sgbm_enable_median_filter_);
+    pnh_.getParam("sgbm_enable_lrc_check",              sgbm_enable_lrc_check_);
+    pnh_.getParam("sgbm_lrc_max_diff",                  sgbm_lrc_max_diff_);
+    pnh_.getParam("sgbm_median_filter_thresh",          sgbm_median_filter_thresh_);
+    pnh_.getParam("sgbm_semi_global_param_p1_scale",    sgbm_semi_global_param_p1_scale_);
+
+  }
+
   // Camera TF frames
   pnh_.param("ir_frame_id", ir_frame_id_, std::string("/percipio_ir_optical_frame"));
   pnh_.param("rgb_frame_id", color_frame_id_, std::string("/percipio_rgb_optical_frame"));
@@ -935,7 +876,56 @@ void PercipioDriver::initDevice()
       device_.get()->setColorResolution(rgb_width, rgb_height);
       device_.get()->setDepthResolutuon(depth_width, depth_height);
 
-      //device_get()->trySetTof
+      device_.get()->setColorUndistortion(color_undistortion_);
+
+      if(device_.get()->isImageRegistrationModeSupported()) {
+        device_.get()->setImageRegistrationMode(depth_registration_);
+      }
+
+      if(device_.get()->isDeviceRGBDSyncSupported()) {
+        device_.get()->setDeviceRGBDSynchronization(color_depth_synchronization_);
+      }
+
+      if(tof_depth_channel_!= PARAMTER_DEFAULT)
+        device_->setTofDepthChannel(tof_depth_channel_);
+      if(tof_depth_quality_ != PARAMTER_DEFAULT)
+        device_->setTofDepthQuality(tof_depth_quality_);
+
+      //SGBM paramters init
+      {
+        if(sgbm_image_channel_num_!= PARAMTER_DEFAULT)
+          device_->setSgbmImageChanNumber(sgbm_image_channel_num_);
+        if(sgbm_disparity_num_!= PARAMTER_DEFAULT)
+          device_->setSgbmDispNumber(sgbm_disparity_num_);
+        if(sgbm_disparity_offset_!= PARAMTER_DEFAULT)
+          device_->setSgbmDispOffset(sgbm_disparity_offset_);
+        if(sgbm_match_window_height_!= PARAMTER_DEFAULT)
+          device_->setSgbmMatchWinHeight(sgbm_match_window_height_);
+        if(sgbm_semi_global_param_p1_!= PARAMTER_DEFAULT)
+          device_->setSgbmSemiP1(sgbm_semi_global_param_p1_);
+        if(sgbm_semi_global_param_p2_!= PARAMTER_DEFAULT)
+          device_->setSgbmSemiP2(sgbm_semi_global_param_p2_);
+        if(sgbm_unique_factor_param_!= PARAMTER_DEFAULT)
+          device_->setSgbmUniqueFactor(sgbm_unique_factor_param_);
+        if(sgbm_unique_min_absolute_diff_!= PARAMTER_DEFAULT)
+          device_->setSgbmUniqueAbsDiff(sgbm_unique_min_absolute_diff_);
+        if(sgbm_cost_param_!= PARAMTER_DEFAULT)
+          device_->setSgbmCostParam(sgbm_cost_param_);
+        if(sgbm_enable_half_window_size_!= PARAMTER_DEFAULT)
+          device_->setSgbmHalfWinSizeEn(sgbm_enable_half_window_size_);
+        if(sgbm_match_window_width_!= PARAMTER_DEFAULT)
+          device_->setSgbmMatchWinWidth(sgbm_match_window_width_);
+        if(sgbm_enable_median_filter_!= PARAMTER_DEFAULT)
+          device_->setSgbmMedianFilterEn(sgbm_enable_median_filter_);
+        if(sgbm_enable_lrc_check_!= PARAMTER_DEFAULT)
+          device_->setSgbmLRCCheckEn(sgbm_enable_lrc_check_);
+        if(sgbm_lrc_max_diff_!= PARAMTER_DEFAULT)
+          device_->setSgbmLRCMaxDiff(sgbm_lrc_max_diff_);
+        if(sgbm_median_filter_thresh_!= PARAMTER_DEFAULT)
+          device_->setSgbmMedianFilterThresh(sgbm_median_filter_thresh_);
+        if(sgbm_semi_global_param_p1_scale_!= PARAMTER_DEFAULT)
+          device_->setSgbmSemiP1Scale(sgbm_semi_global_param_p1_scale_);
+      }
     }
     catch (const PercipioException& exception)
     {
@@ -961,160 +951,7 @@ void PercipioDriver::initDevice()
 
 }
 
-void PercipioDriver::genVideoModeTableMap()
-{
-  video_modes_lookup_.clear();
-
-  PercipioVideoMode video_mode;
-
-  // SXGA_30Hz
-  video_mode.x_resolution_ = 1280;
-  video_mode.y_resolution_ = 1024;
-  video_mode.frame_rate_ = 30;
-
-  video_modes_lookup_[1] = video_mode;
-
-  // SXGA_15Hz
-  video_mode.x_resolution_ = 1280;
-  video_mode.y_resolution_ = 1024;
-  video_mode.frame_rate_ = 15;
-
-  video_modes_lookup_[2] = video_mode;
-
-  // XGA_30Hz
-  video_mode.x_resolution_ = 1280;
-  video_mode.y_resolution_ = 720;
-  video_mode.frame_rate_ = 30;
-
-  video_modes_lookup_[3] = video_mode;
-
-  // XGA_15Hz
-  video_mode.x_resolution_ = 1280;
-  video_mode.y_resolution_ = 720;
-  video_mode.frame_rate_ = 15;
-
-  video_modes_lookup_[4] = video_mode;
-
-  // VGA_30Hz
-  video_mode.x_resolution_ = 640;
-  video_mode.y_resolution_ = 480;
-  video_mode.frame_rate_ = 30;
-
-  video_modes_lookup_[5] = video_mode;
-
-  // VGA_25Hz
-  video_mode.x_resolution_ = 640;
-  video_mode.y_resolution_ = 480;
-  video_mode.frame_rate_ = 25;
-
-  video_modes_lookup_[6] = video_mode;
-
-  // QVGA_25Hz
-  video_mode.x_resolution_ = 320;
-  video_mode.y_resolution_ = 240;
-  video_mode.frame_rate_ = 25;
-
-  video_modes_lookup_[7] = video_mode;
-
-  // QVGA_30Hz
-  video_mode.x_resolution_ = 320;
-  video_mode.y_resolution_ = 240;
-  video_mode.frame_rate_ = 30;
-
-  video_modes_lookup_[8] = video_mode;
-
-  // QVGA_60Hz
-  video_mode.x_resolution_ = 320;
-  video_mode.y_resolution_ = 240;
-  video_mode.frame_rate_ = 60;
-
-  video_modes_lookup_[9] = video_mode;
-
-  // QQVGA_25Hz
-  video_mode.x_resolution_ = 160;
-  video_mode.y_resolution_ = 120;
-  video_mode.frame_rate_ = 25;
-
-  video_modes_lookup_[10] = video_mode;
-
-  // QQVGA_30Hz
-  video_mode.x_resolution_ = 160;
-  video_mode.y_resolution_ = 120;
-  video_mode.frame_rate_ = 30;
-
-  video_modes_lookup_[11] = video_mode;
-
-  // QQVGA_60Hz
-  video_mode.x_resolution_ = 160;
-  video_mode.y_resolution_ = 120;
-  video_mode.frame_rate_ = 60;
-
-  video_modes_lookup_[12] = video_mode;
-
-  // VGA_15Hz
-  video_mode.x_resolution_ = 640;
-  video_mode.y_resolution_ = 480;
-  video_mode.frame_rate_ = 15;
-
-  video_modes_lookup_[13] = video_mode;
-
-  video_mode.x_resolution_ = 1280;
-  video_mode.y_resolution_ = 960;
-  video_mode.frame_rate_ = 30;
-
-  video_modes_lookup_[14] = video_mode;
-
-  video_mode.x_resolution_ = 2592;
-  video_mode.y_resolution_ = 1944;
-  video_mode.frame_rate_ = 30;
-
-  video_modes_lookup_[15] = video_mode;
-  
-  //ADD
-  video_mode.x_resolution_ = 1280;
-  video_mode.y_resolution_ = 800;
-  video_mode.frame_rate_ = 30;
-  video_modes_lookup_[16] = video_mode;
-  
-  video_mode.x_resolution_ = 640;
-  video_mode.y_resolution_ = 400;
-  video_mode.frame_rate_ = 30;
-  video_modes_lookup_[17] = video_mode;
-  
-  video_mode.x_resolution_ = 320;
-  video_mode.y_resolution_ = 200;
-  video_mode.frame_rate_ = 30;
-  video_modes_lookup_[18] = video_mode;
-  
-  video_mode.x_resolution_ = 1920;
-  video_mode.y_resolution_ = 1080;
-  video_mode.frame_rate_ = 30;
-  video_modes_lookup_[19] = video_mode;
-  
-  video_mode.x_resolution_ = 640;
-  video_mode.y_resolution_ = 360;
-  video_mode.frame_rate_ = 30;
-  video_modes_lookup_[20] = video_mode;
-}
-
-int PercipioDriver::lookupVideoModeFromDynConfig(int mode_nr, PercipioVideoMode& video_mode)
-{
-  int ret = -1;
-
-  std::map<int, PercipioVideoMode>::const_iterator it;
-
-  it = video_modes_lookup_.find(mode_nr);
-
-  if (it!=video_modes_lookup_.end())
-  {
-    video_mode = it->second;
-    ret = 0;
-  }
-
-  return ret;
-}
-
-sensor_msgs::ImageConstPtr PercipioDriver::rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, int scale)
+sensor_msgs::ImageConstPtr PercipioDriver::rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, float scale)
 {
   static const float bad_point = std::numeric_limits<float>::quiet_NaN ();
 
@@ -1141,7 +978,7 @@ sensor_msgs::ImageConstPtr PercipioDriver::rawToFloatingPointConversion(sensor_m
     } 
     else
     {
-      *out_ptr = static_cast<float>(*in_ptr)/(1000.0f * scale);
+      *out_ptr = static_cast<float>(*in_ptr) * scale;
     }
   }
 

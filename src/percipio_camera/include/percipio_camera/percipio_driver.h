@@ -98,10 +98,7 @@ private:
 
   void applyConfigToPercipioDevice();
 
-  void genVideoModeTableMap();
-  int lookupVideoModeFromDynConfig(int mode_nr, PercipioVideoMode& video_mode);
-
-  sensor_msgs::ImageConstPtr rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, int scale);
+  sensor_msgs::ImageConstPtr rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, float scale);
 
   //void setIRVideoMode(const PercipioVideoMode& ir_video_mode);
   //void setColorVideoMode(const PercipioVideoMode& color_video_mode);
@@ -121,6 +118,12 @@ private:
   std::string rgb_resolution_;
   std::string depth_resolution_;
 
+  bool color_undistortion_;
+
+  bool depth_registration_;
+
+  bool color_depth_synchronization_;
+
   /** \brief get_serial server*/
   ros::ServiceServer get_serial_server;
 
@@ -135,8 +138,6 @@ private:
   image_transport::CameraPublisher pub_point3d_;
   image_transport::CameraPublisher pub_ir_;
   ros::Publisher pub_projector_info_;
-  
-  void resize(sensor_msgs::ImagePtr ptr, int width, int height, int type);
 
   /** \brief Camera info manager objects. */
   boost::shared_ptr<camera_info_manager::CameraInfoManager> color_info_manager_, depth_info_manager_, ir_info_manager;
@@ -150,11 +151,6 @@ private:
   std::string depth_frame_id_ ;
 
   std::string color_info_url_, depth_info_url_, ir_info_url_;
-
-  bool color_depth_synchronization_;
-  bool depth_registration_;
-
-  std::map<int, PercipioVideoMode> video_modes_lookup_;
 
   // dynamic reconfigure config
   int m_laser_power_;
@@ -173,30 +169,45 @@ private:
 
   double depth_ir_offset_x_;
   double depth_ir_offset_y_;
-  int z_offset_mm_;
-  int z_scaling_;
+  float z_scaling_;
 
+  #define PARAMTER_DEFAULT   (0xFFFFFFFF)
   int tof_depth_channel_;
   int tof_depth_quality_;
 
+  int sgbm_image_channel_num_  = PARAMTER_DEFAULT;
+  int sgbm_disparity_num_  = PARAMTER_DEFAULT;
+  int sgbm_disparity_offset_  = PARAMTER_DEFAULT;
+  int sgbm_match_window_height_  = PARAMTER_DEFAULT;
+  int sgbm_semi_global_param_p1_  = PARAMTER_DEFAULT;
+  int sgbm_semi_global_param_p2_  = PARAMTER_DEFAULT;
+  int sgbm_unique_factor_param_  = PARAMTER_DEFAULT;
+  int sgbm_unique_min_absolute_diff_  = PARAMTER_DEFAULT;
+  int sgbm_cost_param_  = PARAMTER_DEFAULT;
+  int sgbm_enable_half_window_size_  = PARAMTER_DEFAULT;
+  int sgbm_match_window_width_  = PARAMTER_DEFAULT;
+  int sgbm_enable_median_filter_  = PARAMTER_DEFAULT;
+  int sgbm_enable_lrc_check_  = PARAMTER_DEFAULT;
+  int sgbm_lrc_max_diff_  = PARAMTER_DEFAULT;
+  int sgbm_median_filter_thresh_  = PARAMTER_DEFAULT;
+  int sgbm_semi_global_param_p1_scale_  = PARAMTER_DEFAULT;
+  
   ros::Duration ir_time_offset_;
   ros::Duration color_time_offset_;
   ros::Duration depth_time_offset_;
 
   int data_skip_;
 
+  bool use_device_time_;
+
   int data_skip_ir_counter_;
   int data_skip_color_counter_;
   int data_skip_depth_counter_;
-
-  
 
   bool ir_subscribers_;
   bool color_subscribers_;
   bool point3d_subscribers_;
   bool depth_subscribers_;
-
-  bool percipio_device_time_;
 
   Config old_config_;
 };

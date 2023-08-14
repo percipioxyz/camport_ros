@@ -51,7 +51,7 @@ PercipioFrameListener::PercipioFrameListener() :
   ros::Time::init();
 }
 
-void PercipioFrameListener::setPercipioDeviceTimer(bool enable)
+void PercipioFrameListener::setUseDeviceTimer(bool enable)
 {
   user_device_timer_ = enable;
 
@@ -62,9 +62,10 @@ void PercipioFrameListener::setPercipioDeviceTimer(bool enable)
 void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
 {
   if(TY_STATUS_OK != stream.readFrame(&m_frame)) {
-    printf("onNewFrame : readFrame end< invalid frame>!\n");
+    ROS_WARN("onNewFrame : readFrame end< invalid frame>!\n");
     return;
   }
+
   if (m_frame.isValid() && callback_)
   {
     sensor_msgs::ImagePtr image(new sensor_msgs::Image);
@@ -108,7 +109,6 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
 
     image->data.resize(data_size);
     memcpy(&image->data[0], m_frame.getData(), data_size);
-
     image->is_bigendian = 0;
 
     const percipio::VideoMode video_mode = m_frame.getVideoMode();

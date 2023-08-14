@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-11 14:32:44
+ * @LastEditTime: 2023-08-14 18:52:50
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -212,7 +212,12 @@ namespace percipio
     return m_ids;
   }
 
-  bool percipio_depth_cam::DeviceIsImageRegistrationModeSupported(ImageRegistrationMode mode) const
+  bool percipio_depth_cam::DeviceSetColorUndistortionEnable(bool enable)
+  {
+    color_undistortion = enable;
+  }
+
+  bool percipio_depth_cam::DeviceIsImageRegistrationModeSupported() const
   {
     if((m_ids & TY_COMPONENT_DEPTH_CAM) &&(m_ids &  TY_COMPONENT_RGB_CAM))
       return true;
@@ -228,17 +233,51 @@ namespace percipio
 
   ImageRegistrationMode percipio_depth_cam::DeviceGetImageRegistrationMode()
   {
-    return registration_mode;
+    if(DeviceIsImageRegistrationModeSupported()) {
+      if(b_stream_with_color)
+        return registration_mode;
+      else
+        return IMAGE_REGISTRATION_OFF;
+    }
+    else  
+      return IMAGE_REGISTRATION_OFF;
   }
 
-  TY_STATUS percipio_depth_cam::MapDepthFrameToColorCoordinate(VideoFrameData& src, VideoFrameData& dst)
+  TY_STATUS percipio_depth_cam::MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
     return ImgProc::MapDepthImageToColorCoordinate(&depth_calib, &color_calib, current_rgb_width, current_rgb_height, src, dst, f_depth_scale_unit);
+  }
+
+  TY_STATUS percipio_depth_cam::parseColorStream(VideoFrameData* src, VideoFrameData* dst)
+  {
+    if(color_undistortion) {
+      return ImgProc::doRGBUndistortion(&color_calib, src, dst);
+    }else {
+      dst->clone(*src);
+      return TY_STATUS_OK;
+    }
+  }
+
+  TY_STATUS percipio_depth_cam::parseDepthStream(VideoFrameData* src, VideoFrameData* dst)
+  {
+    if(depth_distortion)
+      return ImgProc::doDepthUndistortion(&depth_calib, src, dst);
+    else {
+      dst->clone(*src);
+      return TY_STATUS_OK;
+    }
   }
 
   TY_STATUS percipio_depth_cam::FrameDecoder(VideoFrameData& src, VideoFrameData& dst)
   {
     return ImgProc::cvtColor(src, dst);
+  }
+
+  bool percipio_depth_cam::isDepthColorSyncSupport()
+  {
+    bool has = false;
+    TYHasFeature(_M_DEVICE, TY_COMPONENT_DEVICE, TY_BOOL_CMOS_SYNC, &has);
+    return has;
   }
 
   TY_STATUS percipio_depth_cam::DeviceEnableDepthColorSync()
@@ -303,24 +342,17 @@ namespace percipio
   {
     TY_STATUS rc;
     TY_DEVICE_BASE_INFO inf;
-    TY_CAMERA_INTRINSIC intr;
     switch(propertyId)
     {
       case TY_DEVICE_PROPERTY_DEPTH_CALIB_INTRISTIC:
         if((*dataSize) < (9 * sizeof(float)))
           return TY_STATUS_NO_BUFFER;
-        rc = TYGetStruct(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &intr, sizeof(intr));
-        if(rc != TY_STATUS_OK)
-          return rc;
-        memcpy(data, intr.data, sizeof(intr.data));
+        memcpy(data, depth_intr.data, sizeof(depth_intr.data));
         break;
       case TY_DEVICE_PROPERTY_COLOR_CALIB_INTRISTIC:
         if((*dataSize) < (9 * sizeof(float)))
           return TY_STATUS_NO_BUFFER;
-        rc = TYGetStruct(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_STRUCT_CAM_INTRINSIC, &intr, sizeof(intr));
-        if(rc != TY_STATUS_OK)
-          return rc;
-        memcpy(data, intr.data, sizeof(intr.data));
+        memcpy(data, color_intr.data, sizeof(color_intr.data));
         break;
       case TY_DEVICE_PROPERTY_SERIAL_NUMBER:
         rc = TYGetDeviceInfo(_M_DEVICE, &inf);
@@ -537,6 +569,10 @@ namespace percipio
       StreamStopAll();
     }
     
+    b_stream_with_color = false;
+
+    depth_distortion = false;
+    
     if(!HasStream()) {
       return TY_STATUS_ERROR;
     }
@@ -557,22 +593,28 @@ namespace percipio
       TYEnableComponents(_M_DEVICE, TY_COMPONENT_RGB_CAM);
       TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_WIDTH, &current_rgb_width);
       TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_HEIGHT, &current_rgb_height);
+      b_stream_with_color = true;
     }else {
       TYDisableComponents(_M_DEVICE, TY_COMPONENT_RGB_CAM);
       current_rgb_width = 0;
       current_rgb_height = 0;
+      b_stream_with_color = false;
     }
 
     if(DepthStream.get() && DepthStream.get()->isInvalid()) {
       TYEnableComponents(_M_DEVICE, TY_COMPONENT_DEPTH_CAM);
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_WIDTH, &current_depth_width);
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_HEIGHT, &current_depth_height);
+      TYHasFeature(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &depth_distortion);
     }else {
       TYDisableComponents(_M_DEVICE, TY_COMPONENT_DEPTH_CAM);
       current_depth_width = 0;
       current_depth_height = 0;
     }
 
+    TYGetStruct(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &depth_intr, sizeof(depth_intr));
+    TYGetStruct(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_STRUCT_CAM_INTRINSIC, &color_intr, sizeof(color_intr));
+    
     uint32_t frameSize;
     TYGetFrameBufferSize(_M_DEVICE, &frameSize);
     if(frameBuffer[0]) delete []frameBuffer[0];
@@ -886,8 +928,6 @@ namespace percipio
     }
     
     _setHandle(streamHandle);
-
-    
     m_pCameraSettings = new CameraSettings(this);
     return TY_STATUS_OK;
   }
@@ -915,6 +955,11 @@ namespace percipio
     return m_sensorInfo;
   }
 
+  const StreamHandle& VideoStream::_getHandle() const
+  {
+    return m_stream;
+  }
+
   void VideoStream::_setHandle(StreamHandle stream)
   {
     ////TODO
@@ -932,17 +977,21 @@ namespace percipio
     //TODO
     VideoFrameData vframe;
     vframe.setData(img);
+
+    VideoFrameData tframe;
     if(img->pixelFormat == TY_PIXEL_FORMAT_DEPTH16) {
+      g_Context->parseDepthStream(&vframe, &tframe);
       ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
       if(mode == IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
-        g_Context->MapDepthFrameToColorCoordinate(vframe, frame);
+        g_Context->MapDepthFrameToColorCoordinate(&tframe, &frame);
       } else {
-        frame.clone(vframe);
+        frame.clone(tframe);
       }
-    } else if(img->pixelFormat == TY_PIXEL_FORMAT_MONO)
+    } else if(img->pixelFormat == TY_PIXEL_FORMAT_MONO) {
       frame.clone(vframe);
-    else {
-      g_Context->FrameDecoder(vframe, getFrame());
+    } else {
+      g_Context->FrameDecoder(vframe, tframe);
+      g_Context->parseColorStream(&tframe, &frame);
     }
     return;
   }
@@ -1052,6 +1101,7 @@ namespace percipio
         }
 
         buffer = malloc(size);
+        memset(buffer, 0, size);
         m_isOwner = true;
       }
     }
@@ -1102,6 +1152,11 @@ namespace percipio
     imageIndex = idx;
   }
 
+  void  VideoFrameData::setComponentID(int32_t compID)
+  {
+    componentID = compID;
+  }
+
   ////
   TY_STATUS CameraSettings::setLaserPower(int power)
   {
@@ -1147,7 +1202,7 @@ namespace percipio
   {
     return setProperty(TY_ENUM_DEPTH_QUALITY, quality);
   }
-  //
+
   bool CameraSettings::getLaserPower(int* power) const
   {
     TY_STATUS rc = getProperty(TY_INT_LASER_POWER, power);
@@ -1203,6 +1258,72 @@ namespace percipio
     TY_STATUS rc = getProperty(TY_ENUM_DEPTH_QUALITY, quality);
     return rc == TY_STATUS_OK;
   }
+
+  TY_STATUS CameraSettings::setDepthSgbmImageChanNumber(int value)
+  {
+    return setProperty(TY_INT_SGBM_IMAGE_NUM, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmDispNumber(int value)
+  {
+    return setProperty(TY_INT_SGBM_DISPARITY_NUM, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmDispOffset(int value)
+  {
+    return setProperty(TY_INT_SGBM_DISPARITY_OFFSET, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmMatchWinHeight(int value)
+  {
+    return setProperty(TY_INT_SGBM_MATCH_WIN_HEIGHT, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmSemiP1(int value)
+  {
+    return setProperty(TY_INT_SGBM_SEMI_PARAM_P1, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmSemiP2(int value)
+  {
+    return setProperty(TY_INT_SGBM_SEMI_PARAM_P2, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmUniqueFactor(int value)
+  {
+    return setProperty(TY_INT_SGBM_UNIQUE_FACTOR, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmUniqueAbsDiff(int value)
+  {
+    return setProperty(TY_INT_SGBM_UNIQUE_ABSDIFF, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmCostParam(int value)
+  {
+    return setProperty(TY_INT_SGBM_COST_PARAM, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmHalfWinSizeEn(int value)
+  {
+    return setProperty(TY_BOOL_SGBM_HFILTER_HALF_WIN, static_cast<bool>(value));
+  }
+  TY_STATUS CameraSettings::setDepthSgbmMatchWinWidth(int value)
+  {
+    return setProperty(TY_INT_SGBM_MATCH_WIN_WIDTH, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmMedianFilterEn(int value)
+  {
+    return setProperty(TY_BOOL_SGBM_MEDFILTER, static_cast<bool>(value));
+  }
+  TY_STATUS CameraSettings::setDepthSgbmLRCCheckEn(int value)
+  {
+    return setProperty(TY_BOOL_SGBM_LRC, static_cast<bool>(value));
+  }
+  TY_STATUS CameraSettings::setDepthSgbmLRCMaxDiff(int value)
+  {
+    return setProperty(TY_INT_SGBM_LRC_DIFF, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmMedianFilterThresh(int value)
+  {
+    return setProperty(TY_INT_SGBM_MEDFILTER_THRESH, value);
+  }
+  TY_STATUS CameraSettings::setDepthSgbmSemiP1Scale(int value)
+  {
+    return setProperty(TY_INT_SGBM_SEMI_PARAM_P1_SCALE, value);
+  }
+  
   bool CameraSettings::isValid() const 
   {
     return m_pStream != NULL;
@@ -1212,13 +1333,13 @@ namespace percipio
   TY_STATUS CameraSettings::getProperty(uint32_t propertyId, T* value) const
   {
     if (!isValid()) { printf("id[%d] is not valid!\n", propertyId); return TY_STATUS_ERROR; }
-    return g_Context.get()->getProperty<T>(m_pStream, propertyId, value);
+    return g_Context.get()->getProperty<T>(m_pStream->_getHandle(), propertyId, value);
   }
   template <class T>
   TY_STATUS CameraSettings::setProperty(uint32_t propertyId, const T& value)
   {
     if (!isValid()) {printf("id[%d] is not valid!\n", propertyId); return TY_STATUS_ERROR; }
-    return g_Context.get()->setProperty<T>(m_pStream, propertyId, value);
+    return g_Context.get()->setProperty<T>(m_pStream->_getHandle(), propertyId, value);
   }
 
   CameraSettings::CameraSettings(VideoStream* pStream)
@@ -1260,15 +1381,31 @@ namespace percipio
     return g_Context.get()->isValid(); 
   }
 
+  void Device::setColorUndistortion(bool enabled)
+  {
+    g_Context.get()->DeviceSetColorUndistortionEnable(enabled);
+  }
+
   bool Device::isImageRegistrationModeSupported(ImageRegistrationMode mode) const
   {
-    return (g_Context.get()->DeviceIsImageRegistrationModeSupported(mode) == true);
+    return (g_Context.get()->DeviceIsImageRegistrationModeSupported() == true);
   }
 
   TY_STATUS Device::setImageRegistrationMode(ImageRegistrationMode mode)
   {
     return g_Context.get()->DeviceSetImageRegistrationMode(mode);
   }
+
+  ImageRegistrationMode Device::getImageRegistrationMode() const
+  {
+    return g_Context.get()->DeviceGetImageRegistrationMode();
+  }
+
+  bool Device::isDepthColorSyncSupport()
+  {
+    return g_Context.get()->isDepthColorSyncSupport();
+  }
+
   TY_STATUS Device::setDepthColorSyncEnabled(bool isEnabled)
   {
     TY_STATUS rc = TY_STATUS_OK;

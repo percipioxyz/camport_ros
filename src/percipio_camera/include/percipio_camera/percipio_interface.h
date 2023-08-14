@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-11 12:04:43
+ * @LastEditTime: 2023-08-14 18:42:15
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -63,7 +63,7 @@ namespace percipio
     DEVICE_STATE_NOT_READY 	= 2,
     DEVICE_STATE_EOF 	= 3
   } DeviceState;
-      
+  
   typedef void* StreamHandle;
   
 
@@ -157,17 +157,20 @@ namespace percipio
 
       const uint32_t&  get_components() const ;
 
-      bool DeviceIsImageRegistrationModeSupported(ImageRegistrationMode mode) const;
+      bool DeviceSetColorUndistortionEnable(bool enable);
+
+      bool DeviceIsImageRegistrationModeSupported() const;
 
       TY_STATUS DeviceSetImageRegistrationMode(ImageRegistrationMode mode);
       ImageRegistrationMode DeviceGetImageRegistrationMode();
-      TY_STATUS MapDepthFrameToColorCoordinate(VideoFrameData& src, VideoFrameData& dst);
+      TY_STATUS MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS FrameDecoder(VideoFrameData& src, VideoFrameData& dst);
+      TY_STATUS parseColorStream(VideoFrameData* src, VideoFrameData* dst);
+      TY_STATUS parseDepthStream(VideoFrameData* src, VideoFrameData* dst);
 
+      bool isDepthColorSyncSupport();
       TY_STATUS DeviceEnableDepthColorSync();
-
       TY_STATUS DeviceDisableDepthColorSync();
-
       bool DeviceGetDepthColorSyncEnabled();
 
       template <class T>
@@ -235,6 +238,13 @@ namespace percipio
       int32_t current_rgb_height;
       TY_CAMERA_CALIB_INFO depth_calib;
       TY_CAMERA_CALIB_INFO color_calib;
+
+      bool b_stream_with_color = false;
+      TY_CAMERA_INTRINSIC depth_intr;
+      TY_CAMERA_INTRINSIC color_intr;
+
+      bool color_undistortion = false;
+      bool depth_distortion = false;
 
       float f_depth_scale_unit = 1.0f;
 
@@ -401,6 +411,8 @@ namespace percipio
       int32_t  getPixelFormat() const {return pixelFormat;}
       void*    getData() const {return buffer;}
       int32_t  getFrameIndex() const {return imageIndex;}
+      int32_t  getComponentID() const {return componentID;};
+
 
       void  setTimestamp(uint64_t time);
       void  setWidth(int32_t w);
@@ -408,6 +420,7 @@ namespace percipio
       void  Resize(int32_t sz);
       void  setPixelFormat(int32_t fmt);
       void  setFrameIndex(int32_t idx);
+      void  setComponentID(int32_t compID);
 
       void  setData(TY_IMAGE_DATA* data);
       void  clone(const VideoFrameData& frame);
@@ -492,6 +505,23 @@ public:
     TY_STATUS setExposure(int exposure);
     TY_STATUS setTOFCamDepthChannel(int channel);
     TY_STATUS setTOFCamDepthQuality(int quality);
+
+    TY_STATUS setDepthSgbmImageChanNumber(int value);
+    TY_STATUS setDepthSgbmDispNumber(int value);
+    TY_STATUS setDepthSgbmDispOffset(int value);
+    TY_STATUS setDepthSgbmMatchWinHeight(int value);
+    TY_STATUS setDepthSgbmSemiP1(int value);
+    TY_STATUS setDepthSgbmSemiP2(int value);
+    TY_STATUS setDepthSgbmUniqueFactor(int value);
+    TY_STATUS setDepthSgbmUniqueAbsDiff(int value);
+    TY_STATUS setDepthSgbmCostParam(int value);
+    TY_STATUS setDepthSgbmHalfWinSizeEn(int value);
+    TY_STATUS setDepthSgbmMatchWinWidth(int value);
+    TY_STATUS setDepthSgbmMedianFilterEn(int value);
+    TY_STATUS setDepthSgbmLRCCheckEn(int value);
+    TY_STATUS setDepthSgbmLRCMaxDiff(int value);
+    TY_STATUS setDepthSgbmMedianFilterThresh(int value);
+    TY_STATUS setDepthSgbmSemiP1Scale(int value);
     //
     bool getLaserPower(int* power) const;
     bool getAutoExposureEnabled(bool* enable) const;
@@ -595,6 +625,8 @@ public:
 
       const SensorInfo& getSensorInfo() const;
 
+      const StreamHandle& _getHandle() const;
+
     private:
       StreamHandle m_stream;
       SensorInfo   m_sensorInfo;
@@ -631,12 +663,14 @@ public:
 
       TY_STATUS _setHandle(TY_DEV_HANDLE deviceHandle);
 
+      void setColorUndistortion(bool enabled);
+
       bool isImageRegistrationModeSupported(ImageRegistrationMode mode) const;
-
       TY_STATUS setImageRegistrationMode(ImageRegistrationMode mode);
+      ImageRegistrationMode getImageRegistrationMode() const;
 
+      bool isDepthColorSyncSupport();
       TY_STATUS setDepthColorSyncEnabled(bool isEnabled);
-
       bool getDepthColorSyncEnabled();
 
       TY_STATUS getProperty(int propertyId, void* data, int* dataSize) const;
