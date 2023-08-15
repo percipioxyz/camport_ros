@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-07-18 15:55:24
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-14 18:30:27
+ * @LastEditTime: 2023-08-15 11:58:23
  */
 
 #include <iostream>
@@ -88,8 +88,8 @@ inline float3 lerp(const float3& a, const float3& b, float t)
 static void update_histogram(int* hist, const uint16_t* depth_data, int w, int h)
 {           
   memset(hist, 0, MAX_DEPTH * sizeof(int));
-  for (auto i = 0; i < w*h; ++i) ++hist[depth_data[i]];
-    for (auto i = 2; i < MAX_DEPTH; ++i) 
+  for (int i = 0; i < w*h; ++i) ++hist[depth_data[i]];
+    for (int i = 2; i < MAX_DEPTH; ++i) 
       hist[i] += hist[i - 1]; // Build a cumulative histogram for the     indices in [1,0xFFFF]
 }       
 
@@ -116,7 +116,7 @@ public:
     float3 get(float value) const
     {
         if (_max == _min) return *_data;
-        auto t = (value - _min) / (_max - _min);
+        int t = (value - _min) / (_max - _min);
         t = std::min(std::max(t, 0.f), 1.f);
         return _data[(int)(t * (_size - 1))];
     }
@@ -134,12 +134,12 @@ private:
         if( value < _map.begin()->first )   return _map.begin()->second;
         if( value > _map.rbegin()->first )  return _map.rbegin()->second;
 
-        auto lower = _map.lower_bound(value) == _map.begin() ? _map.begin() : --(_map.lower_bound(value)) ;
-            auto upper = _map.upper_bound(value);
+        int lower = _map.lower_bound(value) == _map.begin() ? _map.begin() : --(_map.lower_bound(value)) ;
+            int upper = _map.upper_bound(value);
 
-            auto t = (value - lower->first) / (upper->first - lower->first);
-            auto c1 = lower->second;
-            auto c2 = upper->second;
+            int t = (value - lower->first) / (upper->first - lower->first);
+            int c1 = lower->second;
+            int c2 = upper->second;
             return lerp(c1, c2, t);
     }
 
@@ -153,8 +153,8 @@ private:
         _cache.resize(steps + 1);
         for (int i = 0; i <= steps; i++)
         {
-            auto t = (float)i/steps;
-            auto x = _min + t*(_max - _min);
+            int t = (float)i/steps;
+            int x = _min + t*(_max - _min);
             _cache[i] = calc(x);
         }
 
