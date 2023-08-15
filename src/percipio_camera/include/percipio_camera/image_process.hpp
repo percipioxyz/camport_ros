@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-07-18 15:55:24
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-15 12:00:40
+ * @LastEditTime: 2023-08-15 13:22:07
  */
 
 #include <iostream>
@@ -470,9 +470,9 @@ public:
           int real_width, real_height, subsamp;
           if(-1 != tjDecompressHeader2(jpeg_de.jpeg, (uint8_t*)src_buffer, size, &real_width, &real_height, &subsamp))
           {
-            int32_t pitch = real_width * tjPixelSize[TJPF::TJPF_RGB];
+            int32_t pitch = real_width * tjPixelSize[TJPF_RGB];
             int32_t img_size = pitch * real_height;
-            if(!tjDecompress2(jpeg_de.jpeg, (uint8_t*)src_buffer, size, (uint8_t*)dst_buffer, real_width, pitch, real_height, TJPF::TJPF_RGB, 0))
+            if(!tjDecompress2(jpeg_de.jpeg, (uint8_t*)src_buffer, size, (uint8_t*)dst_buffer, real_width, pitch, real_height, TJPF_RGB, 0))
             {
                 //
             }   

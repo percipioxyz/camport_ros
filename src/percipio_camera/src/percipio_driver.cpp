@@ -425,12 +425,13 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
   {
     data_skip_depth_counter_ = 0;
 
-    if (depth_subscribers_||point3d_subscribers_)
+    //if (depth_subscribers_||point3d_subscribers_)
+    if(depth_subscribers_)
     {
-      sensor_msgs::ImageConstPtr floating_point_image = NULL;
+      //sensor_msgs::ImageConstPtr floating_point_image;
 
-      if (point3d_subscribers_ )
-        floating_point_image = rawToFloatingPointConversion(image, z_scaling_);
+      //if (point3d_subscribers_ )
+      //  floating_point_image = rawToFloatingPointConversion(image, z_scaling_);
 
       if(std::abs(z_scaling_ - 1.f ) > 0.001)
       {
@@ -459,7 +460,7 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
 
       //if (point3d_subscribers_ )
       //{
-      //  if(floating_point_image != NULL)
+      //  if(floating_point_image != nullptr)
       //    pub_point3d_.publish(floating_point_image, cam_info);
       //}
     }

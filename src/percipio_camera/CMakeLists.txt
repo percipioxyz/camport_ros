@@ -39,7 +39,6 @@ add_library(percipio_wrapper
    src/percipio_video_mode.cpp
 )
 
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../camport3/include)
 
 if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i686")

@@ -35,7 +35,7 @@
 
   <!-- Only support Percipio TOF camera   -->
   <arg name="tof_channel"        default="" />
-  <arg name="tof_depth_quality"  default="4" />
+  <arg name="tof_depth_quality"  default="" />
 
   <!--SGBM parameters -->
   <arg name="sgbm_image_channel_num"            default="" />

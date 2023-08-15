@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-15 11:54:36
+ * @LastEditTime: 2023-08-15 13:24:08
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -834,7 +834,7 @@ namespace percipio
 
   ////
 
-  static boost::shared_ptr<percipio_depth_cam> g_Context = NULL;
+  static boost::shared_ptr<percipio_depth_cam> g_Context = boost::shared_ptr<percipio_depth_cam>();
 
   CameraSettings* VideoStream::getCameraSettings() 
   {
