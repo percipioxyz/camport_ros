@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-15 13:24:08
+ * @LastEditTime: 2023-08-15 15:39:26
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -131,13 +131,13 @@ namespace percipio
 
       if((w == width) || (h == height)) {
         if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
-          ROS_WARN("Resolution mismatch %dx%x  != %dx%d\n", width, height, w, h);
+          ROS_WARN("Resolution mismatch %dx%d  != %dx%d\n", width, height, w, h);
           return true;
         }
       }
     }
 
-    ROS_WARN("Unsuitable resolution %dx%x\n", width, height);
+    ROS_WARN("Unsuitable resolution %dx%d\n", width, height);
     return false;
   }
 
