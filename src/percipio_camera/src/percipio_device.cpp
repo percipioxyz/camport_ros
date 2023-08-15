@@ -935,7 +935,7 @@ void PercipioDevice::setSgbmImageChanNumber(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmImageChanNumber(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm image channel number: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -951,7 +951,7 @@ void PercipioDevice::setSgbmDispNumber(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmDispNumber(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm disp number: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -967,7 +967,7 @@ void PercipioDevice::setSgbmDispOffset(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmDispOffset(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm disp offset: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -983,7 +983,7 @@ void PercipioDevice::setSgbmMatchWinHeight(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmMatchWinHeight(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm match window height: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -999,7 +999,7 @@ void PercipioDevice::setSgbmSemiP1(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmSemiP1(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set semi global param p1: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1015,7 +1015,7 @@ void PercipioDevice::setSgbmSemiP2(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmSemiP2(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm semi global param p2: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1031,7 +1031,7 @@ void PercipioDevice::setSgbmUniqueFactor(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmUniqueFactor(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm uniqueness factor param: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1047,7 +1047,7 @@ void PercipioDevice::setSgbmUniqueAbsDiff(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmUniqueAbsDiff(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm uniqueness min absolute diff: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1063,7 +1063,7 @@ void PercipioDevice::setSgbmCostParam(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmCostParam(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm cost param: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1079,7 +1079,7 @@ void PercipioDevice::setSgbmHalfWinSizeEn(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmHalfWinSizeEn(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't enable sgbm half window size: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1095,7 +1095,7 @@ void PercipioDevice::setSgbmMatchWinWidth(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmMatchWinWidth(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm match window width: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1111,7 +1111,7 @@ void PercipioDevice::setSgbmMedianFilterEn(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmMedianFilterEn(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't enable sgbm median filter: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1127,7 +1127,7 @@ void PercipioDevice::setSgbmLRCCheckEn(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmLRCCheckEn(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't enable sgbm left right consist check: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1143,7 +1143,7 @@ void PercipioDevice::setSgbmLRCMaxDiff(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmLRCMaxDiff(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm max diff: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1159,7 +1159,7 @@ void PercipioDevice::setSgbmMedianFilterThresh(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmMedianFilterThresh(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm median filter thresh: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1175,7 +1175,7 @@ void PercipioDevice::setSgbmSemiP1Scale(int value)
       //TODO
       const TY_STATUS rc = camera_seeting->setDepthSgbmSemiP1Scale(value);
       if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image number: \n%s\n", percipio::Percipio::getExtendedError(rc));
+        ROS_WARN("Couldn't set sgbm semi global param p1 scale: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
