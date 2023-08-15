@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-15 11:45:16
+ * @LastEditTime: 2023-08-15 11:55:06
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -116,8 +116,8 @@ namespace percipio
     public:
       percipio_depth_cam() : _M_IFACE(0), _M_DEVICE(0), m_ids(0)
       {
-        frameBuffer[0] = nullptr;
-        frameBuffer[1] = nullptr;
+        frameBuffer[0] = NULL;
+        frameBuffer[1] = NULL;
         isRuning = false;
 
         current_depth_width = 0;

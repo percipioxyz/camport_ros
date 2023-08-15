@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-15 11:49:55
+ * @LastEditTime: 2023-08-15 11:54:36
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -18,8 +18,8 @@ namespace percipio
 
   void NewFrameCallbackManager::unregister_callback()
   {
-    frame_listener = nullptr;
-    cb = nullptr;
+    frame_listener = NULL;
+    cb = NULL;
   }
   
   bool NewFrameCallbackManager::isInvalid()
@@ -651,8 +651,8 @@ namespace percipio
     TYClearBufferQueue(_M_DEVICE);
     delete []frameBuffer[0];
     delete []frameBuffer[1];
-    frameBuffer[0] = nullptr;
-    frameBuffer[1] = nullptr;
+    frameBuffer[0] = NULL;
+    frameBuffer[1] = NULL;
   }
 
   void percipio_depth_cam::StreamStop(StreamHandle stream)
@@ -667,8 +667,8 @@ namespace percipio
     TYClearBufferQueue(_M_DEVICE);
     delete []frameBuffer[0];
     delete []frameBuffer[1];
-    frameBuffer[0] = nullptr;
-    frameBuffer[1] = nullptr;
+    frameBuffer[0] = NULL;
+    frameBuffer[1] = NULL;
 #if 0
     if(leftIRStream.get() == stream)
       leftIRStream.reset();
@@ -834,7 +834,7 @@ namespace percipio
 
   ////
 
-  static boost::shared_ptr<percipio_depth_cam> g_Context = nullptr;
+  static boost::shared_ptr<percipio_depth_cam> g_Context = NULL;
 
   CameraSettings* VideoStream::getCameraSettings() 
   {
@@ -1070,7 +1070,7 @@ namespace percipio
     height = 0;
     pixelFormat = 0;
 
-    buffer = nullptr;
+    buffer = NULL;
   }
   
   VideoFrameData::~VideoFrameData() 
@@ -1078,7 +1078,7 @@ namespace percipio
     if(m_isOwner) {
       if(buffer) {
         free(buffer);
-        buffer = nullptr;
+        buffer = NULL;
       }
     }
   }
