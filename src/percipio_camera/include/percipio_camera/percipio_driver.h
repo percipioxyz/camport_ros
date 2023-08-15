@@ -82,7 +82,7 @@ private:
   void readConfigFromParameterServer();
 
   // resolves non-URI device IDs to URIs, e.g. '#1' is resolved to the URI of the first device
-  std::string resolveDeviceURI(const std::string& device_id) throw(PercipioException);
+  std::string resolveDeviceURI(const std::string& device_id);
   bool resolveDeviceResolution(const std::string& resolution_, int& width, int& height);
   void initDevice();
 

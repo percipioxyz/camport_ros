@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-14 18:52:50
+ * @LastEditTime: 2023-08-15 11:49:55
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -161,27 +161,30 @@ namespace percipio
 
   TY_STATUS percipio_depth_cam::RegisterDeviceCallbacks(DeviceCallbacks* callback, void* listener)
   {
-    std::unique_lock<std::mutex> lock(m_mutex);
+    pthread_mutex_lock(&m_mutex);
     for(size_t i = 0; i < cb_list.size(); i++) 
     {
       if(cb_list[i].pListener == listener) 
       {
+        pthread_mutex_unlock(&m_mutex);
         return TY_STATUS_ERROR;
       }
     }
     cb_list.push_back({callback, listener});
+    pthread_mutex_unlock(&m_mutex);
     return TY_STATUS_OK;
   }
 
   void percipio_depth_cam::UnregisterDeviceCallbacks(void* listener)
   {
-    std::unique_lock<std::mutex> lock(m_mutex);
+    pthread_mutex_lock(&m_mutex);
     for(size_t i = 0; i < cb_list.size(); i++) {
       if(cb_list[i].pListener == listener) {
         cb_list.erase(cb_list.begin() + i);
         break;
       }
     }
+    pthread_mutex_unlock(&m_mutex);
   }
 
   bool percipio_depth_cam::isValid() 
@@ -409,14 +412,14 @@ namespace percipio
 
   VideoMode percipio_depth_cam::get_current_video_mode(StreamHandle stream)
   {
-    std::unique_lock<std::mutex> lock(m_mutex);
     uint32_t value = 0;
+    pthread_mutex_lock(&m_mutex);
     TY_COMPONENT_ID comp = get_stream_component_id(stream);
     if(0 == comp)
       return VideoMode();
     
     TYGetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, &value);
-    
+    pthread_mutex_unlock(&m_mutex);
     return VideoMode(value);
   }
 
@@ -435,7 +438,7 @@ namespace percipio
 
   TY_STATUS percipio_depth_cam::StreamRegisterNewFrameCallback(StreamHandle stream, void* listener, NewFrameCallback cb)//, void* listener)
   {
-    std::unique_lock<std::mutex> lock(m_mutex);
+    pthread_mutex_lock(&m_mutex);
     if(leftIRStream.get() == stream) {
       leftIRStream.get()->register_callback(listener, cb);
     } else if(rightIRStream.get() == stream) {
@@ -444,14 +447,17 @@ namespace percipio
       ColorStream.get()->register_callback(listener, cb);
     } else if(DepthStream.get() == stream) {
       DepthStream.get()->register_callback(listener, cb);
-    } else
+    } else {
+      pthread_mutex_unlock(&m_mutex);
       return TY_STATUS_INVALID_PARAMETER;
+    }
+    pthread_mutex_unlock(&m_mutex);
     return TY_STATUS_OK;
   }
 
   void percipio_depth_cam::StreamUnregisterNewFrameCallback(StreamHandle stream)
   {
-    std::unique_lock<std::mutex> lock(m_mutex);
+    pthread_mutex_lock(&m_mutex);
     if(leftIRStream.get() == stream) {
       leftIRStream.get()->unregister_callback();
     } else if(rightIRStream.get() == stream) {
@@ -461,6 +467,7 @@ namespace percipio
     } else if(DepthStream.get() == stream) {
       DepthStream.get()->unregister_callback();
     }
+    pthread_mutex_unlock(&m_mutex);
   }
 
   void* percipio_depth_cam::fetch_thread(void* ptr)
@@ -551,15 +558,17 @@ namespace percipio
   
   TY_STATUS percipio_depth_cam::StartCapture()
   {
-    std::unique_lock<std::mutex> lock(m_mutex);
+    pthread_mutex_lock(&m_mutex);
     TY_STATUS rc = StreamStart();
+    pthread_mutex_unlock(&m_mutex);
     return rc;
   }
 
   void percipio_depth_cam::StopCapture(StreamHandle stream)
   {
-    std::unique_lock<std::mutex> lock(m_mutex);
+    pthread_mutex_lock(&m_mutex);
     StreamStop(stream);
+    pthread_mutex_unlock(&m_mutex);
   }
 
   TY_STATUS percipio_depth_cam::StreamStart()

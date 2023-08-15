@@ -726,7 +726,7 @@ void PercipioDriver::readConfigFromParameterServer()
   pnh_.param("ir_camera_info_url", ir_info_url_, std::string());
 }
 
-std::string PercipioDriver::resolveDeviceURI(const std::string& device_id) throw(PercipioException)
+std::string PercipioDriver::resolveDeviceURI(const std::string& device_id)
 {
   // retrieve available device URIs, they look like this: "1d27/0601@1/5"
   // which is <vendor ID>/<product ID>@<bus number>/<device number>
