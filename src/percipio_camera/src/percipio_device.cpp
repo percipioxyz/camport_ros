@@ -747,16 +747,31 @@ bool PercipioDevice::hasTofDepthQuality() const
 
 void PercipioDevice::setLaserPower(int power)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
+  percipio::CameraSettings* camera_seeting;
+  boost::shared_ptr<percipio::VideoStream> depth_stream = getDepthVideoStream();
+  boost::shared_ptr<percipio::VideoStream> ir_stream = getIRVideoStream();
 
-  if (stream)
+  if (depth_stream)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
+    camera_seeting = depth_stream->getCameraSettings();
     if (camera_seeting)
     {
       const TY_STATUS rc =  camera_seeting->setLaserPower(power);
       if (rc != TY_STATUS_OK)
         ROS_WARN("Couldn't set laser power: \n%s\n", percipio::Percipio::getExtendedError(rc));
+    }
+  }
+  else
+  {
+    if(ir_stream) 
+    {
+      camera_seeting = ir_stream->getCameraSettings();
+      if (camera_seeting)
+      {
+        const TY_STATUS rc =  camera_seeting->setLaserPower(power);
+        if (rc != TY_STATUS_OK)
+          ROS_WARN("Couldn't set laser power: \n%s\n", percipio::Percipio::getExtendedError(rc));
+      }
     }
   }
 }

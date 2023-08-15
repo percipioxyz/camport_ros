@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-15 15:39:26
+ * @LastEditTime: 2023-08-15 17:40:53
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -328,6 +328,9 @@ namespace percipio
       return TY_STATUS_INVALID_PARAMETER;
     
     TY_FEATURE_TYPE type = TYFeatureType(propertyId);
+    if(propertyId == TY_INT_LASER_POWER)
+      comp = TY_COMPONENT_LASER;
+      
     switch(type) {
       case TY_FEATURE_INT:
         return TYSetInt(_M_DEVICE, comp, propertyId, value);
@@ -615,10 +618,13 @@ namespace percipio
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_WIDTH, &current_depth_width);
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_HEIGHT, &current_depth_height);
       TYHasFeature(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &depth_distortion);
+
+      TYSetBool(_M_DEVICE, TY_COMPONENT_LASER, TY_BOOL_LASER_AUTO_CTRL, true);
     }else {
       TYDisableComponents(_M_DEVICE, TY_COMPONENT_DEPTH_CAM);
       current_depth_width = 0;
       current_depth_height = 0;
+      TYSetBool(_M_DEVICE, TY_COMPONENT_LASER, TY_BOOL_LASER_AUTO_CTRL, false);
     }
 
     TYGetStruct(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &depth_intr, sizeof(depth_intr));
@@ -1173,7 +1179,7 @@ namespace percipio
   }
   TY_STATUS CameraSettings::setAutoExposureEnabled(bool enabled)
   {
-    return CameraSettings::setProperty(TY_BOOL_AUTO_EXPOSURE, (bool)(enabled ? true : false));
+    return setProperty(TY_BOOL_AUTO_EXPOSURE, (bool)(enabled ? true : false));
   }
   TY_STATUS CameraSettings::setAutoWhiteBalanceEnabled(bool enabled)
   {
@@ -1185,11 +1191,11 @@ namespace percipio
   }
   TY_STATUS CameraSettings::setPixelsRedGain(int gain)
   {
-    return CameraSettings::setProperty(TY_INT_R_GAIN, gain);
+    return setProperty(TY_INT_R_GAIN, gain);
   }
   TY_STATUS CameraSettings::setPixelsGreenGain(int gain)
   {
-    return CameraSettings::setProperty(TY_INT_G_GAIN, gain);
+    return setProperty(TY_INT_G_GAIN, gain);
   }
   TY_STATUS CameraSettings::setPixelsBlueGain(int gain)
   {
