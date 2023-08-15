@@ -38,10 +38,28 @@ add_library(percipio_wrapper
    src/percipio_exception.cpp
    src/percipio_video_mode.cpp
 )
-target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} tycam)
+
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../camport3/include)
+
+if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i686")
+  set(ARCH i686)
+elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+  set(ARCH x64)
+elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64")
+  set(ARCH Aarch64)
+elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7")
+  set(ARCH armv7hf)
+else()
+	message(STATUS "host processor architecture is unknown")
+endif()
+
+set(TYCAM ${CMAKE_CURRENT_SOURCE_DIR}/../camport3/lib/linux/lib_${ARCH}/libtycam.so)
+
+target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TYCAM})
 
 add_executable(test_wrapper test/test_wrapper.cpp )
-target_link_libraries(test_wrapper percipio_wrapper ${Boost_LIBRARIES} tycam)
+target_link_libraries(test_wrapper percipio_wrapper ${Boost_LIBRARIES} ${TYCAM})
 
 add_library(percipio_driver_lib
    src/percipio_driver.cpp

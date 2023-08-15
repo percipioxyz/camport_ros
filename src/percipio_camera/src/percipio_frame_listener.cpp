@@ -28,7 +28,7 @@
  *
  *      Author: Julius Kammerl (jkammerl@willowgarage.com)
  */
-#include "percipio_camera/TYApi.h"
+#include "TYApi.h"
 
 #include "percipio_camera/percipio_frame_listener.h"
 #include "percipio_camera/percipio_timer_filter.h"

@@ -20,16 +20,43 @@
   <arg name="depth_camera_info_url" default="" />
   <arg name="ir_camera_info_url"    default="" />
 
+  <!-- Driver parameters -->
+
   <arg name="rgb_resolution" default="640x480" />
   <arg name="depth_resolution" default="640x480" />
-  
-  <!-- Hardware depth registration -->
-  <arg name="depth_registration" default="false" />
 
-  <!-- Driver parameters -->
-  <arg name="color_depth_synchronization"     default="false" />
-  <arg name="auto_exposure"                   default="true" />
-  <arg name="auto_white_balance"              default="true" />
+  <arg name="color_depth_synchronization"     default="true" />
+  
+  <!-- Software depth registration -->
+  <arg name="depth_registration" default="true" />
+
+  <!-- Software color undistortion -->
+  <arg name="color_undistortion" default="true" />
+
+  <!-- Only support Percipio TOF camera   -->
+  <arg name="tof_channel"        default="" />
+  <arg name="tof_depth_quality"  default="4" />
+
+  <!--SGBM parameters -->
+  <arg name="sgbm_image_channel_num"            default="" />
+  <arg name="sgbm_disparity_num"                default=""  />
+  <arg name="sgbm_disparity_offset"             default=""  />
+  <arg name="sgbm_match_window_height"          default=""  />
+  <arg name="sgbm_semi_global_param_p1"         default=""  />
+  <arg name="sgbm_semi_global_param_p2"         default=""  />
+  <arg name="sgbm_unique_factor_param"          default=""  />
+  <arg name="sgbm_unique_min_absolute_diff"     default=""  />
+  <arg name="sgbm_cost_param"                   default=""  />
+  <arg name="sgbm_enable_half_window_size"      default=""  />
+  <arg name="sgbm_match_window_width"           default=""  />
+  <arg name="sgbm_enable_median_filter"         default=""  />
+  <arg name="sgbm_enable_lrc_check"             default=""  />
+  <arg name="sgbm_lrc_max_diff"                 default=""  />
+  <arg name="sgbm_median_filter_thresh"         default=""  />
+  <arg name="sgbm_semi_global_param_p1_scale"   default=""  />
+
+  <!--<arg name="auto_exposure"                   default="true" /> -->
+  <!--<arg name="auto_white_balance"              default="true" /> -->
 
   <!-- Arguments for remapping all device namespaces -->
   <arg name="rgb"              default="rgb" />
@@ -49,10 +76,13 @@
   <arg name="depth_registered_processing"     default="true" />
   <arg name="disparity_processing"            default="false" />
   <arg name="disparity_registered_processing" default="false" />
-  <arg name="hw_registered_processing"        default="true" if="$(arg depth_registration)" />
-  <arg name="sw_registered_processing"        default="false" if="$(arg depth_registration)" />
-  <arg name="hw_registered_processing"        default="false" unless="$(arg depth_registration)" />
-  <arg name="sw_registered_processing"        default="true" unless="$(arg depth_registration)" />
+  
+  <!--<arg name="hw_registered_processing"        default="true" if="$(arg depth_registration)" /> -->
+  <!--<arg name="sw_registered_processing"        default="false" if="$(arg depth_registration)" /> -->
+  <!--<arg name="hw_registered_processing"        default="false" unless="$(arg depth_registration)" /> -->
+  <!--<arg name="sw_registered_processing"        default="true" unless="$(arg depth_registration)" /> -->
+  <arg name="hw_registered_processing"        default="false" />
+  <arg name="sw_registered_processing"        default="false" />
 
   <!-- Disable bond topics by default -->
   <arg name="respawn" default="false" />
@@ -86,10 +116,38 @@
       <arg name="ir"                              value="$(arg ir)" />
       <arg name="depth"                           value="$(arg depth)" />
       <arg name="respawn"                         value="$(arg respawn)" />
+
+      <arg name="color_undistortion"              value="$(arg color_undistortion)" />
+      
       <arg name="depth_registration"              value="$(arg depth_registration)" />
+
       <arg name="color_depth_synchronization"     value="$(arg color_depth_synchronization)" />
-      <arg name="auto_exposure"                   value="$(arg auto_exposure)" />
-      <arg name="auto_white_balance"              value="$(arg auto_white_balance)" />
+      
+      <arg name="tof_channel"                     value="$(arg tof_channel)" />
+      <arg name="tof_depth_quality"               value="$(arg tof_depth_quality)" />
+
+      <arg name="sgbm_image_channel_num"            value="$(arg sgbm_image_channel_num)" />
+      <arg name="sgbm_disparity_num"                value="$(arg sgbm_disparity_num)" />
+      <arg name="sgbm_disparity_offset"             value="$(arg sgbm_disparity_offset)" />
+      <arg name="sgbm_match_window_height"          value="$(arg sgbm_match_window_height)" />
+      <arg name="sgbm_semi_global_param_p1"         value="$(arg sgbm_semi_global_param_p1)" />
+      <arg name="sgbm_semi_global_param_p2"         value="$(arg sgbm_semi_global_param_p2)" />
+      <arg name="sgbm_unique_factor_param"          value="$(arg sgbm_unique_factor_param)" />
+      <arg name="sgbm_unique_min_absolute_diff"     value="$(arg sgbm_unique_min_absolute_diff)" />
+      <arg name="sgbm_cost_param"                   value="$(arg sgbm_cost_param)" />
+      <arg name="sgbm_enable_half_window_size"      value="$(arg sgbm_enable_half_window_size)" />
+      <arg name="sgbm_match_window_width"           value="$(arg sgbm_match_window_width)" />
+      <arg name="sgbm_enable_median_filter"         value="$(arg sgbm_enable_median_filter)" />
+      <arg name="sgbm_enable_lrc_check"             value="$(arg sgbm_enable_lrc_check)" />
+      <arg name="sgbm_lrc_max_diff"                 value="$(arg sgbm_lrc_max_diff)" />
+      <arg name="sgbm_median_filter_thresh"         value="$(arg sgbm_median_filter_thresh)" />
+      <arg name="sgbm_semi_global_param_p1_scale"   value="$(arg sgbm_semi_global_param_p1_scale)" />
+
+      <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->
+      <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->
+      <arg name="rgb_resolution"                  value="$(arg rgb_resolution)" />
+      <arg name="depth_resolution"                value="$(arg depth_resolution)" />
+      
     </include>
 
     <!-- Load standard constellation of processing nodelets -->

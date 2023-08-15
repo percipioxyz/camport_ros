@@ -12,10 +12,34 @@
   <arg name="depth_camera_info_url" />
   <arg name="ir_camera_info_url" />
 
+  <arg name="color_undistortion" default="true" />
   <arg name="depth_registration" default="true" />
-  <arg name="color_depth_synchronization" default="false" />
-  <arg name="auto_exposure" default="true" />
-  <arg name="auto_white_balance" default="true" />
+  <arg name="color_depth_synchronization" default="true" />
+
+  <arg name="tof_channel" />
+  <arg name="tof_depth_quality" />
+
+  <arg name="sgbm_image_channel_num" />
+  <arg name="sgbm_disparity_num" />
+  <arg name="sgbm_disparity_offset" />
+  <arg name="sgbm_match_window_height" />
+  <arg name="sgbm_semi_global_param_p1" />
+  <arg name="sgbm_semi_global_param_p2" />
+  <arg name="sgbm_unique_factor_param" />
+  <arg name="sgbm_unique_min_absolute_diff" />
+  <arg name="sgbm_cost_param" />
+  <arg name="sgbm_enable_half_window_size" />
+  <arg name="sgbm_match_window_width" />
+  <arg name="sgbm_enable_median_filter" />
+  <arg name="sgbm_enable_lrc_check" />
+  <arg name="sgbm_lrc_max_diff" />
+  <arg name="sgbm_median_filter_thresh" />
+  <arg name="sgbm_semi_global_param_p1_scale" />
+
+  <!--<arg name="auto_exposure" default="true" /> -->
+  <!--<arg name="auto_white_balance" default="true" />-->
+  <arg name="rgb_resolution" default="640x480" />
+  <arg name="depth_resolution" default="640x480" />
 
   <arg name="respawn" default="false" />
 
@@ -36,10 +60,35 @@
     <param name="rgb_frame_id"   value="$(arg rgb_frame_id)" />
     <param name="depth_frame_id" value="$(arg depth_frame_id)" />
 
-    <param name="depth_registration" value="$(arg depth_registration)" />
+    <param name="color_undistortion" type="bool" value="$(arg color_undistortion)" />
+    <param name="depth_registration" type="bool" value="$(arg depth_registration)" />
     <param name="color_depth_synchronization" value="$(arg color_depth_synchronization)" />
-    <param name="auto_exposure" value="$(arg auto_exposure)" />
-    <param name="auto_white_balance" value="$(arg auto_white_balance)" />
+
+    <param name="tof_channel" value="$(arg tof_channel)" />
+    <param name="tof_depth_quality" value="$(arg tof_depth_quality)" />
+
+    <!--<param name="auto_exposure" value="$(arg auto_exposure)" />-->
+    <!--<param name="auto_white_balance" value="$(arg auto_white_balance)" />-->
+
+    <param name="rgb_resolution" type="str" value="$(arg rgb_resolution)" />
+    <param name="depth_resolution" type="str" value="$(arg depth_resolution)" />
+
+    <param name="sgbm_image_channel_num"          value="$(arg sgbm_image_channel_num)" />
+    <param name="sgbm_disparity_num"              value="$(arg sgbm_disparity_num)" />
+    <param name="sgbm_disparity_offset"           value="$(arg sgbm_disparity_offset)" />
+    <param name="sgbm_match_window_height"        value="$(arg sgbm_match_window_height)" />
+    <param name="sgbm_semi_global_param_p1"       value="$(arg sgbm_semi_global_param_p1)" />
+    <param name="sgbm_semi_global_param_p2"       value="$(arg sgbm_semi_global_param_p2)" />
+    <param name="sgbm_unique_factor_param"        value="$(arg sgbm_unique_factor_param)" />
+    <param name="sgbm_unique_min_absolute_diff"   value="$(arg sgbm_unique_min_absolute_diff)" />
+    <param name="sgbm_cost_param"                 value="$(arg sgbm_cost_param)" />
+    <param name="sgbm_enable_half_window_size"    value="$(arg sgbm_enable_half_window_size)" />
+    <param name="sgbm_match_window_width"         value="$(arg sgbm_match_window_width)" />
+    <param name="sgbm_enable_median_filter"       value="$(arg sgbm_enable_median_filter)" />
+    <param name="sgbm_enable_lrc_check"           value="$(arg sgbm_enable_lrc_check)" />
+    <param name="sgbm_lrc_max_diff"               value="$(arg sgbm_lrc_max_diff)" />
+    <param name="sgbm_median_filter_thresh"       value="$(arg sgbm_median_filter_thresh)" />
+    <param name="sgbm_semi_global_param_p1_scale" value="$(arg sgbm_semi_global_param_p1_scale)" />
 
     <remap from="ir" to="$(arg ir)" />
     <remap from="rgb" to="$(arg rgb)" />

@@ -41,7 +41,7 @@
 #include <set>
 #include <string>
 
-#include "percipio_camera/TYApi.h"
+#include "TYApi.h"
 
 namespace percipio_wrapper
 {
