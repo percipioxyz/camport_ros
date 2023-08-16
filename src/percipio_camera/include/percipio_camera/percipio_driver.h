@@ -76,7 +76,7 @@ private:
 
   // Methods to get calibration parameters for the various cameras
   sensor_msgs::CameraInfoPtr getDefaultCameraInfo(int width, int height, double f);
-  sensor_msgs::CameraInfoPtr getColorCameraInfo(int width, int height, ros::Time time);
+  sensor_msgs::CameraInfoPtr getColorCameraInfo(int width, int height, ros::Time time, bool isColor);
   sensor_msgs::CameraInfoPtr getDepthCameraInfo(int width, int height, ros::Time time);
 
   void readConfigFromParameterServer();

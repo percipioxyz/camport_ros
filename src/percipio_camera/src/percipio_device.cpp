@@ -1457,6 +1457,16 @@ bool PercipioDevice::getColorCalibIntristic(void* data, int* size)
 	return true;
 }
 
+bool PercipioDevice::getColorCalibDistortion(void* data, int* size)
+{
+  if (TY_STATUS_OK != percipio_device_->getProperty(percipio::TY_DEVICE_PROPERTY_COLOR_CALIB_DISTORTION, (void*)data, size))
+	{
+		std::cout<<"[COLOR]Failed to load calib intristic!"<<std::endl;
+		return false;
+	}
+	return true;
+}
+
 std::ostream& operator <<(std::ostream& stream, const PercipioDevice& device)
 {
 

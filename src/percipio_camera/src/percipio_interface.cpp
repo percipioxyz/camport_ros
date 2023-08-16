@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-15 17:40:53
+ * @LastEditTime: 2023-08-16 10:14:36
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -350,16 +350,6 @@ namespace percipio
     TY_DEVICE_BASE_INFO inf;
     switch(propertyId)
     {
-      case TY_DEVICE_PROPERTY_DEPTH_CALIB_INTRISTIC:
-        if((*dataSize) < (9 * sizeof(float)))
-          return TY_STATUS_NO_BUFFER;
-        memcpy(data, depth_intr.data, sizeof(depth_intr.data));
-        break;
-      case TY_DEVICE_PROPERTY_COLOR_CALIB_INTRISTIC:
-        if((*dataSize) < (9 * sizeof(float)))
-          return TY_STATUS_NO_BUFFER;
-        memcpy(data, color_intr.data, sizeof(color_intr.data));
-        break;
       case TY_DEVICE_PROPERTY_SERIAL_NUMBER:
         rc = TYGetDeviceInfo(_M_DEVICE, &inf);
         if(rc != TY_STATUS_OK)
@@ -367,6 +357,28 @@ namespace percipio
         if((*dataSize) < (strlen(inf.id) + 1))
           return TY_STATUS_NO_BUFFER;
         strcpy(static_cast<char*>(data), inf.id);
+        break;
+
+      case TY_DEVICE_PROPERTY_DEPTH_CALIB_INTRISTIC:
+        if((*dataSize) < (9 * sizeof(float)))
+          return TY_STATUS_NO_BUFFER;
+        memcpy(data, depth_intr.data, sizeof(depth_intr.data));
+        break;
+
+      case TY_DEVICE_PROPERTY_COLOR_CALIB_INTRISTIC:
+        if((*dataSize) < (9 * sizeof(float)))
+          return TY_STATUS_NO_BUFFER;
+        memcpy(data, color_intr.data, sizeof(color_intr.data));
+        break;
+
+      case TY_DEVICE_PROPERTY_COLOR_CALIB_DISTORTION:
+        if((*dataSize) < (12 * sizeof(float)))
+          return TY_STATUS_NO_BUFFER;
+        //if output undistortion stream, distortion data will be zero
+        if(color_undistortion)
+          memset(data, 0, 12 * sizeof(float));
+        else
+          memcpy(data, color_calib.distortion.data, sizeof(color_calib.distortion.data));
         break;
       default:
         return TY_STATUS_NOT_PERMITTED;

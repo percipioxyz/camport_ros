@@ -45,11 +45,12 @@
 
 namespace percipio_wrapper
 {
-struct calibIntris{
-  float data[9];
+struct calib_data{
+  float intrinsic_data[9];
+  float distortion_data[12];
 };
 
-struct calibIntris depth_cal, color_cal;
+struct calib_data depth_cal, color_cal;
 
 sensor_msgs::CameraInfoPtr info;
 
@@ -414,7 +415,7 @@ void PercipioDriver::newColorFrameCallback(sensor_msgs::ImagePtr image)
       image->header.frame_id = color_frame_id_;
       image->header.stamp = image->header.stamp + color_time_offset_;
 
-      pub_color_.publish(image, getColorCameraInfo(image->width, image->height, image->header.stamp));
+      pub_color_.publish(image, getColorCameraInfo(image->width, image->height, image->header.stamp, true));
     }
   }
 }
@@ -445,7 +446,7 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
       if(percipio::IMAGE_REGISTRATION_DEPTH_TO_COLOR == device_.get()->getImageRegistrationMode())
       {
         image->header.frame_id = color_frame_id_;
-        cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp);
+        cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp, false);
       }
       else
       {
@@ -476,7 +477,7 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDefaultCameraInfo(int width, int h
   info->height = height;
 
   // No distortion
-  info->D.resize(5, 0.0);
+  info->D.resize(12, 0.0);
   info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
   // Simple camera matrix: square pixels (fx = fy), principal point at center
@@ -503,31 +504,38 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDefaultCameraInfo(int width, int h
 }
 
 /// @todo Use binning/ROI properly in publishing camera infos
-sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int height, ros::Time time)
+sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int height, ros::Time time, bool isColor)
 {
   //boost::lock_guard<boost::mutex> lock(connect_mutex_);
   if (device_->getVendor() == "Percipio")
   {
     info = boost::make_shared<sensor_msgs::CameraInfo>();
 
-    int size = sizeof(color_cal.data);
+    int size = sizeof(color_cal.intrinsic_data);
 
     //get intristic from percipio firmware
-    device_->getColorCalibIntristic((void*)color_cal.data, &size);
+    device_->getColorCalibIntristic((void*)color_cal.intrinsic_data, &size);
     
     info->width  = width;
     info->height = height;
     
-    // No distortion
-    info->D.resize(5, 0.0);
+    info->D.resize(12, 0.0);
+    //depth stream may need color camera info,but without distortion while map to color coordinate
+    if(isColor) {
+      size = sizeof(color_cal.distortion_data);
+      device_->getColorCalibDistortion((void*)color_cal.distortion_data, &size);
+      for(int i = 0; i < 12; i++) {
+        info->D[i] = color_cal.distortion_data[i];
+      }
+    }
     info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
     // Simple camera matrix: square pixels (fx = fy), principal point at center
     info->K.assign(0.0);
-    info->K[0] = color_cal.data[0];
-    info->K[4] = color_cal.data[4];
-    info->K[2] = color_cal.data[2];
-    info->K[5] = color_cal.data[5];
+    info->K[0] = color_cal.intrinsic_data[0];
+    info->K[4] = color_cal.intrinsic_data[4];
+    info->K[2] = color_cal.intrinsic_data[2];
+    info->K[5] = color_cal.intrinsic_data[5];
     info->K[8] = 1.0;
 
     // No separate rectified image plane, so R = I
@@ -581,24 +589,24 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDepthCameraInfo(int width, int hei
   {
     info = boost::make_shared<sensor_msgs::CameraInfo>();
 
-    int size = sizeof(depth_cal.data);
+    int size = sizeof(depth_cal.intrinsic_data);
     
     //get intristic from percipio firmware
-    device_->getDepthCalibIntristic((void*)&depth_cal.data, &size);
+    device_->getDepthCalibIntristic((void*)&depth_cal.intrinsic_data, &size);
     
     info->width  = width;
     info->height = height;
     
     // No distortion
-    info->D.resize(5, 0.0);
+    info->D.resize(12, 0.0);
     info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
     // Simple camera matrix: square pixels (fx = fy), principal point at center
     info->K.assign(0.0);
-    info->K[0] = depth_cal.data[0];
-    info->K[4] = depth_cal.data[4];
-    info->K[2] = depth_cal.data[2];
-    info->K[5] = depth_cal.data[5];
+    info->K[0] = depth_cal.intrinsic_data[0];
+    info->K[4] = depth_cal.intrinsic_data[4];
+    info->K[2] = depth_cal.intrinsic_data[2];
+    info->K[5] = depth_cal.intrinsic_data[5];
     info->K[8] = 1.0;
 
     // No separate rectified image plane, so R = I

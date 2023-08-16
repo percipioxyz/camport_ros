@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-15 11:55:06
+ * @LastEditTime: 2023-08-16 10:11:31
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -27,14 +27,10 @@ namespace percipio
 {
   enum
   {
-    TY_DEVICE_PROPERTY_FIRMWARE_VERSION		= 0, // By implementation
-    TY_DEVICE_PROPERTY_DRIVER_VERSION		= 1, // OniVersion
-    TY_DEVICE_PROPERTY_HARDWARE_VERSION		= 2, // int
-    TY_DEVICE_PROPERTY_SERIAL_NUMBER		= 3, // string
-    TY_DEVICE_PROPERTY_ERROR_STATE			= 4, // ??
-    TY_DEVICE_PROPERTY_IMAGE_REGISTRATION		= 5, // OniImageRegistrationMode
-    TY_DEVICE_PROPERTY_DEPTH_CALIB_INTRISTIC         = 6, // float
-    TY_DEVICE_PROPERTY_COLOR_CALIB_INTRISTIC   = 7,
+    TY_DEVICE_PROPERTY_SERIAL_NUMBER		= 0, // string
+    TY_DEVICE_PROPERTY_DEPTH_CALIB_INTRISTIC   = 1, // float
+    TY_DEVICE_PROPERTY_COLOR_CALIB_INTRISTIC   = 2, // float
+    TY_DEVICE_PROPERTY_COLOR_CALIB_DISTORTION  = 3, // float
   };
 
 

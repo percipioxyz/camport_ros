@@ -198,6 +198,7 @@ public:
   //PERCIPIO
   bool getDepthCalibIntristic(void* data, int* size);
   bool getColorCalibIntristic(void* data, int* size);
+  bool getColorCalibDistortion(void* data, int* size);
 
 protected:
   void shutdown();
