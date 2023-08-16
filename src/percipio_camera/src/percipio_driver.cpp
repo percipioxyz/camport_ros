@@ -40,8 +40,8 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread/thread.hpp>
 
-#include <opencv2/opencv.hpp>
-#include <opencv2/highgui/highgui.hpp>
+//#include <opencv2/opencv.hpp>
+//#include <opencv2/highgui/highgui.hpp>
 
 namespace percipio_wrapper
 {
