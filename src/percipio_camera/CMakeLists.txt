@@ -7,6 +7,14 @@ find_package(Boost REQUIRED COMPONENTS system thread)
 
 find_package(PkgConfig)
 
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fpic")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
+
+add_subdirectory(./third-party/libjpeg-turbo)
+
+include_directories(./third-party/libjpeg-turbo)
+link_libraries(turbojpeg-static)
+
 generate_dynamic_reconfigure_options(cfg/Percipio.cfg)
 add_service_files(FILES
   GetSerial.srv)
