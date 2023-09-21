@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-16 10:14:36
+ * @LastEditTime: 2023-09-21 14:39:46
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -333,12 +333,20 @@ namespace percipio
       
     switch(type) {
       case TY_FEATURE_INT:
+        if(comp == TY_COMPONENT_IR_CAM_LEFT)
+          TYSetInt(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, value);
         return TYSetInt(_M_DEVICE, comp, propertyId, value);
       case TY_FEATURE_FLOAT:
+        if(comp == TY_COMPONENT_IR_CAM_LEFT)
+          TYSetFloat(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, value);
         return TYSetFloat(_M_DEVICE, comp, propertyId, value);
       case TY_FEATURE_ENUM:
+        if(comp == TY_COMPONENT_IR_CAM_LEFT)
+          TYSetEnum(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, value);
         return TYSetEnum(_M_DEVICE, comp, propertyId, value);
       case TY_FEATURE_BOOL:
+        if(comp == TY_COMPONENT_IR_CAM_LEFT)
+          TYSetBool(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, value);
         return TYSetBool(_M_DEVICE, comp, propertyId, value);
     }
     return TY_STATUS_INVALID_PARAMETER;

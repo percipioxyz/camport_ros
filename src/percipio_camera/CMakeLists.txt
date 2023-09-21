@@ -58,7 +58,7 @@ elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64")
 elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7")
   set(ARCH armv7hf)
 else()
-	message(STATUS "host processor architecture is unknown")
+  message(STATUS "host processor architecture is unknown")
 endif()
 
 set(TYCAM ${CMAKE_CURRENT_SOURCE_DIR}/camport3/lib/linux/lib_${ARCH}/libtycam.so)

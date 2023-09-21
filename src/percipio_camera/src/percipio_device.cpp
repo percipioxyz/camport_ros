@@ -696,6 +696,37 @@ bool PercipioDevice::hasColorExposureTime() const
   }
   return false;
 }
+bool PercipioDevice::hasIrExposureTime() const
+{
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
+  if(stream) 
+  {
+    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      int ir_exposure = 0;
+      if (camera_seeting->getExposure(&ir_exposure))
+        return true;
+    }
+  }
+  return false;
+}
+
+bool PercipioDevice::hasIrAnalogGain() const
+{
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
+  if(stream) 
+  {
+    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      int ir_analog_gain = 0;
+      if (camera_seeting->getAnalogGain(&ir_analog_gain))
+        return true;
+    }
+  }
+  return false;
+}
 
 bool PercipioDevice::hasIrGain() const
 {
@@ -883,6 +914,38 @@ void PercipioDevice::setColorExposureTime(int value)
       const TY_STATUS rc = camera_seeting->setExposure(value);
       if (rc != TY_STATUS_OK)
         ROS_WARN("Couldn't set exposure time: \n%s\n", percipio::Percipio::getExtendedError(rc));
+    }
+  }
+}
+
+void PercipioDevice::setIrExposureTime(int value)
+{
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
+
+  if (stream)
+  {
+    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      const TY_STATUS rc = camera_seeting->setExposure(value);
+      if (rc != TY_STATUS_OK)
+        ROS_WARN("Couldn't set ir exposure time: \n%s\n", percipio::Percipio::getExtendedError(rc));
+    }
+  }
+}
+
+void PercipioDevice::setIrAnalogGain(int value)
+{
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
+
+  if (stream)
+  {
+    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+    {
+      const TY_STATUS rc = camera_seeting->setPixelsAnalogGain(value);
+      if (rc != TY_STATUS_OK)
+        ROS_WARN("Couldn't set ir gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
     }
   }
 }
@@ -1313,6 +1376,36 @@ bool PercipioDevice::getColorExposureTime(int* value) const
     percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
     if (camera_seeting)
       ret =  camera_seeting->getExposure(value);
+  }
+  return ret;
+}
+
+bool PercipioDevice::getIrExposureTime(int* value) const
+{
+  bool ret = false;
+  
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
+
+  if (stream)
+  {
+    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret =  camera_seeting->getExposure(value);
+  }
+  return ret;
+}
+
+bool PercipioDevice::getIrAnalogGain(int* value) const
+{
+  bool ret = false;
+  
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
+
+  if (stream)
+  {
+    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
+    if (camera_seeting)
+      ret =  camera_seeting->getAnalogGain(value);
   }
   return ret;
 }

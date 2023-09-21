@@ -158,12 +158,14 @@ private:
   bool auto_exposure_;
   bool auto_white_balance_;
   
+  int m_rgb_exposure_time_;
   int m_rgb_analog_gain_;
   int m_rgb_r_gain_;
   int m_rgb_g_gain_;
   int m_rgb_b_gain_;
-  int m_rgb_exposure_time_;
   
+  int m_ir_exposure_time_;
+  int m_ir_analog_gain_;
   int m_ir_gain_;
   //-
 

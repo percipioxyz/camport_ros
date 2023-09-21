@@ -138,24 +138,34 @@ public:
   bool hasLaserPower() const;
   bool hasAutoExposure() const;
   bool hasAutoWhiteBalance() const;
+
+  bool hasColorExposureTime() const;
   bool hasColorAnalogGain() const;
   bool hasColorRedGain() const;
   bool hasColorGreenGain() const;
   bool hasColorBlueGain() const;
-  bool hasColorExposureTime() const;
+  
+  bool hasIrExposureTime() const;
+  bool hasIrAnalogGain() const;
   bool hasIrGain() const;
+
   bool hasTofDepthChannel() const;
   bool hasTofDepthQuality() const;
   
   void setLaserPower(int value);
   void setAutoExposure(bool enable);
   void setAutoWhiteBalance(bool enable);
+
+  void setColorExposureTime(int value);
   void setColorAnalogGain(int value);
   void setColorRedGain(int value);
   void setColorGreenGain(int value);
   void setColorBlueGain(int value);
-  void setColorExposureTime(int value);
+  
+  void setIrExposureTime(int value);
+  void setIrAnalogGain(int value);
   void setIrGain(int value);
+
   void setTofDepthChannel(int value);
   void setTofDepthQuality(int value);
 
@@ -179,11 +189,15 @@ public:
   bool getLaserPower(int* value) const;
   bool getAutoExposure() const;
   bool getAutoWhiteBalance() const;
+
+  bool getColorExposureTime(int* value) const;
   bool getColorAnalogGain(int* value) const;
   bool getColorRedGain(int* value) const;
   bool getColorGreenGain(int* value) const;
   bool getColorBlueGain(int* value) const;
-  bool getColorExposureTime(int* value) const;
+  
+  bool getIrExposureTime(int* value) const;
+  bool getIrAnalogGain(int* value) const;
   bool getIrGain(int* value) const;
 
   bool getTofDepthChannel(int* value) const;

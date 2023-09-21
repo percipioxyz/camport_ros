@@ -95,6 +95,10 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("rgb_b_gain");
   if(!device_->hasColorExposureTime())
     pnh.deleteParam("rgb_exposure_time");
+  if(!device_->hasIrExposureTime())
+    pnh.deleteParam("ir_exposure_time");
+  if(!device_->hasIrAnalogGain())
+    pnh.deleteParam("ir_analog_gain");  
   if(!device_->hasIrGain())
     pnh.deleteParam("ir_gain");
 
@@ -215,6 +219,9 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       device_->getColorGreenGain(&m_rgb_g_gain_);
       device_->getColorBlueGain(&m_rgb_b_gain_);
       device_->getColorExposureTime(&m_rgb_exposure_time_);
+
+      device_->getIrExposureTime(&m_ir_exposure_time_);
+      device_->getIrAnalogGain(&m_ir_analog_gain_);
       device_->getIrGain(&m_ir_gain_);
       
       config.laser_power = m_laser_power_;
@@ -228,6 +235,8 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       config.rgb_b_gain = m_rgb_b_gain_;
       config.rgb_exposure_time = m_rgb_exposure_time_;
 
+      config.ir_exposure_time = m_ir_exposure_time_;
+      config.ir_analog_gain = m_ir_analog_gain_;
       config.ir_gain = m_ir_gain_;
     }
   }
@@ -270,6 +279,16 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
     if(m_rgb_exposure_time_ != config.rgb_exposure_time) {
       m_rgb_exposure_time_ = config.rgb_exposure_time;
       if(device_) device_->setColorExposureTime(m_rgb_exposure_time_);
+    }
+
+    if(m_ir_exposure_time_ != config.ir_exposure_time) {
+      m_ir_exposure_time_ = config.ir_exposure_time;
+      if(device_) device_->setIrExposureTime(m_ir_exposure_time_);
+    }
+
+    if(m_ir_analog_gain_ != config.ir_analog_gain) {
+      m_ir_analog_gain_ = config.ir_analog_gain;
+      if(device_) device_->setIrAnalogGain(m_ir_analog_gain_);
     }
   
     if(m_ir_gain_ != config.ir_gain) {
