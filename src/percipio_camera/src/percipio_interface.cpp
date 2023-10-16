@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-09-21 14:39:46
+ * @LastEditTime: 2023-10-16 17:46:34
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -1170,6 +1170,9 @@ namespace percipio
     height = frame.height;
     pixelFormat = frame.pixelFormat;
 
+    if(m_isOwner && buffer)
+      free(buffer);
+    
     buffer = malloc(size);
 
     memcpy(buffer, frame.getData(), size);
