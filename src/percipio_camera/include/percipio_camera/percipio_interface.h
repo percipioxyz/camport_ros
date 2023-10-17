@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-10-17 09:50:44
+ * @LastEditTime: 2023-10-17 10:31:44
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -13,8 +13,6 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/thread/mutex.hpp>
-
-#include <mutex>
 
 #include "TYApi.h"
 #include "stdio.h"
