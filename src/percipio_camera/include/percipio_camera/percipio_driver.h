@@ -118,6 +118,8 @@ private:
   std::string rgb_resolution_;
   std::string depth_resolution_;
 
+  bool gvsp_resend_;
+
   bool color_undistortion_;
 
   bool depth_registration_;

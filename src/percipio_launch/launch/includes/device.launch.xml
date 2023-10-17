@@ -11,7 +11,7 @@
   <arg name="rgb_camera_info_url" />
   <arg name="depth_camera_info_url" />
   <arg name="ir_camera_info_url" />
-
+  <arg name="gvsp_resend" default="false" />
   <arg name="color_undistortion" default="true" />
   <arg name="depth_registration" default="true" />
   <arg name="color_depth_synchronization" default="true" />
@@ -60,6 +60,7 @@
     <param name="rgb_frame_id"   value="$(arg rgb_frame_id)" />
     <param name="depth_frame_id" value="$(arg depth_frame_id)" />
 
+    <param name="gvsp_resend" type="bool" value="$(arg gvsp_resend)" />
     <param name="color_undistortion" type="bool" value="$(arg color_undistortion)" />
     <param name="depth_registration" type="bool" value="$(arg depth_registration)" />
     <param name="color_depth_synchronization" value="$(arg color_depth_synchronization)" />

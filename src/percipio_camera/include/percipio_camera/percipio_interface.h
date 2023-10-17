@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-16 10:11:31
+ * @LastEditTime: 2023-10-17 09:50:44
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -13,6 +13,8 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/thread/mutex.hpp>
+
+#include <mutex>
 
 #include "TYApi.h"
 #include "stdio.h"
@@ -149,6 +151,8 @@ namespace percipio
 
       TY_STATUS get_device_info(TY_DEVICE_BASE_INFO& info);
 
+      bool DeviceSetStreamResendEnable(bool enable);
+
       void close();
 
       const uint32_t&  get_components() const ;
@@ -227,6 +231,8 @@ namespace percipio
 
       //std::mutex m_mutex;
       pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+      bool b_stream_gvsp_resend = false;
 
       int32_t current_depth_width;
       int32_t current_depth_height;
@@ -423,6 +429,8 @@ namespace percipio
       void  clone(const VideoFrameData& frame);
 
     private:
+      pthread_mutex_t _mutex = PTHREAD_MUTEX_INITIALIZER;
+
       bool            m_isOwner;
       uint64_t        timestamp;      ///< Timestamp in microseconds
       int32_t         imageIndex;     ///< image index used in trigger mode
@@ -659,6 +667,8 @@ public:
       bool ReslotionSetting(SensorType sensorType, int width, int height);
 
       TY_STATUS _setHandle(TY_DEV_HANDLE deviceHandle);
+
+      void setStreamResendEnable(bool enabled);
 
       void setColorUndistortion(bool enabled);
 

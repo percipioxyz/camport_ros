@@ -79,6 +79,8 @@ public:
 
   bool isValid() const;
 
+  void setGvspResendEnable(bool enabled);
+
   bool hasIRSensor() const;
   bool hasColorSensor() const;
   bool hasDepthSensor() const;

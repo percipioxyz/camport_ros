@@ -21,6 +21,7 @@
   <arg name="ir_camera_info_url"    default="" />
 
   <!-- Driver parameters -->
+  <arg name="gvsp_resend" default="false" />
 
   <arg name="rgb_resolution" default="640x480" />
   <arg name="depth_resolution" default="640x480" />
@@ -116,6 +117,7 @@
       <arg name="ir"                              value="$(arg ir)" />
       <arg name="depth"                           value="$(arg depth)" />
       <arg name="respawn"                         value="$(arg respawn)" />
+      <arg name="gvsp_resend"                     value="$(arg gvsp_resend)" />
 
       <arg name="color_undistortion"              value="$(arg color_undistortion)" />
       

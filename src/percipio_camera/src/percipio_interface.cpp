@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-10-16 17:46:34
+ * @LastEditTime: 2023-10-17 09:55:08
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -215,9 +215,16 @@ namespace percipio
     return m_ids;
   }
 
+  bool percipio_depth_cam::DeviceSetStreamResendEnable(bool enable)
+  {
+    b_stream_gvsp_resend = enable;
+    return true;
+  }
+
   bool percipio_depth_cam::DeviceSetColorUndistortionEnable(bool enable)
   {
     color_undistortion = enable;
+    return true;
   }
 
   bool percipio_depth_cam::DeviceIsImageRegistrationModeSupported() const
@@ -493,6 +500,32 @@ namespace percipio
     pthread_mutex_unlock(&m_mutex);
   }
 
+  static float get_fps() {
+    static clock_t fps_tm = 0;
+    static int fps_counter = 0;
+    struct timeval start;
+    
+    gettimeofday(&start, NULL);
+    if(0 == fps_tm) {
+        fps_tm = start.tv_sec * 1000 + start.tv_usec / 1000;
+        return -1.0;
+    }
+
+    fps_counter++;
+
+    int elapse = start.tv_sec * 1000 + start.tv_usec / 1000 - fps_tm;
+    if(elapse < 5000)
+    {
+        return -1.0;
+    }
+
+    float v = 1000.0f * fps_counter / elapse;
+    fps_tm = 0;
+    fps_counter = 0;
+
+    return v;
+  }
+
   void* percipio_depth_cam::fetch_thread(void* ptr)
   {
     TY_STATUS rc;
@@ -502,6 +535,9 @@ namespace percipio
       TY_FRAME_DATA frame;
       rc = TYFetchFrame(handle, &frame, 2000);
       if(rc == TY_STATUS_OK) {
+        float fps = get_fps();
+        if(fps > 0) 
+          LOGI("fps: %.2f", fps);
         for (int i = 0; i < frame.validCount; i++){
           if (frame.image[i].status != TY_STATUS_OK) continue;
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
@@ -649,9 +685,22 @@ namespace percipio
 
     TYGetStruct(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &depth_intr, sizeof(depth_intr));
     TYGetStruct(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_STRUCT_CAM_INTRINSIC, &color_intr, sizeof(color_intr));
+
+    bool b_gsvp_resend_support = false;
+    TYHasFeature(_M_DEVICE, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, &b_gsvp_resend_support);
+    if(b_gsvp_resend_support) {
+      if(b_stream_gvsp_resend) {
+        LOGD("=== Open resend.");
+        TYSetBool(_M_DEVICE, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, true);
+      } else {
+        LOGD("=== Close resend.");
+        TYSetBool(_M_DEVICE, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, false);
+      }
+    }
     
     uint32_t frameSize;
     TYGetFrameBufferSize(_M_DEVICE, &frameSize);
+    LOGD("     - Get size of framebuffer, %d", frameSize);
     if(frameBuffer[0]) delete []frameBuffer[0];
     if(frameBuffer[1]) delete []frameBuffer[1];
     frameBuffer[0] = new char[frameSize];
@@ -1010,10 +1059,8 @@ namespace percipio
   void  VideoStream::parseImageData(TY_IMAGE_DATA* img)
   { 
     //TODO
-    VideoFrameData vframe;
+    VideoFrameData vframe, tframe;
     vframe.setData(img);
-
-    VideoFrameData tframe;
     if(img->pixelFormat == TY_PIXEL_FORMAT_DEPTH16) {
       g_Context->parseDepthStream(&vframe, &tframe);
       ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
@@ -1084,6 +1131,8 @@ namespace percipio
   ////
   VideoFrameData::VideoFrameData()
   {
+    //
+    pthread_mutex_lock(&_mutex);
     m_isOwner = true;
 
     timestamp = 0;
@@ -1097,16 +1146,20 @@ namespace percipio
     pixelFormat = 0;
 
     buffer = NULL;
+    pthread_mutex_unlock(&_mutex);
   }
   
   VideoFrameData::~VideoFrameData() 
   {
+    //
+    pthread_mutex_lock(&_mutex);
     if(m_isOwner) {
       if(buffer) {
         free(buffer);
         buffer = NULL;
       }
     }
+    pthread_mutex_unlock(&_mutex);
   }
 
   void  VideoFrameData::setTimestamp(uint64_t time) 
@@ -1114,17 +1167,17 @@ namespace percipio
     timestamp = time;
   }
   
-  void  VideoFrameData::setWidth(int32_t w) 
+  void  VideoFrameData::setWidth(int32_t w)
   {
     width = w;
   }
 
-  void  VideoFrameData::setHeight(int32_t h) 
+  void  VideoFrameData::setHeight(int32_t h)
   {
     height = h;
   }
 
-  void  VideoFrameData::Resize(int32_t sz) 
+  void  VideoFrameData::Resize(int32_t sz)
   {
     if(size != sz) {
       size = sz;
@@ -1144,6 +1197,7 @@ namespace percipio
 
   void  VideoFrameData::setData(TY_IMAGE_DATA* data)
   {
+    pthread_mutex_lock(&_mutex);
     timestamp = data->timestamp;
     imageIndex = data->imageIndex;
     status = data->status;
@@ -1156,10 +1210,12 @@ namespace percipio
     pixelFormat = data->pixelFormat;
 
     m_isOwner = false;
+    pthread_mutex_unlock(&_mutex);
   }
 
   void  VideoFrameData::clone(const VideoFrameData& frame)
   {
+    pthread_mutex_lock(&_mutex);
     timestamp = frame.timestamp;
     imageIndex = frame.imageIndex;
     status = frame.status;
@@ -1178,6 +1234,7 @@ namespace percipio
     memcpy(buffer, frame.getData(), size);
 
     m_isOwner = true;
+    pthread_mutex_unlock(&_mutex);
   }
 
   void  VideoFrameData::setPixelFormat(int32_t fmt) 
@@ -1417,6 +1474,11 @@ namespace percipio
   bool Device::isValid() const 
   { 
     return g_Context.get()->isValid(); 
+  }
+
+  void Device::setStreamResendEnable(bool enabled)
+  {
+    g_Context.get()->DeviceSetStreamResendEnable(enabled);
   }
 
   void Device::setColorUndistortion(bool enabled)

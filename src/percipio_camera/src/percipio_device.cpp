@@ -425,6 +425,11 @@ bool PercipioDevice::isImageRegistrationModeSupported() const
   return percipio_device_->isImageRegistrationModeSupported(percipio::IMAGE_REGISTRATION_DEPTH_TO_COLOR);
 }
 
+void PercipioDevice::setGvspResendEnable(bool enabled)
+{
+  percipio_device_->setStreamResendEnable(enabled);
+}
+
 void PercipioDevice::setColorUndistortion(bool enabled)
 {
   percipio_device_->setColorUndistortion(enabled);

@@ -63,6 +63,7 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   device_manager_(PercipioDeviceManager::getSingelton()),
   config_init_(false),
   depth_registration_(false),
+  gvsp_resend_(false),
   color_depth_synchronization_(true),
   use_device_time_(false),
   tof_depth_channel_(0),
@@ -679,6 +680,12 @@ void PercipioDriver::readConfigFromParameterServer()
     device_id_ = "#1";
   }
 
+  if(!pnh_.getParam("gvsp_resend", gvsp_resend_))
+  {
+    ROS_WARN ("~gvsp resend is not set! Using default.");
+    gvsp_resend_ = false;
+  }
+
   if (!pnh_.getParam("rgb_resolution", rgb_resolution_))
   {
     ROS_WARN ("~rgb_resolution is not set! Try using default.");
@@ -900,6 +907,8 @@ void PercipioDriver::initDevice()
       resolveDeviceResolution(rgb_resolution_, rgb_width, rgb_height);
       resolveDeviceResolution(depth_resolution_, depth_width, depth_height);
       device_ = device_manager_->getDevice(device_URI);
+
+      device_.get()->setGvspResendEnable(gvsp_resend_);
 
       device_.get()->setColorResolution(rgb_width, rgb_height);
       device_.get()->setDepthResolutuon(depth_width, depth_height);
