@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-10-17 10:31:44
+ * @LastEditTime: 2023-10-19 13:29:17
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -191,6 +191,8 @@ namespace percipio
       TY_STATUS StreamRegisterNewFrameCallback(StreamHandle stream, void* listener, NewFrameCallback cb);
 
       void StreamUnregisterNewFrameCallback(StreamHandle stream);
+
+      const std::string& get_component_desc(TY_COMPONENT_ID comp);
 
       static void* fetch_thread(void* ptr);
 

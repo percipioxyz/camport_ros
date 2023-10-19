@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-10-17 09:55:08
+ * @LastEditTime: 2023-10-19 13:49:45
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -125,19 +125,21 @@ namespace percipio
       int w = TYImageWidth(mode);
       int h = TYImageHeight(mode);
       if((w == width) && (h == height)) {
-        if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK)
+        if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
+          ROS_INFO("%s resolution set to %dx%d.", get_component_desc(comp).c_str(), width, height, w, h);
           return true;
+        }
       }
 
       if((w == width) || (h == height)) {
         if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
-          ROS_WARN("Resolution mismatch %dx%d  != %dx%d\n", width, height, w, h);
+          ROS_WARN("%s resolution mismatch %dx%d  != %dx%d.", get_component_desc(comp).c_str(), width, height, w, h);
           return true;
         }
       }
     }
 
-    ROS_WARN("Unsuitable resolution %dx%d\n", width, height);
+    ROS_WARN("%s unsuitable resolution %dx%d.", get_component_desc(comp).c_str(), width, height);
     return false;
   }
 
@@ -500,6 +502,31 @@ namespace percipio
     pthread_mutex_unlock(&m_mutex);
   }
 
+  static const std::string component_desc[] = {
+    "Depth",
+    "Left IR",
+    "Right IR",
+    "Color",
+    "NAN"
+  };
+
+  const std::string& percipio_depth_cam::get_component_desc(TY_COMPONENT_ID comp)
+  {
+    switch (comp)
+    {
+    case TY_COMPONENT_DEPTH_CAM:
+      return component_desc[0];
+    case TY_COMPONENT_IR_CAM_LEFT:
+      return component_desc[1];
+    case TY_COMPONENT_IR_CAM_RIGHT:
+      return component_desc[2];
+    case TY_COMPONENT_RGB_CAM:
+      return component_desc[3];
+    default:
+      return component_desc[4];
+    }
+  }
+
   static float get_fps() {
     static clock_t fps_tm = 0;
     static int fps_counter = 0;
@@ -537,7 +564,7 @@ namespace percipio
       if(rc == TY_STATUS_OK) {
         float fps = get_fps();
         if(fps > 0) 
-          LOGI("fps: %.2f", fps);
+          ROS_INFO("fps: %.2f", fps);
         for (int i = 0; i < frame.validCount; i++){
           if (frame.image[i].status != TY_STATUS_OK) continue;
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
@@ -646,19 +673,22 @@ namespace percipio
     }
 
     //VideoStream
-
+    std::string component_list;
     if(leftIRStream.get() && leftIRStream.get()->isInvalid()) {
       TYEnableComponents(_M_DEVICE, TY_COMPONENT_IR_CAM_LEFT);
+      component_list += "leftIR ";
     }else
       TYDisableComponents(_M_DEVICE, TY_COMPONENT_IR_CAM_LEFT);
     
     if(rightIRStream.get() && rightIRStream.get()->isInvalid()){
       TYEnableComponents(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT);
+      component_list += "rightIR ";
     }else
       TYDisableComponents(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT);
 
     if(ColorStream.get() && ColorStream.get()->isInvalid()) {
       TYEnableComponents(_M_DEVICE, TY_COMPONENT_RGB_CAM);
+      component_list += "color ";
       TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_WIDTH, &current_rgb_width);
       TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_HEIGHT, &current_rgb_height);
       b_stream_with_color = true;
@@ -671,6 +701,7 @@ namespace percipio
 
     if(DepthStream.get() && DepthStream.get()->isInvalid()) {
       TYEnableComponents(_M_DEVICE, TY_COMPONENT_DEPTH_CAM);
+      component_list += "depth ";
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_WIDTH, &current_depth_width);
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_HEIGHT, &current_depth_height);
       TYHasFeature(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &depth_distortion);
@@ -683,6 +714,8 @@ namespace percipio
       TYSetBool(_M_DEVICE, TY_COMPONENT_LASER, TY_BOOL_LASER_AUTO_CTRL, false);
     }
 
+    ROS_INFO("Device components enabled: %s.", component_list.c_str());
+
     TYGetStruct(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &depth_intr, sizeof(depth_intr));
     TYGetStruct(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_STRUCT_CAM_INTRINSIC, &color_intr, sizeof(color_intr));
 
@@ -690,17 +723,16 @@ namespace percipio
     TYHasFeature(_M_DEVICE, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, &b_gsvp_resend_support);
     if(b_gsvp_resend_support) {
       if(b_stream_gvsp_resend) {
-        LOGD("=== Open resend.");
+        ROS_INFO("Device Open resend.");
         TYSetBool(_M_DEVICE, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, true);
       } else {
-        LOGD("=== Close resend.");
+        ROS_INFO("Device close resend.");
         TYSetBool(_M_DEVICE, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, false);
       }
     }
     
     uint32_t frameSize;
     TYGetFrameBufferSize(_M_DEVICE, &frameSize);
-    LOGD("     - Get size of framebuffer, %d", frameSize);
     if(frameBuffer[0]) delete []frameBuffer[0];
     if(frameBuffer[1]) delete []frameBuffer[1];
     frameBuffer[0] = new char[frameSize];
@@ -708,6 +740,13 @@ namespace percipio
 
     TYEnqueueBuffer(_M_DEVICE, frameBuffer[0], frameSize);
     TYEnqueueBuffer(_M_DEVICE, frameBuffer[1], frameSize);
+
+    //color_undistortion rgb undistortion flag
+    //depth_distortion   depth do undistortion flag
+    //DeviceGetImageRegistrationMode()
+    ROS_INFO("color stream do undistortion flag: %d", color_undistortion);
+    ROS_INFO("depth stream do undistortion flag: %d", depth_distortion);
+    ROS_INFO("depth stream do registration flag: %d", DeviceGetImageRegistrationMode());
 
     rc = TYStartCapture(_M_DEVICE);
     if(rc != TY_STATUS_OK)

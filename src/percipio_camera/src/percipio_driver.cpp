@@ -358,13 +358,11 @@ void PercipioDriver::colorConnectCb()
 
     ROS_INFO("Starting color stream.");
     device_->startColorStream();
-    ROS_INFO("Starting color stream finished.");
   }
   else if (!color_subscribers_ && device_->isColorStreamStarted())
   {
     ROS_INFO("Stopping color stream.");
     device_->stopColorStream();
-    ROS_INFO("Stopping color stream finished.");
   }
 }
 
