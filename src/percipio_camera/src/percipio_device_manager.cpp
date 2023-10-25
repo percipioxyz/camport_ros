@@ -124,7 +124,6 @@ public:
     device_set_.insert(device_info_wrapped);
   }
 
-
   virtual void onDeviceDisconnected(const percipio::DeviceInfo* pInfo)
   {
     boost::mutex::scoped_lock l(device_mutex_);
@@ -133,14 +132,24 @@ public:
 
     const PercipioDeviceInfo device_info_wrapped = percipio_convert(pInfo);
     device_set_.erase(device_info_wrapped);
+
+    
   }
 
   boost::shared_ptr<std::vector<std::string> > getConnectedDeviceURIs()
   {
+    percipio::Array<percipio::DeviceInfo> device_info_list;
+    percipio::Percipio::enumerateDevices(&device_info_list);
+    for (int i = 0; i < device_info_list.getSize(); ++i)
+    {
+      onDeviceConnected(&device_info_list[i]);
+    }
+
     boost::mutex::scoped_lock l(device_mutex_);
 
     boost::shared_ptr<std::vector<std::string> > result = boost::make_shared<std::vector<std::string> >();
 
+    result->clear();
     result->reserve(device_set_.size());
 
     std::set<PercipioDeviceInfo, PercipioDeviceInfoComparator>::const_iterator it;

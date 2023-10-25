@@ -775,9 +775,13 @@ std::string PercipioDriver::resolveDeviceURI(const std::string& device_id)
     int device_index = device_number - 1; // #1 refers to first device
     if (device_index >= available_device_URIs->size() || device_index < 0)
     {
+#if 0      
       THROW_PERCIPIO_EXCEPTION(
           "Invalid device number %i, there are %zu devices connected.",
           device_number, available_device_URIs->size());
+#endif
+      percipio::Percipio::initialize();
+
     }
     else
     {
@@ -875,7 +879,7 @@ std::string PercipioDriver::resolveDeviceURI(const std::string& device_id)
     return matched_uri;
   }
 
-  return "INVALID";
+  return "";
 }
 
 bool PercipioDriver::resolveDeviceResolution(const std::string& resolution_, int& width, int& height)
@@ -899,11 +903,18 @@ void PercipioDriver::initDevice()
     try
     {
       std::string device_URI = resolveDeviceURI(device_id_);
-      
+
+      if(!device_URI.length()) {
+        ROS_INFO("No matching device found.... waiting for devices.");
+        boost::this_thread::sleep(boost::posix_time::seconds(3));
+        continue;
+      }
+
       int rgb_width, rgb_height;
       int depth_width, depth_height;
       resolveDeviceResolution(rgb_resolution_, rgb_width, rgb_height);
       resolveDeviceResolution(depth_resolution_, depth_width, depth_height);
+      
       device_ = device_manager_->getDevice(device_URI);
 
       device_.get()->setGvspResendEnable(gvsp_resend_);

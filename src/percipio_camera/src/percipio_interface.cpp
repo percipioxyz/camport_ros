@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-10-19 13:49:45
+ * @LastEditTime: 2023-10-25 10:46:01
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -38,19 +38,33 @@ namespace percipio
   {
     TY_STATUS rc;
     rc = TYInitLib();
-    if(rc != TY_STATUS_OK)
-      return rc;
-
+    //if(rc != TY_STATUS_OK)
+    //  return rc;
+#if 0
     std::vector<TY_DEVICE_BASE_INFO> selected;
-    selectDevice(TY_INTERFACE_ALL, "", "", 100, selected);
+    rc = selectDevice(TY_INTERFACE_ALL, "", "", 100, selected);
+    if(rc != TY_STATUS_OK || (0 == selected.size())) {
+      TYDeinitLib();
+      return TY_STATUS_OK;
+    }
     for(size_t i = 0; i < selected.size(); i++) {
       device_list.push_back(DeviceInfo(selected[i].id, selected[i].vendorName, selected[i].modelName));
     }
+#endif
     return TY_STATUS_OK;
   }
 
   void percipio_depth_cam::GetDeviceList(DeviceInfo** device_info_ptr, int* cnt)
   {
+    std::vector<TY_DEVICE_BASE_INFO> selected;
+    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", "", 100, selected);
+    if(rc == TY_STATUS_OK && selected.size()) {
+      device_list.clear();
+      for(size_t i = 0; i < selected.size(); i++) {
+        device_list.push_back(DeviceInfo(selected[i].id, selected[i].vendorName, selected[i].modelName));
+      }
+    }
+    
     *cnt = device_list.size();
     *device_info_ptr = new DeviceInfo[device_list.size()];
     for(size_t i = 0; i < device_list.size(); i++)
@@ -1673,7 +1687,7 @@ namespace percipio
       g_Context = boost::make_shared<percipio_depth_cam>();
       return g_Context.get()->initialize();
     } else {
-      return TY_STATUS_OK;
+      return g_Context.get()->initialize();
     }
   } 
 
