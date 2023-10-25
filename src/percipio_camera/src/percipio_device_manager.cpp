@@ -57,17 +57,10 @@ public:
 
 typedef std::set<PercipioDeviceInfo, PercipioDeviceInfoComparator> DeviceSet;
 
-//class PercipioDeviceListener : public percipio::Percipio::DeviceConnectedListener,
-//                               public percipio::Percipio::DeviceDisconnectedListener
-//                               public percipio::Percipio::DeviceStateChangedListener
 class PercipioDeviceListener : public percipio::DeviceConnectedListener,
                                public percipio::DeviceDisconnectedListener
 {
 public:
-  //PercipioDeviceListener() :
-  //    percipio::DeviceConnectedListener(),
-  //    percipio::DeviceDisconnectedListener(),
-  //    percipio::Percipio::DeviceStateChangedListener()
   PercipioDeviceListener() : 
         percipio::DeviceConnectedListener(),
         percipio::DeviceDisconnectedListener()
@@ -81,7 +74,12 @@ public:
     percipio::Percipio::enumerateDevices(&device_info_list);
     for (int i = 0; i < device_info_list.getSize(); ++i)
     {
-      onDeviceConnected(&device_info_list[i]);
+      //onDeviceConnected(&device_info_list[i]);
+      const PercipioDeviceInfo device_info_wrapped = percipio_convert(&device_info_list[i]);
+
+      // make sure it does not exist in set before inserting
+      device_set_.erase(device_info_wrapped);
+      device_set_.insert(device_info_wrapped);
     }
   }
 
@@ -89,28 +87,8 @@ public:
   {
     percipio::Percipio::removeDeviceConnectedListener(this);
     percipio::Percipio::removeDeviceDisconnectedListener(this);
-    //percipio::Percipio::removeDeviceStateChangedListener(this);
   }
 
-#if 0
-  virtual void onDeviceStateChanged(const percipio::DeviceInfo* pInfo, percipio::DeviceState state)
-  {
-    ROS_INFO("Device \"%s\" error state changed to %d\n", pInfo->getUri(), state);
-
-    switch (state)
-    {
-      case percipio::DEVICE_STATE_OK:
-        onDeviceConnected(pInfo);
-        break;
-      case percipio::DEVICE_STATE_ERROR:
-      case percipio::DEVICE_STATE_NOT_READY:
-      case percipio::DEVICE_STATE_EOF:
-      default:
-        onDeviceDisconnected(pInfo);
-        break;
-    }
-  }
-#endif
   virtual void onDeviceConnected(const percipio::DeviceInfo* pInfo)
   {
     boost::mutex::scoped_lock l(device_mutex_);
