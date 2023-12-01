@@ -85,6 +85,7 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       uint64_t device_time = m_frame.getTimestamp();
 
       double device_time_in_sec = static_cast<double>(device_time)/1000000.0;
+#if 0
       double ros_time_in_sec = ros_now.toSec();
 
       double time_diff = ros_time_in_sec-device_time_in_sec;
@@ -94,11 +95,13 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       double filtered_time_diff = timer_filter_->getMedian();
 
       double corrected_timestamp = device_time_in_sec+filtered_time_diff;
+#else
+      double corrected_timestamp = device_time_in_sec;
+#endif
 
       image->header.stamp.fromSec(corrected_timestamp);
 
       ROS_DEBUG("Time interval between frames: %.4f ms", (float)((corrected_timestamp-prev_time_stamp_)*1000.0));
-
       prev_time_stamp_ = corrected_timestamp;
     }
 
