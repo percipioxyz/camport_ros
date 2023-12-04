@@ -158,6 +158,11 @@ private:
   int m_laser_power_;
   
   bool auto_exposure_;
+  double auto_exposure_p1_x_;
+  double auto_exposure_p1_y_;
+  double auto_exposure_p2_x_;
+  double auto_exposure_p2_y_;
+
   bool auto_white_balance_;
   
   int m_rgb_exposure_time_;
@@ -169,7 +174,11 @@ private:
   int m_ir_exposure_time_;
   int m_ir_analog_gain_;
   int m_ir_gain_;
-  //-
+
+  //
+  bool depth_speckle_filter_;
+  int max_speckle_size_;
+  int max_speckle_diff_;
 
   double depth_ir_offset_x_;
   double depth_ir_offset_y_;
@@ -178,6 +187,10 @@ private:
   #define PARAMTER_DEFAULT   (0xFFFFFFFF)
   int tof_depth_channel_;
   int tof_depth_quality_;
+  int tof_depth_filter_threshold_;
+  int tof_depth_modulation_threshold_;
+  int tof_depth_jitter_threshold_;
+  int tof_depth_hdr_ratio_;
 
   int sgbm_image_channel_num_  = PARAMTER_DEFAULT;
   int sgbm_disparity_num_  = PARAMTER_DEFAULT;

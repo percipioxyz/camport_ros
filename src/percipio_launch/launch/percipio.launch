@@ -35,8 +35,12 @@
   <arg name="color_undistortion" default="true" />
 
   <!-- Only support Percipio TOF camera   -->
-  <arg name="tof_channel"        default="" />
-  <arg name="tof_depth_quality"  default="" />
+  <arg name="tof_channel"              default="" />
+  <arg name="tof_depth_quality"        default="" />
+  <arg name="tof_filter_threshold"     default="" />
+  <arg name="tof_modulation_threshold" default="" />
+  <arg name="tof_jitter_threshold"     default="" />
+  <arg name="tof_hdr_ratio"            default="" />
 
   <!--SGBM parameters -->
   <arg name="sgbm_image_channel_num"            default="" />
@@ -127,6 +131,11 @@
       
       <arg name="tof_channel"                     value="$(arg tof_channel)" />
       <arg name="tof_depth_quality"               value="$(arg tof_depth_quality)" />
+      
+      <arg name="tof_filter_threshold"            value="$(arg tof_filter_threshold)" />
+      <arg name="tof_modulation_threshold"        value="$(arg tof_modulation_threshold)" />
+      <arg name="tof_jitter_threshold"            value="$(arg tof_jitter_threshold)" />
+      <arg name="tof_hdr_ratio"                   value="$(arg tof_hdr_ratio)" />
 
       <arg name="sgbm_image_channel_num"            value="$(arg sgbm_image_channel_num)" />
       <arg name="sgbm_disparity_num"                value="$(arg sgbm_disparity_num)" />

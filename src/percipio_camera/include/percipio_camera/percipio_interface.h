@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-10-19 13:29:17
+ * @LastEditTime: 2023-12-04 17:25:04
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -157,6 +157,15 @@ namespace percipio
 
       bool DeviceSetColorUndistortionEnable(bool enable);
 
+      bool DepthStreamSetSpeckFilterEn(bool enabled);
+      bool DepthStreamGetSpeckFilterEn();
+
+      bool DepthStreamSetSpeckFilterSpecSize(int spec_size);
+      int DepthStreamGetSpeckFilterSpecSize();
+  
+      bool DepthStreamSetSpeckFilterDiff(int spec_diff);
+      int DepthStreamGetSpeckFilterDiff();
+
       bool DeviceIsImageRegistrationModeSupported() const;
 
       TY_STATUS DeviceSetImageRegistrationMode(ImageRegistrationMode mode);
@@ -171,10 +180,9 @@ namespace percipio
       TY_STATUS DeviceDisableDepthColorSync();
       bool DeviceGetDepthColorSyncEnabled();
 
-      template <class T>
       TY_STATUS getProperty(StreamHandle stream, uint32_t propertyId, void* value);
-      template <class T>
-      TY_STATUS setProperty(StreamHandle stream, uint32_t propertyId, const T& value);
+
+      TY_STATUS setProperty(StreamHandle stream, uint32_t propertyId, const void* value);
 
       TY_STATUS DeviceGetProperty(int propertyId, void* data, int* dataSize);
 
@@ -248,6 +256,10 @@ namespace percipio
 
       bool color_undistortion = false;
       bool depth_distortion = false;
+
+      bool depth_stream_spec_enable = false;
+      int depth_stream_spec_size = 150; //default
+      int depth_stream_spec_diff = 64;
 
       float f_depth_scale_unit = 1.0f;
 
@@ -511,6 +523,12 @@ public:
     TY_STATUS setTOFCamDepthChannel(int channel);
     TY_STATUS setTOFCamDepthQuality(int quality);
 
+    TY_STATUS setFilterThreshold(int threshold);
+    TY_STATUS setModulationThreshold(int threshold);
+    TY_STATUS setTofHdrRatio(int ratio);
+    TY_STATUS setTofJitterThreshold(int threshold);
+    TY_STATUS setColorAecROI(double p1_x, double p1_y, double p2_x, double p2_y);
+
     TY_STATUS setDepthSgbmImageChanNumber(int value);
     TY_STATUS setDepthSgbmDispNumber(int value);
     TY_STATUS setDepthSgbmDispOffset(int value);
@@ -535,16 +553,21 @@ public:
     bool getRedGain(int* gain) const;
     bool getGreenGain(int* gain) const;
     bool getBlueGain(int* gain) const;
-    int getExposure(int* exposure);
-    int getGain(int* gain);
-    int getTOFCamDepthChannel(int* channel);
-    int getTOFCamDepthQuality(int* quality);
+    bool getExposure(int* exposure) const;
+    bool getGain(int* gain) const;
+    bool getTOFCamDepthChannel(int* channel) const;
+    bool getTOFCamDepthQuality(int* quality) const;
+
+    bool getFilterThreshold(int* threshold) const;
+    bool getModulationThreshold(int* threshold) const;
+    bool getTofHdrRatio(int* ratio) const;
+    bool getTofJitterThreshold(int* threshold) const;
+    bool getColorAecROI(double* roi) const;
+
     bool isValid() const;
   private:
-    template <class T>
-    TY_STATUS getProperty(uint32_t propertyId, T* value) const;
-    template <class T>
-    TY_STATUS setProperty(uint32_t propertyId, const T& value);
+    TY_STATUS getProperty(uint32_t propertyId, void* value) const;
+    TY_STATUS setProperty(uint32_t propertyId, const void* value);
 
     friend class VideoStream;
     CameraSettings(VideoStream* pStream);
@@ -671,6 +694,15 @@ public:
       void setStreamResendEnable(bool enabled);
 
       void setColorUndistortion(bool enabled);
+
+      bool setDepthSpecFilterEn(bool enabled);
+      bool getDepthSpecFilterEn();
+      
+      bool setDepthSpecFilterSpecSize(int spec_size);
+      int getDepthSpecFilterSpecSize();
+      
+      bool setDepthSpeckFilterDiff(int spec_diff);
+      int getDepthSpeckFilterDiff();
 
       bool isImageRegistrationModeSupported(ImageRegistrationMode mode) const;
       TY_STATUS setImageRegistrationMode(ImageRegistrationMode mode);

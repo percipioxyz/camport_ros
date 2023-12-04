@@ -104,6 +104,15 @@ public:
 
   void setColorUndistortion(bool enabled);
 
+  bool setDepthSpecFilterEn(bool en);
+  bool getDepthSpecFilterEn();
+
+  bool setDepthSpecFilterSpecSize(int spec_size);
+  int getDepthSpecFilterSpecSize();
+
+  bool setDepthSpeckFilterDiff(int spec_diff);
+  int getDepthSpeckFilterDiff();
+
   bool isImageRegistrationModeSupported() const;
   void setImageRegistrationMode(bool enabled);
   percipio::ImageRegistrationMode getImageRegistrationMode() const;
@@ -146,6 +155,7 @@ public:
   bool hasColorRedGain() const;
   bool hasColorGreenGain() const;
   bool hasColorBlueGain() const;
+  bool hasColorAecROI() const;
   
   bool hasIrExposureTime() const;
   bool hasIrAnalogGain() const;
@@ -153,6 +163,11 @@ public:
 
   bool hasTofDepthChannel() const;
   bool hasTofDepthQuality() const;
+
+  bool hasTofFilterThreshold() const;
+  bool hasTofModulationThreshold() const;
+  bool hasTofHdrRatio() const;
+  bool hasTofJitterThreshold() const;
   
   void setLaserPower(int value);
   void setAutoExposure(bool enable);
@@ -163,6 +178,7 @@ public:
   void setColorRedGain(int value);
   void setColorGreenGain(int value);
   void setColorBlueGain(int value);
+  void setColorAecROI(double p1_x, double p1_y, double p2_x, double p2_y);
   
   void setIrExposureTime(int value);
   void setIrAnalogGain(int value);
@@ -170,6 +186,10 @@ public:
 
   void setTofDepthChannel(int value);
   void setTofDepthQuality(int value);
+  void setTofFilterThreshold(int value);
+  void setTofModulationThreshold(int value);
+  void setTofHdrRatio(int value);
+  void setTofJitterThreshold(int value);
 
   void setSgbmImageChanNumber(int value);
   void setSgbmDispNumber(int value);
@@ -187,7 +207,8 @@ public:
   void setSgbmLRCMaxDiff(int value);
   void setSgbmMedianFilterThresh(int value);
   void setSgbmSemiP1Scale(int value);
-  
+
+  /////////////////////////////////////////////  
   bool getLaserPower(int* value) const;
   bool getAutoExposure() const;
   bool getAutoWhiteBalance() const;
@@ -197,6 +218,7 @@ public:
   bool getColorRedGain(int* value) const;
   bool getColorGreenGain(int* value) const;
   bool getColorBlueGain(int* value) const;
+  bool getColorAecROI(double* p1_x, double* p1_y, double* p2_x, double* p2_y);
   
   bool getIrExposureTime(int* value) const;
   bool getIrAnalogGain(int* value) const;
@@ -204,7 +226,12 @@ public:
 
   bool getTofDepthChannel(int* value) const;
   bool getTofDepthQuality(int* value) const;
-      
+
+  bool getTofFilterThreshold(int* value) const;
+  bool getTofModulationThreshold(int* value) const;
+  bool getTofHdrRatio(int* value) const;
+  bool getTofJitterThreshold(int* value) const;
+
 /*
   bool getAutoExposure() const;
   bool getAutoWhiteBalance() const;
@@ -222,6 +249,10 @@ protected:
   boost::shared_ptr<percipio::VideoStream> getIRVideoStream() const;
   boost::shared_ptr<percipio::VideoStream> getColorVideoStream() const;
   boost::shared_ptr<percipio::VideoStream> getDepthVideoStream() const;
+
+  percipio::CameraSettings* getDepthCameraSettingsPtr() const;
+  percipio::CameraSettings* getColorCameraSettingsPtr() const;
+  percipio::CameraSettings* getIRCameraSettingsPtr() const;
 
   boost::shared_ptr<percipio::Device> percipio_device_;
   boost::shared_ptr<percipio::DeviceInfo> device_info_;

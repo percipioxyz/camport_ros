@@ -435,6 +435,36 @@ void PercipioDevice::setColorUndistortion(bool enabled)
   percipio_device_->setColorUndistortion(enabled);
 }
 
+bool PercipioDevice::setDepthSpecFilterEn(bool en)
+{
+  return percipio_device_->setDepthSpecFilterEn(en);
+}
+
+bool PercipioDevice::getDepthSpecFilterEn()
+{
+  return percipio_device_->getDepthSpecFilterEn();
+}
+
+bool PercipioDevice::setDepthSpecFilterSpecSize(int spec_size)
+{
+  return percipio_device_->setDepthSpecFilterSpecSize(spec_size);
+}
+
+int PercipioDevice::getDepthSpecFilterSpecSize()
+{
+  return percipio_device_->getDepthSpecFilterSpecSize();
+}
+
+bool PercipioDevice::setDepthSpeckFilterDiff(int spec_diff)
+{
+  return percipio_device_->setDepthSpeckFilterDiff(spec_diff);
+}
+
+int PercipioDevice::getDepthSpeckFilterDiff()
+{
+  return percipio_device_->getDepthSpeckFilterDiff();
+}
+
 void PercipioDevice::setImageRegistrationMode(bool enabled)
 {
   if (isImageRegistrationModeSupported())
@@ -574,890 +604,752 @@ void PercipioDevice::setDepthVideoMode(const PercipioVideoMode& video_mode)
   }
 }
 
-bool PercipioDevice::hasLaserPower() const
+percipio::CameraSettings* PercipioDevice::getDepthCameraSettingsPtr() const
 {
   boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
   if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int power = 0;
-      if (camera_seeting->getLaserPower(&power))
-        return true;
-    }
+    return stream->getCameraSettings();
+  else
+    return NULL;
+}
+
+percipio::CameraSettings* PercipioDevice::getColorCameraSettingsPtr() const
+{
+  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
+  if(stream) 
+    return stream->getCameraSettings();
+  else
+    return NULL;
+}
+
+percipio::CameraSettings* PercipioDevice::getIRCameraSettingsPtr() const
+{
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
+  if(stream) 
+    return stream->getCameraSettings();
+  else
+    return NULL;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////
+bool PercipioDevice::hasLaserPower() const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int power = 0;
+    return camera_seeting->getLaserPower(&power);
   }
   return false;
 }
 
 bool PercipioDevice::hasAutoExposure() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      bool enable = false;
-      if (camera_seeting->getAutoExposureEnabled(&enable))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting) {
+    bool enable = false;
+    return camera_seeting->getAutoExposureEnabled(&enable);
   }
   return false;
 }
 
 bool PercipioDevice::hasAutoWhiteBalance() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      bool enable = false;
-      if (camera_seeting->getAutoWhiteBalanceEnabled(&enable))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting) {
+    bool enable = false;
+    return camera_seeting->getAutoWhiteBalanceEnabled(&enable);
   }
   return false;
 }
 
 bool PercipioDevice::hasColorAnalogGain() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int analog_gain = 0;
-      if (camera_seeting->getAnalogGain(&analog_gain))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting) {
+    int analog_gain = 0;
+    return camera_seeting->getAnalogGain(&analog_gain);
   }
   return false;
 }
 
 bool PercipioDevice::hasColorRedGain() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int rgb_r_gain = 0;
-      if (camera_seeting->getRedGain(&rgb_r_gain))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting) {
+    int rgb_r_gain = 0;
+    return camera_seeting->getRedGain(&rgb_r_gain);
   }
   return false;
 }
 
 bool PercipioDevice::hasColorGreenGain() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int rgb_g_gain = 0;
-      if (camera_seeting->getGreenGain(&rgb_g_gain))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting) {
+    int rgb_g_gain = 0;
+    return camera_seeting->getGreenGain(&rgb_g_gain);
   }
   return false;
 }
 
 bool PercipioDevice::hasColorBlueGain() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int rgb_b_gain = 0;
-      if (camera_seeting->getBlueGain(&rgb_b_gain))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting) {
+    int rgb_b_gain = 0;
+    return camera_seeting->getBlueGain(&rgb_b_gain);
+  }
+  return false;
+}
+
+bool PercipioDevice::hasColorAecROI() const
+{
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if(camera_seeting) {
+    double roi[4];
+    return camera_seeting->getColorAecROI(roi);
   }
   return false;
 }
 
 bool PercipioDevice::hasColorExposureTime() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int rgb_exp = 0;
-      if (camera_seeting->getExposure(&rgb_exp))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting) {
+    int rgb_exp = 0;
+    return camera_seeting->getExposure(&rgb_exp);
   }
   return false;
 }
 bool PercipioDevice::hasIrExposureTime() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int ir_exposure = 0;
-      if (camera_seeting->getExposure(&ir_exposure))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getIRCameraSettingsPtr();
+  if (camera_seeting) {
+    int ir_exposure = 0;
+    return camera_seeting->getExposure(&ir_exposure);
   }
   return false;
 }
 
 bool PercipioDevice::hasIrAnalogGain() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int ir_analog_gain = 0;
-      if (camera_seeting->getAnalogGain(&ir_analog_gain))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getIRCameraSettingsPtr();
+  if (camera_seeting) {
+    int ir_analog_gain = 0;
+    return camera_seeting->getAnalogGain(&ir_analog_gain);
   }
   return false;
 }
 
 bool PercipioDevice::hasIrGain() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int ir_gain = 0;
-      if (camera_seeting->getGain(&ir_gain))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getIRCameraSettingsPtr();
+  if (camera_seeting) {
+    int ir_gain = 0;
+    return camera_seeting->getGain(&ir_gain);
   }
   return false;
 }
 
 bool PercipioDevice::hasTofDepthChannel() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int depth_chan = 0;
-      if (camera_seeting->getTOFCamDepthChannel(&depth_chan))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int depth_chan = 0;
+    return camera_seeting->getTOFCamDepthChannel(&depth_chan);
   }
   return false;
 }
 
 bool PercipioDevice::hasTofDepthQuality() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-  if(stream) 
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      int depth_qua = 0;
-      if (camera_seeting->getTOFCamDepthQuality(&depth_qua))
-        return true;
-    }
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int depth_qua = 0;
+    return camera_seeting->getTOFCamDepthQuality(&depth_qua);
+  }
+  return false;
+}
+
+bool PercipioDevice::hasTofFilterThreshold() const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int threshold = 0;
+    return camera_seeting->getFilterThreshold(&threshold);
+  }
+  return false;
+}
+
+bool PercipioDevice::hasTofModulationThreshold() const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int modulation_threshold = 0;
+    return camera_seeting->getModulationThreshold(&modulation_threshold);
+  }
+  return false;
+}
+
+bool PercipioDevice::hasTofHdrRatio() const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int hdr_ratio = 0;
+    return camera_seeting->getTofHdrRatio(&hdr_ratio);
+  }
+  return false;
+}
+
+bool PercipioDevice::hasTofJitterThreshold() const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int jitter_threshold = 0;
+    return camera_seeting->getTofJitterThreshold(&jitter_threshold);
   }
   return false;
 }
 
 void PercipioDevice::setLaserPower(int power)
 {
-  percipio::CameraSettings* camera_seeting;
-  boost::shared_ptr<percipio::VideoStream> depth_stream = getDepthVideoStream();
-  boost::shared_ptr<percipio::VideoStream> ir_stream = getIRVideoStream();
-
-  if (depth_stream)
-  {
-    camera_seeting = depth_stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc =  camera_seeting->setLaserPower(power);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set laser power: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
-  }
-  else
-  {
-    if(ir_stream) 
-    {
-      camera_seeting = ir_stream->getCameraSettings();
-      if (camera_seeting)
-      {
-        const TY_STATUS rc =  camera_seeting->setLaserPower(power);
-        if (rc != TY_STATUS_OK)
-          ROS_WARN("Couldn't set laser power: \n%s\n", percipio::Percipio::getExtendedError(rc));
-      }
-    }
+  percipio::CameraSettings* depth_camera_seeting = getDepthCameraSettingsPtr();
+  percipio::CameraSettings* ir_camera_seeting = getIRCameraSettingsPtr();
+  if (depth_camera_seeting) {
+    const TY_STATUS rc =  depth_camera_seeting->setLaserPower(power);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set laser power: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else if(ir_camera_seeting) {
+    const TY_STATUS rc =  ir_camera_seeting->setLaserPower(power);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set laser power: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else {
+    ;
   }
 }
 
 void PercipioDevice::setAutoExposure(bool enable)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setAutoExposureEnabled(enable);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set auto exposure: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setAutoExposureEnabled(enable);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set auto exposure: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setAutoWhiteBalance(bool enable)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setAutoWhiteBalanceEnabled(enable);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set auto white balance: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setAutoWhiteBalanceEnabled(enable);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set auto white balance: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setColorAnalogGain(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setPixelsAnalogGain(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set pixels analog gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setPixelsAnalogGain(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set pixels analog gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setColorRedGain(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setPixelsRedGain(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set pixels red gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setPixelsRedGain(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set pixels red gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setColorGreenGain(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setPixelsGreenGain(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set pixels green gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setPixelsGreenGain(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set pixels green gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setColorBlueGain(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setPixelsBlueGain(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set pixels blue gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setPixelsBlueGain(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set pixels blue gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
+void PercipioDevice::setColorAecROI(double p1_x, double p1_y, double p2_x, double p2_y)
+{
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setColorAecROI(p1_x, p1_y, p2_x, p2_y);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set aec roi: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setColorExposureTime(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setExposure(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set exposure time: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setExposure(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set exposure time: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setIrExposureTime(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getIRCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setExposure(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set ir exposure time: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setExposure(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set ir exposure time: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setIrAnalogGain(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getIRCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setPixelsAnalogGain(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set ir gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setPixelsAnalogGain(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set ir gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setIrGain(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getIRCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      const TY_STATUS rc = camera_seeting->setGain(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set ir gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setGain(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set ir gain: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setTofDepthChannel(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setTOFCamDepthChannel(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set tof depth channel: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setTOFCamDepthChannel(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set tof depth channel: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 void PercipioDevice::setTofDepthQuality(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setTOFCamDepthQuality(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set depth quality: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setTOFCamDepthQuality(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set depth quality: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
+void PercipioDevice::setTofFilterThreshold(int value)
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setFilterThreshold(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set depth filter threshold: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
+void PercipioDevice::setTofModulationThreshold(int value)
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setModulationThreshold(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set depth modulation threshold: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
+void PercipioDevice::setTofHdrRatio(int value)
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setTofHdrRatio(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set depth hdr ratio: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
+void PercipioDevice::setTofJitterThreshold(int value)
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setTofJitterThreshold(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set depth jitter threshold: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 /*sgbm paramters setting*/
 void PercipioDevice::setSgbmImageChanNumber(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmImageChanNumber(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm image channel number: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmImageChanNumber(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm image channel number: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmDispNumber(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmDispNumber(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm disp number: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmDispNumber(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm disp number: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmDispOffset(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmDispOffset(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm disp offset: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmDispOffset(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm disp offset: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmMatchWinHeight(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmMatchWinHeight(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm match window height: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmMatchWinHeight(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm match window height: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmSemiP1(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmSemiP1(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set semi global param p1: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmSemiP1(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set semi global param p1: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmSemiP2(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmSemiP2(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm semi global param p2: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmSemiP2(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm semi global param p2: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmUniqueFactor(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmUniqueFactor(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm uniqueness factor param: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmUniqueFactor(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm uniqueness factor param: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmUniqueAbsDiff(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmUniqueAbsDiff(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm uniqueness min absolute diff: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmUniqueAbsDiff(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm uniqueness min absolute diff: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmCostParam(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmCostParam(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm cost param: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmCostParam(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm cost param: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmHalfWinSizeEn(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmHalfWinSizeEn(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't enable sgbm half window size: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmHalfWinSizeEn(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't enable sgbm half window size: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmMatchWinWidth(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmMatchWinWidth(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm match window width: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmMatchWinWidth(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm match window width: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmMedianFilterEn(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmMedianFilterEn(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't enable sgbm median filter: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmMedianFilterEn(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't enable sgbm median filter: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmLRCCheckEn(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmLRCCheckEn(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't enable sgbm left right consist check: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmLRCCheckEn(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't enable sgbm left right consist check: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmLRCMaxDiff(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmLRCMaxDiff(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm max diff: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmLRCMaxDiff(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm max diff: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmMedianFilterThresh(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmMedianFilterThresh(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm median filter thresh: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmMedianFilterThresh(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm median filter thresh: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 void PercipioDevice::setSgbmSemiP1Scale(int value)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
-
-  if (stream)
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
   {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-    {
-      //TODO
-      const TY_STATUS rc = camera_seeting->setDepthSgbmSemiP1Scale(value);
-      if (rc != TY_STATUS_OK)
-        ROS_WARN("Couldn't set sgbm semi global param p1 scale: \n%s\n", percipio::Percipio::getExtendedError(rc));
-    }
+    const TY_STATUS rc = camera_seeting->setDepthSgbmSemiP1Scale(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set sgbm semi global param p1 scale: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
 bool PercipioDevice::getLaserPower(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
+  percipio::CameraSettings* depth_camera_seeting = getDepthCameraSettingsPtr();
+  percipio::CameraSettings* ir_camera_seeting = getIRCameraSettingsPtr();
 
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret =  camera_seeting->getLaserPower(value);
-  }
-  return ret;
+  if (depth_camera_seeting)
+    return  depth_camera_seeting->getLaserPower(value);
+  if(ir_camera_seeting)
+    return ir_camera_seeting->getLaserPower(value);
+
+  return false;
 }
 
 bool PercipioDevice::getAutoExposure() const
 {
-  bool ret = false;
   bool enable = false;
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret = camera_seeting->getAutoExposureEnabled(&enable);
-  }
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+    camera_seeting->getAutoExposureEnabled(&enable);
 
   return enable;
 }
 
 bool PercipioDevice::getAutoWhiteBalance() const
 {
-  bool ret = false;
   bool enable = false;
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret = camera_seeting->getAutoWhiteBalanceEnabled(&enable);
-  }
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+    camera_seeting->getAutoWhiteBalanceEnabled(&enable);
 
   return enable;
 }
 
 bool PercipioDevice::getColorAnalogGain(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret =  camera_seeting->getAnalogGain(value);
-  }
-  return ret;
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getAnalogGain(value);
+  else 
+    return false;
 }
 
 bool PercipioDevice::getColorRedGain(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret =  camera_seeting->getRedGain(value);
-  }
-  return ret;
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+    return  camera_seeting->getRedGain(value);
+  else
+    return false;
 }
 
 bool PercipioDevice::getColorGreenGain(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret =  camera_seeting->getGreenGain(value);
-  }
-  return ret;
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getGreenGain(value);
+  else
+    return false;
 }
 
 bool PercipioDevice::getColorBlueGain(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getBlueGain(value);
+  else
+    return false;
+}
 
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret =  camera_seeting->getBlueGain(value);
-  }
-  return ret;
+bool PercipioDevice::getColorAecROI(double* p1_x, double* p1_y, double* p2_x, double* p2_y)
+{
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting) {
+    double roi[4];
+    bool ret = camera_seeting->getColorAecROI(roi);
+    if(!ret) return false;
+
+    *p1_x = roi[0];
+    *p1_y = roi[1];
+    *p2_x = roi[2];
+    *p2_y = roi[3];
+    return true;
+  }else
+    return false;
 }
 
 bool PercipioDevice::getColorExposureTime(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret =  camera_seeting->getExposure(value);
-  }
-  return ret;
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getExposure(value);
+  else
+    return false;
 }
 
 bool PercipioDevice::getIrExposureTime(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret =  camera_seeting->getExposure(value);
-  }
-  return ret;
+  percipio::CameraSettings* camera_seeting = getIRCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getExposure(value);
+  else
+    return false;
 }
 
 bool PercipioDevice::getIrAnalogGain(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret =  camera_seeting->getAnalogGain(value);
-  }
-  return ret;
+  percipio::CameraSettings* camera_seeting = getIRCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getAnalogGain(value);
+  else
+    return false;
 }
 
 bool PercipioDevice::getIrGain(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    if (camera_seeting)
-      ret =  camera_seeting->getGain(value);
-  }
-  return ret;
+  percipio::CameraSettings* camera_seeting = getIRCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getGain(value);
+  else
+    return false;
 }
 
 bool PercipioDevice::getTofDepthChannel(int* value) const
 {
-  bool ret = false;
-  
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    //TODO
-    if (camera_seeting)
-      ret =  camera_seeting->getTOFCamDepthChannel(value);
-  }
-  return ret;
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getTOFCamDepthChannel(value);
+  else
+    return false;
 }
 
 bool PercipioDevice::getTofDepthQuality(int* value) const
 {
-  bool ret = false;
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
-  if (stream)
-  {
-    percipio::CameraSettings* camera_seeting = stream->getCameraSettings();
-    //TODO
-    if (camera_seeting)
-      ret =  camera_seeting->getTOFCamDepthQuality(value);
-  }
-  return ret;
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getTOFCamDepthQuality(value);
+  else
+    return false;
+}
+
+bool PercipioDevice::getTofFilterThreshold(int* value) const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getFilterThreshold(value);
+  else
+    return false;
+}
+
+bool PercipioDevice::getTofModulationThreshold(int* value) const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getModulationThreshold(value);
+  else
+    return false;
+}
+
+bool PercipioDevice::getTofHdrRatio(int* value) const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getTofHdrRatio(value);
+  else
+    return false;
+}
+
+bool PercipioDevice::getTofJitterThreshold(int* value) const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getTofJitterThreshold(value);
+  else
+    return false;
 }
 
 void PercipioDevice::setUseDeviceTimer(bool enable)

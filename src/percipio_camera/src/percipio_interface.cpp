@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-10-25 10:46:01
+ * @LastEditTime: 2023-12-04 18:31:05
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -243,6 +243,39 @@ namespace percipio
     return true;
   }
 
+  bool percipio_depth_cam::DepthStreamSetSpeckFilterEn(bool enabled)
+  {
+    depth_stream_spec_enable = enabled;
+    return true;
+  }
+
+  bool percipio_depth_cam::DepthStreamGetSpeckFilterEn()
+  {
+    return depth_stream_spec_enable;
+  }
+
+  bool percipio_depth_cam::DepthStreamSetSpeckFilterSpecSize(int spec_size)
+  {
+    depth_stream_spec_size = spec_size;
+    return true;
+  }
+
+  int percipio_depth_cam::DepthStreamGetSpeckFilterSpecSize()
+  {
+    return depth_stream_spec_size;
+  }
+
+  bool percipio_depth_cam::DepthStreamSetSpeckFilterDiff(int spec_diff)
+  {
+    depth_stream_spec_diff = spec_diff;
+    return true;
+  }
+
+  int percipio_depth_cam::DepthStreamGetSpeckFilterDiff()
+  {
+    return depth_stream_spec_diff;
+  }
+
   bool percipio_depth_cam::DeviceIsImageRegistrationModeSupported() const
   {
     if((m_ids & TY_COMPONENT_DEPTH_CAM) &&(m_ids &  TY_COMPONENT_RGB_CAM))
@@ -323,13 +356,17 @@ namespace percipio
     return sync;
   }
 
-  template <class T>
   TY_STATUS percipio_depth_cam::getProperty(StreamHandle stream, uint32_t propertyId, void* value)
   {
     TY_COMPONENT_ID comp = get_stream_component_id(stream);
     if(0 == comp)
       return TY_STATUS_INVALID_PARAMETER;
     TY_FEATURE_TYPE type = TYFeatureType(propertyId);
+    TY_AEC_ROI_PARAM aec_roi;
+    TY_IMAGE_MODE image_mode;
+    int image_width, image_height;
+
+    TY_STATUS status = TY_STATUS_OK;
     switch(type) {
       case TY_FEATURE_INT:
         return TYGetInt(_M_DEVICE, comp, propertyId, static_cast<int*>(value));
@@ -339,12 +376,36 @@ namespace percipio
         return TYGetEnum(_M_DEVICE, comp, propertyId, static_cast<uint32_t*>(value));
       case TY_FEATURE_BOOL:
         return TYGetBool(_M_DEVICE, comp, propertyId, static_cast<bool*>(value));
+      case TY_FEATURE_STRUCT:
+      {
+        if(propertyId == TY_STRUCT_AEC_ROI) {
+          status = TYGetStruct(_M_DEVICE, comp, propertyId, &aec_roi, sizeof(TY_AEC_ROI_PARAM));
+          if(status != TY_STATUS_OK)
+            return status;
+
+          TYGetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, &image_mode);
+          image_width = TYImageWidth(image_mode);
+          image_height = TYImageHeight(image_mode);
+
+          double* f_roi_ptr = (double*)value;
+          f_roi_ptr[0] = 1.0 * aec_roi.x / image_width;
+          f_roi_ptr[1] = 1.0 * aec_roi.y / image_height;
+          f_roi_ptr[2] = 1.0 * (aec_roi.x + aec_roi.w) / image_width;
+          f_roi_ptr[3] = 1.0 * (aec_roi.y + aec_roi.h) / image_height;
+          if(f_roi_ptr[0] > 1.0) f_roi_ptr[0] = 1.0;
+          if(f_roi_ptr[1] > 1.0) f_roi_ptr[1] = 1.0;
+          if(f_roi_ptr[2] > 1.0) f_roi_ptr[2] = 1.0;
+          if(f_roi_ptr[3] > 1.0) f_roi_ptr[3] = 1.0;
+          return TY_STATUS_OK;
+        } else {
+          return TY_STATUS_INVALID_PARAMETER;
+        }
+      }
     }
     return TY_STATUS_INVALID_PARAMETER;
   }
 
-  template <class T>
-  TY_STATUS percipio_depth_cam::setProperty(StreamHandle stream, uint32_t propertyId, const T& value)
+  TY_STATUS percipio_depth_cam::setProperty(StreamHandle stream, uint32_t propertyId, const void* value)
   {
     TY_COMPONENT_ID comp = get_stream_component_id(stream);
     if(0 == comp)
@@ -353,24 +414,39 @@ namespace percipio
     TY_FEATURE_TYPE type = TYFeatureType(propertyId);
     if(propertyId == TY_INT_LASER_POWER)
       comp = TY_COMPONENT_LASER;
-      
+    
+    TY_AEC_ROI_PARAM aec_roi;
+    double min_x, min_y, max_x, max_y;
     switch(type) {
       case TY_FEATURE_INT:
         if(comp == TY_COMPONENT_IR_CAM_LEFT)
-          TYSetInt(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, value);
-        return TYSetInt(_M_DEVICE, comp, propertyId, value);
+          TYSetInt(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, *static_cast<const int*>(value));
+        return TYSetInt(_M_DEVICE, comp, propertyId, *static_cast<const int*>(value));
       case TY_FEATURE_FLOAT:
         if(comp == TY_COMPONENT_IR_CAM_LEFT)
-          TYSetFloat(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, value);
-        return TYSetFloat(_M_DEVICE, comp, propertyId, value);
+          TYSetFloat(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, *static_cast<const float*>(value));
+        return TYSetFloat(_M_DEVICE, comp, propertyId, *static_cast<const float*>(value));
       case TY_FEATURE_ENUM:
         if(comp == TY_COMPONENT_IR_CAM_LEFT)
-          TYSetEnum(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, value);
-        return TYSetEnum(_M_DEVICE, comp, propertyId, value);
+          TYSetEnum(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, *static_cast<const uint32_t*>(value));
+        return TYSetEnum(_M_DEVICE, comp, propertyId, *static_cast<const uint32_t*>(value));
       case TY_FEATURE_BOOL:
         if(comp == TY_COMPONENT_IR_CAM_LEFT)
-          TYSetBool(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, value);
-        return TYSetBool(_M_DEVICE, comp, propertyId, value);
+          TYSetBool(_M_DEVICE, TY_COMPONENT_IR_CAM_RIGHT, propertyId, *static_cast<const bool*>(value));
+        return TYSetBool(_M_DEVICE, comp, propertyId, *static_cast<const bool*>(value));
+      case TY_FEATURE_STRUCT:
+        if(comp == TY_COMPONENT_RGB_CAM &&  propertyId == TY_STRUCT_AEC_ROI) {
+          double* p_aec_roi = (double*)value;
+          min_x = p_aec_roi[0] < p_aec_roi[2] ? p_aec_roi[0] : p_aec_roi[2];
+          min_y = p_aec_roi[1] < p_aec_roi[3] ? p_aec_roi[1] : p_aec_roi[3];
+          max_x = p_aec_roi[0] > p_aec_roi[2] ? p_aec_roi[0] : p_aec_roi[2];
+          max_y = p_aec_roi[1] > p_aec_roi[3] ? p_aec_roi[1] : p_aec_roi[3];
+          aec_roi.x = static_cast<int>(min_x * current_rgb_width);
+          aec_roi.y = static_cast<int>(min_y * current_rgb_height);
+          aec_roi.w = static_cast<int>((max_x - min_x) * current_rgb_width);
+          aec_roi.h = static_cast<int>((max_y - min_y) * current_rgb_height);
+          return TYSetStruct(_M_DEVICE, comp, propertyId, (void*)&aec_roi, sizeof(TY_AEC_ROI_PARAM));
+        }
     }
     return TY_STATUS_INVALID_PARAMETER;
   }
@@ -583,6 +659,10 @@ namespace percipio
           if (frame.image[i].status != TY_STATUS_OK) continue;
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
             if(cam->DepthStream.get()->cb) {
+              if(cam->depth_stream_spec_enable) {
+                DepthSpeckleFilterParameters param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff};
+                TYDepthSpeckleFilter(&frame.image[i], &param);
+              }
               cam->DepthStream.get()->cb(cam->DepthStream.get(), cam->DepthStream.get()->frame_listener, &frame.image[i]);
             }
           }
@@ -1308,47 +1388,77 @@ namespace percipio
   ////
   TY_STATUS CameraSettings::setLaserPower(int power)
   {
-    return setProperty(TY_INT_LASER_POWER, power);
+    return setProperty(TY_INT_LASER_POWER, &power);
   }
   TY_STATUS CameraSettings::setAutoExposureEnabled(bool enabled)
   {
-    return setProperty(TY_BOOL_AUTO_EXPOSURE, (bool)(enabled ? true : false));
+    return setProperty(TY_BOOL_AUTO_EXPOSURE, &enabled);
   }
   TY_STATUS CameraSettings::setAutoWhiteBalanceEnabled(bool enabled)
   {
-    return setProperty(TY_BOOL_AUTO_AWB, (bool)(enabled ? true : false));
+    return setProperty(TY_BOOL_AUTO_AWB, &enabled);
   }
   TY_STATUS CameraSettings::setPixelsAnalogGain(int gain)
   {
-    return setProperty(TY_INT_ANALOG_GAIN, gain);
+    return setProperty(TY_INT_ANALOG_GAIN, &gain);
   }
   TY_STATUS CameraSettings::setPixelsRedGain(int gain)
   {
-    return setProperty(TY_INT_R_GAIN, gain);
+    return setProperty(TY_INT_R_GAIN, &gain);
   }
   TY_STATUS CameraSettings::setPixelsGreenGain(int gain)
   {
-    return setProperty(TY_INT_G_GAIN, gain);
+    return setProperty(TY_INT_G_GAIN, &gain);
   }
   TY_STATUS CameraSettings::setPixelsBlueGain(int gain)
   {
-    return setProperty(TY_INT_B_GAIN, gain);
+    return setProperty(TY_INT_B_GAIN, &gain);
   }
   TY_STATUS CameraSettings::setGain(int gain)
-  {
-    return setProperty(TY_INT_GAIN, gain);
+  { 
+    return setProperty(TY_INT_GAIN, &gain);
   }
   TY_STATUS CameraSettings::setExposure(int exposure)
   {
-    return setProperty(TY_INT_EXPOSURE_TIME, exposure);
+    return setProperty(TY_INT_EXPOSURE_TIME, &exposure);
   }
   TY_STATUS CameraSettings::setTOFCamDepthChannel(int channel)
   {
-    return setProperty(TY_INT_TOF_CHANNEL, channel);
+    return setProperty(TY_INT_TOF_CHANNEL, &channel);
   }
   TY_STATUS CameraSettings::setTOFCamDepthQuality(int quality)
   {
-    return setProperty(TY_ENUM_DEPTH_QUALITY, quality);
+    return setProperty(TY_ENUM_DEPTH_QUALITY, &quality);
+  }
+
+  TY_STATUS CameraSettings::setFilterThreshold(int threshold)
+  {
+    return setProperty(TY_INT_FILTER_THRESHOLD, &threshold);
+  }
+  
+  TY_STATUS CameraSettings::setModulationThreshold(int threshold)
+  {
+    return setProperty(TY_INT_TOF_MODULATION_THRESHOLD, &threshold);
+  }
+  
+  TY_STATUS CameraSettings::setTofHdrRatio(int ratio)
+  {
+    return setProperty(TY_INT_TOF_HDR_RATIO, &ratio);
+  }
+  
+  TY_STATUS CameraSettings::setTofJitterThreshold(int threshold)
+  {
+    return setProperty(TY_INT_TOF_JITTER_THRESHOLD, &threshold);
+  }
+  
+  TY_STATUS CameraSettings::setColorAecROI(double roi_x, double roi_y, double roi_w, double roi_h)
+  {
+    double roi[4];
+    roi[0] = roi_x;
+    roi[1] = roi_y;
+    roi[2] = roi_w;
+    roi[3] = roi_h;
+    return setProperty(TY_STRUCT_AEC_ROI, &roi);
   }
 
   bool CameraSettings::getLaserPower(int* power) const
@@ -1386,90 +1496,124 @@ namespace percipio
     TY_STATUS rc = getProperty(TY_INT_B_GAIN, gain);
     return rc == TY_STATUS_OK;
   }
-  int CameraSettings::getExposure(int* exposure)
+  bool CameraSettings::getExposure(int* exposure) const
   {
     TY_STATUS rc = getProperty(TY_INT_EXPOSURE_TIME, exposure);
     return rc == TY_STATUS_OK;
   }
-  int CameraSettings::getGain(int* gain) //for percipio ir cam
+  bool CameraSettings::getGain(int* gain) const
   {
     TY_STATUS rc = getProperty(TY_INT_GAIN, gain);
     return rc == TY_STATUS_OK;
   }
-  int CameraSettings::getTOFCamDepthChannel(int* channel)
+  bool CameraSettings::getTOFCamDepthChannel(int* channel) const
   {
     TY_STATUS rc = getProperty(TY_INT_TOF_CHANNEL, channel);
     return rc == TY_STATUS_OK;
   }
-  int CameraSettings::getTOFCamDepthQuality(int* quality)
+  bool CameraSettings::getTOFCamDepthQuality(int* quality) const
   {
     TY_STATUS rc = getProperty(TY_ENUM_DEPTH_QUALITY, quality);
     return rc == TY_STATUS_OK;
   }
 
+  bool CameraSettings::getFilterThreshold(int* threshold) const
+  {
+    TY_STATUS rc = getProperty(TY_INT_FILTER_THRESHOLD, threshold);
+    return rc == TY_STATUS_OK;
+  }
+  
+  bool CameraSettings::getModulationThreshold(int* threshold) const
+  {
+    TY_STATUS rc = getProperty(TY_INT_TOF_MODULATION_THRESHOLD, threshold);
+    return rc == TY_STATUS_OK;
+  }
+  
+  bool CameraSettings::getTofHdrRatio(int* ratio) const
+  {
+    TY_STATUS rc = getProperty(TY_INT_TOF_HDR_RATIO, ratio);
+    return rc == TY_STATUS_OK;
+  }
+  
+  bool CameraSettings::getTofJitterThreshold(int* threshold) const
+  {
+    TY_STATUS rc = getProperty(TY_INT_TOF_JITTER_THRESHOLD, threshold);
+    return rc == TY_STATUS_OK;
+  }
+
+  bool CameraSettings::getColorAecROI(double* roi) const
+  {
+    TY_STATUS rc = getProperty(TY_STRUCT_AEC_ROI, roi);
+    return rc == TY_STATUS_OK;
+  }
+  ///////////////////////////////
+
   TY_STATUS CameraSettings::setDepthSgbmImageChanNumber(int value)
   {
-    return setProperty(TY_INT_SGBM_IMAGE_NUM, value);
+    return setProperty(TY_INT_SGBM_IMAGE_NUM, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmDispNumber(int value)
   {
-    return setProperty(TY_INT_SGBM_DISPARITY_NUM, value);
+    return setProperty(TY_INT_SGBM_DISPARITY_NUM, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmDispOffset(int value)
   {
-    return setProperty(TY_INT_SGBM_DISPARITY_OFFSET, value);
+    return setProperty(TY_INT_SGBM_DISPARITY_OFFSET, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmMatchWinHeight(int value)
   {
-    return setProperty(TY_INT_SGBM_MATCH_WIN_HEIGHT, value);
+    return setProperty(TY_INT_SGBM_MATCH_WIN_HEIGHT, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmSemiP1(int value)
   {
-    return setProperty(TY_INT_SGBM_SEMI_PARAM_P1, value);
+    return setProperty(TY_INT_SGBM_SEMI_PARAM_P1, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmSemiP2(int value)
   {
-    return setProperty(TY_INT_SGBM_SEMI_PARAM_P2, value);
+    return setProperty(TY_INT_SGBM_SEMI_PARAM_P2, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmUniqueFactor(int value)
   {
-    return setProperty(TY_INT_SGBM_UNIQUE_FACTOR, value);
+    return setProperty(TY_INT_SGBM_UNIQUE_FACTOR, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmUniqueAbsDiff(int value)
   {
-    return setProperty(TY_INT_SGBM_UNIQUE_ABSDIFF, value);
+    return setProperty(TY_INT_SGBM_UNIQUE_ABSDIFF, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmCostParam(int value)
   {
-    return setProperty(TY_INT_SGBM_COST_PARAM, value);
+    return setProperty(TY_INT_SGBM_COST_PARAM, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmHalfWinSizeEn(int value)
   {
-    return setProperty(TY_BOOL_SGBM_HFILTER_HALF_WIN, static_cast<bool>(value));
+    bool b_value = static_cast<bool>(value);
+    return setProperty(TY_BOOL_SGBM_HFILTER_HALF_WIN, &b_value);
   }
   TY_STATUS CameraSettings::setDepthSgbmMatchWinWidth(int value)
   {
-    return setProperty(TY_INT_SGBM_MATCH_WIN_WIDTH, value);
+    return setProperty(TY_INT_SGBM_MATCH_WIN_WIDTH, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmMedianFilterEn(int value)
   {
-    return setProperty(TY_BOOL_SGBM_MEDFILTER, static_cast<bool>(value));
+    bool b_value = static_cast<bool>(value);
+    return setProperty(TY_BOOL_SGBM_MEDFILTER, &b_value);
   }
   TY_STATUS CameraSettings::setDepthSgbmLRCCheckEn(int value)
   {
-    return setProperty(TY_BOOL_SGBM_LRC, static_cast<bool>(value));
+    bool b_value = static_cast<bool>(value);
+    return setProperty(TY_BOOL_SGBM_LRC, &b_value);
   }
   TY_STATUS CameraSettings::setDepthSgbmLRCMaxDiff(int value)
   {
-    return setProperty(TY_INT_SGBM_LRC_DIFF, value);
+    return setProperty(TY_INT_SGBM_LRC_DIFF, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmMedianFilterThresh(int value)
   {
-    return setProperty(TY_INT_SGBM_MEDFILTER_THRESH, value);
+    return setProperty(TY_INT_SGBM_MEDFILTER_THRESH, &value);
   }
   TY_STATUS CameraSettings::setDepthSgbmSemiP1Scale(int value)
   {
-    return setProperty(TY_INT_SGBM_SEMI_PARAM_P1_SCALE, value);
+    return setProperty(TY_INT_SGBM_SEMI_PARAM_P1_SCALE, &value);
   }
   
   bool CameraSettings::isValid() const 
@@ -1477,17 +1621,15 @@ namespace percipio
     return m_pStream != NULL;
   }
 
-  template <class T>
-  TY_STATUS CameraSettings::getProperty(uint32_t propertyId, T* value) const
+  TY_STATUS CameraSettings::getProperty(uint32_t propertyId, void* value) const
   {
     if (!isValid()) { printf("id[%d] is not valid!\n", propertyId); return TY_STATUS_ERROR; }
-    return g_Context.get()->getProperty<T>(m_pStream->_getHandle(), propertyId, value);
+    return g_Context.get()->getProperty(m_pStream->_getHandle(), propertyId, value);
   }
-  template <class T>
-  TY_STATUS CameraSettings::setProperty(uint32_t propertyId, const T& value)
+  TY_STATUS CameraSettings::setProperty(uint32_t propertyId, const void* value)
   {
     if (!isValid()) {printf("id[%d] is not valid!\n", propertyId); return TY_STATUS_ERROR; }
-    return g_Context.get()->setProperty<T>(m_pStream->_getHandle(), propertyId, value);
+    return g_Context.get()->setProperty(m_pStream->_getHandle(), propertyId, value);
   }
 
   CameraSettings::CameraSettings(VideoStream* pStream)
@@ -1537,6 +1679,36 @@ namespace percipio
   void Device::setColorUndistortion(bool enabled)
   {
     g_Context.get()->DeviceSetColorUndistortionEnable(enabled);
+  }
+
+  bool Device::setDepthSpecFilterEn(bool enabled)
+  {
+    return g_Context.get()->DepthStreamSetSpeckFilterEn(enabled);
+  }
+
+  bool Device::getDepthSpecFilterEn()
+  {
+    return g_Context.get()->DepthStreamGetSpeckFilterEn();
+  }
+
+  bool Device::setDepthSpecFilterSpecSize(int spec_size)
+  {
+    return g_Context.get()->DepthStreamSetSpeckFilterSpecSize(spec_size);
+  }
+
+  int Device::getDepthSpecFilterSpecSize()
+  {
+    return g_Context.get()->DepthStreamGetSpeckFilterSpecSize();
+  }
+
+  bool Device::setDepthSpeckFilterDiff(int spec_diff)
+  {
+    return g_Context.get()->DepthStreamSetSpeckFilterDiff(spec_diff);
+  }
+
+  int Device::getDepthSpeckFilterDiff()
+  {
+    return g_Context.get()->DepthStreamGetSpeckFilterDiff();
   }
 
   bool Device::isImageRegistrationModeSupported(ImageRegistrationMode mode) const

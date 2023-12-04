@@ -68,6 +68,11 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   use_device_time_(false),
   tof_depth_channel_(0),
   tof_depth_quality_(4),
+  tof_depth_filter_threshold_(0),
+  tof_depth_modulation_threshold_(640),
+  tof_depth_jitter_threshold_(0),
+  tof_depth_hdr_ratio_(1),
+
   data_skip_ir_counter_(0),
   data_skip_color_counter_(0),
   data_skip_depth_counter_ (0),
@@ -86,6 +91,16 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("auto_exposure");
   if(!device_->hasAutoWhiteBalance())
     pnh.deleteParam("auto_white_balance");
+  if(!device_->hasColorExposureTime())
+    pnh.deleteParam("rgb_exposure_time");
+
+  if(!device_->hasColorAecROI()) {
+    pnh.deleteParam("auto_exposure_p1_x");
+    pnh.deleteParam("auto_exposure_p1_y");
+    pnh.deleteParam("auto_exposure_p2_x");
+    pnh.deleteParam("auto_exposure_p2_y");
+  }
+  
   if(!device_->hasColorAnalogGain())
     pnh.deleteParam("rgb_analog_gain");
   if(!device_->hasColorRedGain())
@@ -94,8 +109,9 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("rgb_g_gain");
   if(!device_->hasColorBlueGain())
     pnh.deleteParam("rgb_b_gain");
-  if(!device_->hasColorExposureTime())
-    pnh.deleteParam("rgb_exposure_time");
+  if(!device_->hasColorAecROI())
+    pnh.deleteParam("rgb_aec_roi");
+  
   if(!device_->hasIrExposureTime())
     pnh.deleteParam("ir_exposure_time");
   if(!device_->hasIrAnalogGain())
@@ -104,7 +120,7 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("ir_gain");
 
   // Initialize dynamic reconfigure
-  reconfigure_server_.reset(new ReconfigureServer(pnh_));
+  reconfigure_server_.reset(new ReconfigureServer(pnh));
   reconfigure_server_->setCallback(boost::bind(&PercipioDriver::configCb, this, _1, _2));
 
   while (!config_init_)
@@ -210,6 +226,7 @@ bool PercipioDriver::getSerialCb(percipio_camera::GetSerialRequest& req, percipi
 void PercipioDriver::configCb(Config &config, uint32_t level)
 {
   bool stream_reset = false;
+
   if((int)level < 0) {
     if(device_) {
       device_->getLaserPower(&m_laser_power_);
@@ -220,15 +237,29 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       device_->getColorGreenGain(&m_rgb_g_gain_);
       device_->getColorBlueGain(&m_rgb_b_gain_);
       device_->getColorExposureTime(&m_rgb_exposure_time_);
+      device_->getColorAecROI(&auto_exposure_p1_x_, &auto_exposure_p1_y_, &auto_exposure_p2_x_, &auto_exposure_p2_y_);
 
       device_->getIrExposureTime(&m_ir_exposure_time_);
       device_->getIrAnalogGain(&m_ir_analog_gain_);
       device_->getIrGain(&m_ir_gain_);
+
+      depth_speckle_filter_ = device_->getDepthSpecFilterEn();
+      max_speckle_size_ = device_->getDepthSpecFilterSpecSize();
+      max_speckle_diff_ = device_->getDepthSpeckFilterDiff();
+
+      config.depth_speckle_filter = depth_speckle_filter_;
+      config.max_speckle_size = max_speckle_size_;
+      config.max_speckle_diff = max_speckle_diff_;
       
       config.laser_power = m_laser_power_;
   
       config.auto_exposure = auto_exposure_;
       config.auto_white_balance = auto_white_balance_;
+
+      config.auto_exposure_p1_x = auto_exposure_p1_x_;
+      config.auto_exposure_p1_y = auto_exposure_p1_y_;
+      config.auto_exposure_p2_x = auto_exposure_p2_x_;
+      config.auto_exposure_p2_y = auto_exposure_p2_y_;
   
       config.rgb_analog_gain = m_rgb_analog_gain_;
       config.rgb_r_gain = m_rgb_r_gain_;
@@ -251,7 +282,20 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       auto_exposure_ = config.auto_exposure;
       if(device_) device_->setAutoExposure(auto_exposure_);
     }
-    
+
+    if((auto_exposure_p1_x_ != config.auto_exposure_p1_x) ||
+       (auto_exposure_p1_y_ != config.auto_exposure_p1_y) ||
+       (auto_exposure_p2_x_ != config.auto_exposure_p2_x) ||
+       (auto_exposure_p2_y_ != config.auto_exposure_p2_y)) {
+      auto_exposure_p1_x_ = config.auto_exposure_p1_x;
+      auto_exposure_p1_y_ = config.auto_exposure_p1_y;
+      auto_exposure_p2_x_ = config.auto_exposure_p2_x;
+      auto_exposure_p2_y_ = config.auto_exposure_p2_y;
+
+      ROS_WARN("====ROI : (%f %f) - (%f %f)", auto_exposure_p1_x_, auto_exposure_p1_y_, auto_exposure_p2_x_, auto_exposure_p2_y_);
+      if(device_) device_->setColorAecROI(auto_exposure_p1_x_, auto_exposure_p1_y_, auto_exposure_p2_x_, auto_exposure_p2_y_); 
+    }
+
     if(auto_white_balance_ != config.auto_white_balance) {
       auto_white_balance_ = config.auto_white_balance;
       if(device_) device_->setAutoWhiteBalance(auto_white_balance_);
@@ -296,6 +340,21 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       m_ir_gain_ = config.ir_gain;
       if(device_) device_->setIrGain(m_ir_gain_);
     }
+
+    if(depth_speckle_filter_ != config.depth_speckle_filter) {
+      depth_speckle_filter_ = config.depth_speckle_filter;
+      if(device_) device_->setDepthSpecFilterEn(depth_speckle_filter_);
+    }
+
+    if(max_speckle_size_ != config.max_speckle_size) {
+      max_speckle_size_ = config.max_speckle_size;
+      if(device_) device_->setDepthSpecFilterSpecSize(max_speckle_size_);
+    }
+
+    if(max_speckle_diff_ != config.max_speckle_diff) {
+      max_speckle_diff_ = config.max_speckle_diff;
+      if(device_) device_->setDepthSpeckFilterDiff(max_speckle_diff_);
+    }
   }
   
   z_scaling_ = config.z_scaling;
@@ -307,6 +366,11 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
   depth_video_mode_.pixel_format_ = PIXEL_FORMAT_DEPTH_1_MM;
 
   auto_exposure_ = config.auto_exposure;
+  auto_exposure_p1_x_ = config.auto_exposure_p1_x;
+  auto_exposure_p1_y_ = config.auto_exposure_p1_y;
+  auto_exposure_p2_x_ = config.auto_exposure_p2_x;
+  auto_exposure_p2_y_ = config.auto_exposure_p2_y;
+
   auto_white_balance_ = config.auto_white_balance;
 
   data_skip_ = config.data_skip+1;
@@ -724,6 +788,26 @@ void PercipioDriver::readConfigFromParameterServer()
     tof_depth_quality_ = PARAMTER_DEFAULT;
   }
 
+  if (!pnh_.getParam("tof_filter_threshold", tof_depth_filter_threshold_))
+  {
+    tof_depth_filter_threshold_ = PARAMTER_DEFAULT;
+  }
+
+  if (!pnh_.getParam("tof_modulation_threshold", tof_depth_modulation_threshold_))
+  {
+    tof_depth_modulation_threshold_ = PARAMTER_DEFAULT;
+  }
+
+  if (!pnh_.getParam("tof_jitter_threshold", tof_depth_jitter_threshold_))
+  {
+    tof_depth_jitter_threshold_ = PARAMTER_DEFAULT;
+  }
+
+  if (!pnh_.getParam("tof_hdr_ratio", tof_depth_hdr_ratio_))
+  {
+    tof_depth_hdr_ratio_ = PARAMTER_DEFAULT;
+  }
+
   //SGBM paramters
   {
     pnh_.getParam("sgbm_image_channel_num",             sgbm_image_channel_num_);
@@ -936,7 +1020,18 @@ void PercipioDriver::initDevice()
         device_->setTofDepthChannel(tof_depth_channel_);
       if(tof_depth_quality_ != PARAMTER_DEFAULT)
         device_->setTofDepthQuality(tof_depth_quality_);
-
+      if(tof_depth_filter_threshold_ != PARAMTER_DEFAULT) {
+        device_->setTofFilterThreshold(tof_depth_filter_threshold_);
+      }
+      if(tof_depth_modulation_threshold_ != PARAMTER_DEFAULT) {
+        device_->setTofModulationThreshold(tof_depth_modulation_threshold_);
+      }
+      if(tof_depth_jitter_threshold_ != PARAMTER_DEFAULT) {
+        device_->setTofJitterThreshold(tof_depth_jitter_threshold_);
+      }
+      if(tof_depth_hdr_ratio_ != PARAMTER_DEFAULT) {
+        device_->setTofHdrRatio(tof_depth_hdr_ratio_);
+      }
       //SGBM paramters init
       {
         if(sgbm_image_channel_num_!= PARAMTER_DEFAULT)
