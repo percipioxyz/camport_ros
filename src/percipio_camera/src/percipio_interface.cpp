@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-11 16:46:56
+ * @LastEditTime: 2023-12-11 17:25:57
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -113,8 +113,6 @@ namespace percipio
       generate_video_mode(feature_info, DepthVideoMode);
 
       TYGetStruct(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_CALIB_DATA, &depth_calib, sizeof(depth_calib));
-
-      TYGetFloat(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale_unit);
     }
 
     current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName);
@@ -841,6 +839,8 @@ namespace percipio
     ROS_INFO("color stream do undistortion flag: %d", color_undistortion);
     ROS_INFO("depth stream do undistortion flag: %d", depth_distortion);
     ROS_INFO("depth stream do registration flag: %d", DeviceGetImageRegistrationMode());
+
+    TYGetFloat(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale_unit);
 
     rc = TYStartCapture(_M_DEVICE);
     if(rc != TY_STATUS_OK)
