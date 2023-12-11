@@ -208,6 +208,8 @@ private:
   int sgbm_lrc_max_diff_  = PARAMTER_DEFAULT;
   int sgbm_median_filter_thresh_  = PARAMTER_DEFAULT;
   int sgbm_semi_global_param_p1_scale_  = PARAMTER_DEFAULT;
+
+  float depth_value_scale_unit_ = NAN;
   
   ros::Duration ir_time_offset_;
   ros::Duration color_time_offset_;

@@ -1014,6 +1014,15 @@ void PercipioDevice::setTofJitterThreshold(int value)
   }
 }
 
+void PercipioDevice::setDepthScale(float scale)
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    camera_seeting->setDepthScaleValue(scale);
+  }
+}
+
 /*sgbm paramters setting*/
 void PercipioDevice::setSgbmImageChanNumber(int value)
 {

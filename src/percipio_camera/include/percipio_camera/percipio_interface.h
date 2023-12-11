@@ -527,6 +527,9 @@ public:
     TY_STATUS setModulationThreshold(int threshold);
     TY_STATUS setTofHdrRatio(int ratio);
     TY_STATUS setTofJitterThreshold(int threshold);
+
+    TY_STATUS setDepthScaleValue(float scale);
+
     TY_STATUS setColorAecROI(double p1_x, double p1_y, double p2_x, double p2_y);
 
     TY_STATUS setDepthSgbmImageChanNumber(int value);

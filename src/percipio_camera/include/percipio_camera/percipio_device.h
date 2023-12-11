@@ -191,6 +191,8 @@ public:
   void setTofHdrRatio(int value);
   void setTofJitterThreshold(int value);
 
+  void setDepthScale(float scale);
+
   void setSgbmImageChanNumber(int value);
   void setSgbmDispNumber(int value);
   void setSgbmDispOffset(int value);

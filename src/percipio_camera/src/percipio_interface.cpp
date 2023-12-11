@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-04 18:31:05
+ * @LastEditTime: 2023-12-11 16:46:56
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -1449,6 +1449,11 @@ namespace percipio
   TY_STATUS CameraSettings::setTofJitterThreshold(int threshold)
   {
     return setProperty(TY_INT_TOF_JITTER_THRESHOLD, &threshold);
+  }
+
+  TY_STATUS  CameraSettings::setDepthScaleValue(float scale)
+  {
+    return setProperty(TY_FLOAT_SCALE_UNIT, &scale);
   }
   
   TY_STATUS CameraSettings::setColorAecROI(double roi_x, double roi_y, double roi_w, double roi_h)

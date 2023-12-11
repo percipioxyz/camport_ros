@@ -827,6 +827,7 @@ void PercipioDriver::readConfigFromParameterServer()
     pnh_.getParam("sgbm_median_filter_thresh",          sgbm_median_filter_thresh_);
     pnh_.getParam("sgbm_semi_global_param_p1_scale",    sgbm_semi_global_param_p1_scale_);
 
+    pnh_.getParam("depth_value_scale_unit",    depth_value_scale_unit_);
   }
 
   // Camera TF frames
@@ -1032,6 +1033,11 @@ void PercipioDriver::initDevice()
       if(tof_depth_hdr_ratio_ != PARAMTER_DEFAULT) {
         device_->setTofHdrRatio(tof_depth_hdr_ratio_);
       }
+
+      if(!isnan(depth_value_scale_unit_)) {
+        device_->setDepthScale(depth_value_scale_unit_);
+      }
+
       //SGBM paramters init
       {
         if(sgbm_image_channel_num_!= PARAMTER_DEFAULT)
