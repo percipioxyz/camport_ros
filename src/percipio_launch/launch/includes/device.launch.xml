@@ -41,6 +41,8 @@
   <arg name="sgbm_median_filter_thresh" />
   <arg name="sgbm_semi_global_param_p1_scale" />
 
+  <arg name="depth_value_scale_unit" />
+
   <!--<arg name="auto_exposure" default="true" /> -->
   <!--<arg name="auto_white_balance" default="true" />-->
   <arg name="rgb_resolution" default="640x480" />
@@ -99,6 +101,7 @@
     <param name="sgbm_lrc_max_diff"               value="$(arg sgbm_lrc_max_diff)" />
     <param name="sgbm_median_filter_thresh"       value="$(arg sgbm_median_filter_thresh)" />
     <param name="sgbm_semi_global_param_p1_scale" value="$(arg sgbm_semi_global_param_p1_scale)" />
+    <param name="depth_value_scale_unit"          value="$(arg depth_value_scale_unit)" />
 
     <remap from="ir" to="$(arg ir)" />
     <remap from="rgb" to="$(arg rgb)" />

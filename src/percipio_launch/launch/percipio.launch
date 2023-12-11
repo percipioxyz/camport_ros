@@ -59,6 +59,8 @@
   <arg name="sgbm_lrc_max_diff"                 default=""  />
   <arg name="sgbm_median_filter_thresh"         default=""  />
   <arg name="sgbm_semi_global_param_p1_scale"   default=""  />
+  
+  <arg name="depth_value_scale_unit"            default=""  />
 
   <!--<arg name="auto_exposure"                   default="true" /> -->
   <!--<arg name="auto_white_balance"              default="true" /> -->
@@ -153,6 +155,9 @@
       <arg name="sgbm_lrc_max_diff"                 value="$(arg sgbm_lrc_max_diff)" />
       <arg name="sgbm_median_filter_thresh"         value="$(arg sgbm_median_filter_thresh)" />
       <arg name="sgbm_semi_global_param_p1_scale"   value="$(arg sgbm_semi_global_param_p1_scale)" />
+
+      <arg name="depth_value_scale_unit"            value="$(arg depth_value_scale_unit)" />
+      
 
       <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->
       <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->
