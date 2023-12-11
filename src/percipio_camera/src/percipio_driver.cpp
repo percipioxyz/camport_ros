@@ -84,6 +84,10 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   readConfigFromParameterServer();
 
   initDevice();
+
+  // Initialize dynamic reconfigure
+  reconfigure_server_.reset(new ReconfigureServer(pnh));
+  reconfigure_server_->setCallback(boost::bind(&PercipioDriver::configCb, this, _1, _2));
   
   if(!device_->hasLaserPower())
     pnh.deleteParam("laser_power");
@@ -101,6 +105,8 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("auto_exposure_p2_y");
   }
   
+  if(!device_->hasColorExposureTime())
+    pnh.deleteParam("rgb_exposure_time");
   if(!device_->hasColorAnalogGain())
     pnh.deleteParam("rgb_analog_gain");
   if(!device_->hasColorRedGain())
@@ -118,10 +124,6 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("ir_analog_gain");  
   if(!device_->hasIrGain())
     pnh.deleteParam("ir_gain");
-
-  // Initialize dynamic reconfigure
-  reconfigure_server_.reset(new ReconfigureServer(pnh));
-  reconfigure_server_->setCallback(boost::bind(&PercipioDriver::configCb, this, _1, _2));
 
   while (!config_init_)
   {
