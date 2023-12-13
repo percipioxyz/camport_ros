@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-11 17:25:57
+ * @LastEditTime: 2023-12-13 09:58:14
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -363,6 +363,9 @@ namespace percipio
     TY_AEC_ROI_PARAM aec_roi;
     TY_IMAGE_MODE image_mode;
     int image_width, image_height;
+
+    if(TY_INT_LASER_POWER == propertyId)
+      comp = TY_COMPONENT_LASER;
 
     TY_STATUS status = TY_STATUS_OK;
     switch(type) {
