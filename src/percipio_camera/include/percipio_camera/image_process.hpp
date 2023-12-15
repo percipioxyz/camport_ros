@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-07-18 15:55:24
  * @LastEditors: zxy
- * @LastEditTime: 2023-08-15 13:22:07
+ * @LastEditTime: 2023-12-15 13:29:19
  */
 
 #include <iostream>
@@ -16,9 +16,11 @@
 //#include <math.h>
 #include <iostream>
 #include <vector>
-#include <turbojpeg.h>
+
+#include <opencv2/opencv.hpp>
 
 #include "percipio_interface.h"
+#include "TYApi.h"
 #include "TYImageProc.h"
 #include "TYCoordinateMapper.h"
 
@@ -42,33 +44,59 @@ static void BGRToRGB(const void* bgrFrame, int width, int height, void* rgbFrame
   }
 }
 
+class distortion_data {
+  public:
+    distortion_data(const TY_CAMERA_CALIB_INFO& calib, const cv::Mat& x, const cv::Mat& y);
+    distortion_data(const distortion_data& data);
+    ~distortion_data();
+
+    const cv::Mat& get_map_x() const;
+    const cv::Mat& get_map_y() const;
+    const TY_CAMERA_CALIB_INFO& get_calib_data() const;
+
+  private:
+    TY_CAMERA_CALIB_INFO calib_data;
+    cv::Mat map_x;
+    cv::Mat map_y;
+};
+
+distortion_data::distortion_data(const TY_CAMERA_CALIB_INFO& calib, const cv::Mat& x, const cv::Mat& y)
+{
+  calib_data = calib;
+  map_x = x.clone();
+  map_y = y.clone();
+}
+
+distortion_data::distortion_data(const distortion_data& data)
+{
+  calib_data = data.get_calib_data();
+  map_x = data.get_map_x().clone();
+  map_y = data.get_map_y().clone();
+}
+
+distortion_data::~distortion_data()
+{
+  //
+}
+
+const TY_CAMERA_CALIB_INFO& distortion_data::get_calib_data() const
+{
+  return calib_data;
+}
+
+const cv::Mat& distortion_data::get_map_x() const
+{
+  return map_x;
+}
+
+const cv::Mat& distortion_data::get_map_y() const
+{
+  return map_y;
+}
+
 class ImgProc 
 {
 public:
-    enum IMGPROC_MDOE{
-        IMGPROC_YUYV2RGB888,
-        IMGPROC_YVYU2RGB888,
-    };
-
-    static inline void monoToRGB(const void* monoFrame, int width, int height, void* rgbFrame) {
-      uint8_t* pMono = (uint8_t*)monoFrame;
-      uint8_t* pRGB = (uint8_t*)rgbFrame;
-
-      uint8_t r, g, b;
-      for (int i = 0; i < height * width; i++)
-      {
-        r = *pMono;
-        g = *pMono;
-        b = *pMono;
-         
-        *pRGB++ = r;
-        *pRGB++ = g;
-        *pRGB++ = b;
-		
-        *pMono++;
-      }
-    }
-
     static inline void parseXYZ48(int16_t* src, int16_t* dst, int width, int height, float f_scale_unit)
     {
       for (int pix = 0; pix < width*height; pix++) {
@@ -120,216 +148,30 @@ public:
         return 0;
     }
 
-    static inline void YUV2RGB(int32_t y, int32_t u, int32_t v, uint8_t* pRGB)
+    static std::vector<distortion_data> depth_dist_map_list;
+    static bool addDepthDistortionMap(TY_CAMERA_CALIB_INFO& depth_calib, int width, int height)
     {
-      int32_t r, g, b;
-
-      r = y + 1.772*(u-128);
-      g = y - 0.34414*(u-128) - 0.71414*(v-128);
-      b = y + 1.402*(v-128);
-
-      if (r>255)r=255;
-      if (r<0)r=0;
-      if (g>255)g=255;
-      if (g<0)g=0;
-      if (b>255)b=255;
-      if (b<0)b=0;
-
-      *pRGB++ = r;
-      *pRGB++ = g;
-      *pRGB++ = b;
-    }
-
-#define u8 uint8_t
-#define u16 uint16_t
-#define u32 uint32_t
-
-#define R(x,y,w) pRGB24[0 + 3 * ((x) + w * (y))]
-#define G(x,y,w) pRGB24[1 + 3 * ((x) + w * (y))]
-#define B(x,y,w) pRGB24[2 + 3 * ((x) + w * (y))]
-
-
-#define Bay(x,y,w) pBay[(x) + w * (y)]
-    static inline void bayer_clear(u8 *pBay, u8 *pRGB24, int x, int y, int w)
-    {
-      B(x + 0, y + 0, w) = 0;
-      G(x + 0, y + 0, w) = 0;
-      R(x + 0, y + 0, w) = 0;
-
-      B(x + 0, y + 1, w) = 0;
-      G(x + 0, y + 1, w) = 0;
-      R(x + 0, y + 1, w) = 0;
-
-      B(x + 1, y + 0, w) = 0;
-      G(x + 1, y + 0, w) = 0;
-      R(x + 1, y + 0, w) = 0;
-
-      B(x + 1, y + 1, w) = 0;
-      G(x + 1, y + 1, w) = 0;
-      R(x + 1, y + 1, w) = 0;
-    }
-
-    //G B
-    //R G
-    static inline void bayer_bilinear_gb(u8 *pBay, u8 *pRGB24, int x, int y, int w)
-    {
-      B(x + 0, y + 0, w) = ((u32)Bay(x - 1, y + 0, w) + (u32)Bay(x + 1, y + 0, w)) / 2;
-      G(x + 0, y + 0, w) = Bay(x + 0, y + 0, w);
-      R(x + 0, y + 0, w) = ((u32)Bay(x + 0, y - 1, w) + (u32)Bay(x + 0, y + 1, w)) / 2;
-
-      B(x + 0, y + 1, w) = ((u32)Bay(x + 1, y + 0, w) + (u32)Bay(x - 1, y + 0, w) + 
-                          (u32)Bay(x + 1, y + 2, w) + (u32)Bay(x - 1, y + 2, w)) / 4;
-      G(x + 0, y + 1, w) = ((u32)Bay(x + 0, y + 0, w) + (u32)Bay(x + 0, y + 2, w) + 
-                          (u32)Bay(x - 1, y + 1, w) + (u32)Bay(x + 1, y + 1, w)) / 4;
-      R(x + 0, y + 1, w) = Bay(x + 0, y + 1, w);
-
-      B(x + 1, y + 0, w) = Bay(x + 1, y + 0, w);
-      G(x + 1, y + 0, w) = ((u32)Bay(x + 0, y + 0, w) + (u32)Bay(x + 2, y + 0, w) + 
-                          (u32)Bay(x + 1, y - 1, w) + (u32)Bay(x + 1, y + 1, w)) / 4;
-      R(x + 1, y + 0, w) = ((u32)Bay(x + 0, y + 1, w) + (u32)Bay(x + 2, y + 1, w) + 
-                          (u32)Bay(x + 0, y - 1, w) + (u32)Bay(x + 2, y - 1, w)) / 4;
-
-      B(x + 1, y + 1, w) = ((u32)Bay(x + 1, y + 0, w) + (u32)Bay(x + 1, y + 2, w)) / 2;
-      G(x + 1, y + 1, w) = Bay(x + 1, y + 1, w);
-      R(x + 1, y + 1, w) = ((u32)Bay(x + 0, y + 1, w) + (u32)Bay(x + 2, y + 1, w)) / 2;
-    }
-
-    //B G
-    //G R
-    static inline void bayer_bilinear_bg(u8 *pBay, u8 *pRGB24, int x, int y, int w)
-    {
-      B(x + 0, y + 0, w) = Bay(x + 0, y + 0, w);
-      G(x + 0, y + 0, w) = ((u32)Bay(x + 0, y + 1, w) + (u32)Bay(x + 0, y - 1, w) + 
-                          (u32)Bay(x - 1, y + 0, w) + (u32)Bay(x + 1, y + 0, w)) / 4;
-      R(x + 0, y + 0, w) = ((u32)Bay(x - 1, y - 1, w) + (u32)Bay(x - 1, y + 1, w) + 
-                          (u32)Bay(x + 1, y - 1, w) + (u32)Bay(x + 1, y + 1, w)) / 4;
-
-      B(x + 0, y + 1, w) = ((u32)Bay(x + 0, y + 0, w) + (u32)Bay(x + 0, y + 2, w)) / 2;
-      G(x + 0, y + 1, w) = Bay(x + 0, y + 1, w);
-      R(x + 0, y + 1, w) = ((u32)Bay(x - 1, y + 1, w) + (u32)Bay(x + 1, y + 1, w)) / 2;
-    
-      B(x + 1, y + 0, w) = ((u32)Bay(x + 0, y + 0, w) + (u32)Bay(x + 2, y + 0, w)) / 2;
-      G(x + 1, y + 0, w) = Bay(x + 1, y + 0, w);
-      R(x + 1, y + 0, w) = ((u32)Bay(x + 1, y - 1, w) + (u32)Bay(x + 1, y + 1, w)) / 2;
-
-      B(x + 1, y + 1, w) = ((u32)Bay(x + 0, y + 0, w) + (u32)Bay(x + 2, y + 0, w) + 
-                          (u32)Bay(x + 0, y + 2, w) + (u32)Bay(x + 2, y + 2, w)) / 4;
-      G(x + 1, y + 1, w) = ((u32)Bay(x + 1, y + 0, w) + (u32)Bay(x + 0, y + 1, w) + 
-                          (u32)Bay(x + 1, y + 2, w) + (u32)Bay(x + 2, y + 1, w)) / 4;
-      R(x + 1, y + 1, w) = Bay(x + 1, y + 1, w);
-    }
-
-    //G R
-    //B G
-    static inline void bayer_bilinear_gr(u8 *pBay, u8 *pRGB24, int x, int y, int w)
-    {
-      B(x + 0, y + 0, w) = ((u32)Bay(x + 0, y - 1, w) + (u32)Bay(x + 0, y + 1, w)) / 2;
-      G(x + 0, y + 0, w) = Bay(x + 0, y + 0, w);
-      R(x + 0, y + 0, w) = ((u32)Bay(x - 1, y + 0, w) + (u32)Bay(x + 1, y + 0, w)) / 2;
-
-      B(x + 0, y + 1, w) = Bay(x + 0, y + 1, w);
-      G(x + 0, y + 1, w) = ((u32)Bay(x + 0, y + 0, w) + (u32)Bay(x - 1, y + 1, w) + 
-                          (u32)Bay(x + 0, y + 2, w) + (u32)Bay(x + 1, y + 1, w)) / 4;
-      R(x + 0, y + 1, w) = ((u32)Bay(x - 1, y + 0, w) + (u32)Bay(x + 1, y + 0, w) + 
-                          (u32)Bay(x - 1, y + 2, w) + (u32)Bay(x + 1, y + 2, w)) / 4;
-
-      B(x + 1, y + 0, w) = ((u32)Bay(x + 0, y - 1, w) + (u32)Bay(x + 2, y - 1, w) + 
-                          (u32)Bay(x + 0, y + 1, w) + (u32)Bay(x + 2, y + 1, w)) / 4;
-      G(x + 1, y + 0, w) = ((u32)Bay(x + 1, y - 1, w) + (u32)Bay(x + 0, y + 0, w) + 
-                          (u32)Bay(x + 2, y + 0, w) + (u32)Bay(x + 1, y + 1, w)) / 4;
-      R(x + 1, y + 0, w) = Bay(x + 1, y + 0, w);
-    
-      B(x + 1, y + 1, w) = ((u32)Bay(x + 0, y + 1, w) + (u32)Bay(x + 2, y + 1, w)) / 2;
-      G(x + 1, y + 1, w) = Bay(x + 1, y + 1, w);
-      R(x + 1, y + 1, w) = ((u32)Bay(x + 1, y + 0, w) + (u32)Bay(x + 1, y + 2, w)) / 2;
-    }
-
-    //R G
-    //G B
-    static inline void bayer_bilinear_rg(u8 *pBay, u8 *pRGB24, int x, int y, int w)
-    {
-      B(x + 0, y + 0, w) = ((u32)Bay(x - 1, y - 1, w) + (u32)Bay(x + 1, y - 1, w) + 
-                          (u32)Bay(x - 1, y + 1, w) + (u32)Bay(x + 1, y + 1, w)) / 4;
-      G(x + 0, y + 0, w) = ((u32)Bay(x + 0, y - 1, w) + (u32)Bay(x - 1, y + 0, w) + 
-                          (u32)Bay(x + 1, y + 0, w) + (u32)Bay(x + 0, y + 1, w)) / 4;
-      R(x + 0, y + 0, w) = Bay(x + 0, y + 0, w);
-    
-      B(x + 1, y + 0, w) = ((u32)Bay(x - 1, y + 1, w) + (u32)Bay(x + 1, y + 1, w)) / 2;
-      G(x + 1, y + 0, w) = Bay(x + 0, y + 1, w);
-      R(x + 1, y + 0, w) = ((u32)Bay(x + 0, y + 0, w) + (u32)Bay(x + 0, y + 2, w)) / 2;
-
-      B(x + 0, y + 1, w) = ((u32)Bay(x + 1, y - 1, w) + (u32)Bay(x + 1, y + 1, w)) / 2;
-      G(x + 0, y + 1, w) = Bay(x + 1, y + 0, w);
-      R(x + 0, y + 1, w) = ((u32)Bay(x + 0, y + 0, w) + (u32)Bay(x + 2, y + 0, w)) / 2;
-
-      B(x + 1, y + 1, w) = Bay(x + 1, y + 1, w);
-      G(x + 1, y + 1, w) = ((u32)Bay(x + 1, y + 0, w) + (u32)Bay(x + 0, y + 1, w) + 
-                          (u32)Bay(x + 2, y + 1, w) + (u32)Bay(x + 1, y + 2, w)) / 4;
-      R(x + 1, y + 1, w) = ((u32)Bay(x + 0, y + 0, w) + (u32)Bay(x + 2, y + 0, w) + 
-                          (u32)Bay(x + 0, y + 2, w) + (u32)Bay(x + 2, y + 2, w)) / 4;
-    }
-
-    static int yuv2rgb(const void* src, void* dst, int width, int height, int type)
-    {
-      switch (type) {
-        case IMGPROC_YVYU2RGB888:
-        {
-          const uint32_t* _src = (const uint32_t*)src;
-          uint8_t*  _dst = (uint8_t*)dst;
-
-          for (int j=0; j<height; j++) {
-            const uint32_t* pYVYU = _src + (j*(width>>1));
-            uint8_t* pRGB = _dst + (j*width*3);
-
-            for (int i=0; i<(width/2); i++, pYVYU++) {
-              //handle 2 pixels
-              uint32_t yvyu = *pYVYU;
-              uint8_t y0 = yvyu & 0x000000ff;
-              uint8_t u  = (yvyu & 0x0000ff00) >> 8;
-              uint8_t y1 = (yvyu & 0x00ff0000) >> 16;
-              uint8_t v  = (yvyu & 0xff000000) >> 24;
-
-              YUV2RGB(y0, u, v, pRGB); pRGB+=3;
-              YUV2RGB(y1, u, v, pRGB); pRGB+=3;
-            }
-          }
+      bool has = false;
+      for(size_t i = 0; i < depth_dist_map_list.size(); i++) {
+        if(0 == memcmp(&depth_calib, &depth_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
+          has = true;
           break;
         }
-        case IMGPROC_YUYV2RGB888:
-        {
-          const uint32_t* _src = (const uint32_t*)src;
-          uint8_t*  _dst = (uint8_t*)dst;
-
-          for (int j=0; j<height; j++) {
-            const uint32_t* pYUYV = _src + (j*(width>>1));
-            uint8_t* pRGB = _dst + (j*width*3);
-
-            for (int i=0; i<(width/2); i++, pYUYV++) {
-              //handle 2 pixels
-              uint32_t yuyv = *pYUYV;
-              uint8_t y0 = yuyv & 0x000000ff;
-              uint8_t v  = (yuyv & 0x0000ff00) >> 8;
-              uint8_t y1 = (yuyv & 0x00ff0000) >> 16;
-              uint8_t u  = (yuyv & 0xff000000) >> 24;
-
-              YUV2RGB(y0, u, v, pRGB); pRGB+=3;
-              YUV2RGB(y1, u, v, pRGB); pRGB+=3;
-            }
-          }
-          break;
-        }
-        default:
-          return -1;
       }
 
-      return 0;
-    }
+      if(!has) {
+        cv::Mat mapX, mapY;
+        cv::Mat intrinsic = cv::Mat(cv::Size(3,3), CV_32FC1, depth_calib.intrinsic.data);
+        cv::Mat distCoeffs = cv::Mat(cv::Size(12, 1), CV_32FC1, depth_calib.distortion.data);
+        cv::initUndistortRectifyMap(intrinsic, distCoeffs, cv::Mat(), intrinsic, cv::Size(width, height), CV_32FC1, mapX, mapY);
 
-    struct jpeg_decoder{
-        tjhandle jpeg;
-        jpeg_decoder() {jpeg = tjInitDecompress();}
-        ~jpeg_decoder() {tjDestroy(jpeg);};
-    };
+        distortion_data temp = distortion_data(depth_calib, mapX, mapY);
+        depth_dist_map_list.push_back(temp);
+        return true;
+      }
+
+      return false;
+    }
 
     static int doDepthUndistortion(const TY_CAMERA_CALIB_INFO* depth_calib,
                                 percipio::VideoFrameData* src, 
@@ -359,7 +201,42 @@ public:
       dst_image.pixelFormat = dst->getPixelFormat();
       dst_image.buffer = dst->getData();
 
-      return TYUndistortImage(depth_calib, &src_image, NULL, &dst_image);
+      for(size_t i = 0; i < depth_dist_map_list.size(); i++) {
+        if(0 == memcmp(depth_calib, &depth_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
+          cv::Mat depth           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_16U, src_image.buffer);
+          cv::Mat undistory_depth = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_16U, dst_image.buffer);
+          cv::remap(depth, undistory_depth, depth_dist_map_list[i].get_map_x(), depth_dist_map_list[i].get_map_y(), cv::INTER_NEAREST);
+          return TY_STATUS_OK;
+        }
+      }
+      ROS_WARN("doDepthUndistortion fail!");
+      return TY_STATUS_ERROR;
+    }
+
+
+    static std::vector<distortion_data> color_dist_map_list;
+    static bool addColorDistortionMap(TY_CAMERA_CALIB_INFO& color_calib, int width, int height)
+    {
+      bool has = false;
+      for(size_t i = 0; i < color_dist_map_list.size(); i++) {
+        if(0 == memcmp(&color_calib, &color_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
+          has = true;
+          break;
+        }
+      }
+
+      if(!has) {
+        cv::Mat mapX, mapY;
+        cv::Mat intrinsic = cv::Mat(cv::Size(3,3), CV_32FC1, color_calib.intrinsic.data);
+        cv::Mat distCoeffs = cv::Mat(cv::Size(12, 1), CV_32FC1, color_calib.distortion.data);
+        cv::initUndistortRectifyMap(intrinsic, distCoeffs, cv::Mat(), intrinsic, cv::Size(width, height), CV_32FC1, mapX, mapY);
+
+        distortion_data temp = distortion_data(color_calib, mapX, mapY);
+        color_dist_map_list.push_back(temp);
+        return true;
+      }
+
+      return false;
     }
 
     static int doRGBUndistortion(const TY_CAMERA_CALIB_INFO* color_calib, 
@@ -390,7 +267,16 @@ public:
       dst_image.pixelFormat = dst->getPixelFormat();
       dst_image.buffer = dst->getData();
 
-      return TYUndistortImage(color_calib, &src_image, NULL, &dst_image);
+      for(size_t i = 0; i < color_dist_map_list.size(); i++) {
+        if(0 == memcmp(color_calib, &color_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
+          cv::Mat color           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_8UC3, src_image.buffer);
+          cv::Mat undistory_color = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_8UC3, dst_image.buffer);
+          cv::remap(color, undistory_color, color_dist_map_list[i].get_map_x(), color_dist_map_list[i].get_map_y(), cv::INTER_LINEAR);
+          return TY_STATUS_OK;
+        }
+      }
+      ROS_WARN("doRGBUndistortion fail!");
+      return TY_STATUS_ERROR;
     }
 
     static int MapDepthImageToColorCoordinate(const TY_CAMERA_CALIB_INFO* depth_calib, 
@@ -438,7 +324,6 @@ public:
                   f_scale_unit);
     }
 
-
     static int cvtColor(percipio::VideoFrameData& src, percipio::VideoFrameData& dst)
     {
       int i, j;
@@ -455,83 +340,65 @@ public:
       int size = src.getDataSize();
       void* src_buffer = src.getData();
       void* dst_buffer = dst.getData();
+
+      cv::Mat src_mat, dst_mat;
       switch (src.getPixelFormat()) {
         case TY_PIXEL_FORMAT_YUYV: {
-          yuv2rgb(src_buffer, dst_buffer, width, height, IMGPROC_YUYV2RGB888);
+          src_mat = cv::Mat(height, width, CV_8UC2, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_YUV2RGB_YUYV);
           break;
         }
         case TY_PIXEL_FORMAT_YVYU: {
-          yuv2rgb(src_buffer, dst_buffer, width, height, IMGPROC_YVYU2RGB888);
+          src_mat = cv::Mat(height, width, CV_8UC2, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_YUV2RGB_YVYU);
           break;
         }    
         case TY_PIXEL_FORMAT_JPEG: {
-          static jpeg_decoder jpeg_de;
-          
-          int real_width, real_height, subsamp;
-          if(-1 != tjDecompressHeader2(jpeg_de.jpeg, (uint8_t*)src_buffer, size, &real_width, &real_height, &subsamp))
-          {
-            int32_t pitch = real_width * tjPixelSize[TJPF_RGB];
-            int32_t img_size = pitch * real_height;
-            if(!tjDecompress2(jpeg_de.jpeg, (uint8_t*)src_buffer, size, (uint8_t*)dst_buffer, real_width, pitch, real_height, TJPF_RGB, 0))
-            {
-                //
-            }   
-          }
+          std::vector<uchar> _v((uchar*)src_buffer, (uchar*)src_buffer + size);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::Mat bgr = cv::imdecode(_v, cv::IMREAD_COLOR);
+          cv::cvtColor(bgr, dst_mat, cv::COLOR_BGR2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_BAYER8GBRG: {
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)src_buffer, (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_gb((u8*)src_buffer, (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGR2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_BAYER8BGGR: {
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)src_buffer, (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_bg((u8*)src_buffer, (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerRG2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_BAYER8GRBG: {
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)src_buffer, (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_gr((u8*)src_buffer, (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGB2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_BAYER8RGGB: {
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)src_buffer, (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_rg((u8*)src_buffer, (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerBG2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_BGR: {
-          BGRToRGB(src_buffer, width, height, dst_buffer);
+          src_mat = cv::Mat(height, width, CV_8UC3, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BGR2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_RGB: {
           memcpy(dst_buffer, src_buffer, 3*width*height);
         }
         case TY_PIXEL_FORMAT_MONO: {
-          monoToRGB(src_buffer, width, height, dst_buffer);
+          src_mat = cv::Mat(height, width, CV_8U, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_GRAY2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_MONO10: {
@@ -541,7 +408,9 @@ public:
           for(size_t idx = 0; idx < mono10.size(); idx++) {
             mono8[idx] = mono10[idx] >> 8;
           }
-          monoToRGB(&mono8[0], width, height, dst_buffer);
+          src_mat = cv::Mat(height, width, CV_8U, &mono8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_GRAY2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_BAYER10GBRG: {
@@ -551,14 +420,9 @@ public:
           for(size_t idx = 0; idx < bayer10.size(); idx++) {
             bayer8[idx] = bayer10[idx] >> 8;
           }
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_gb((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGR2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_BAYER10BGGR: {
@@ -568,14 +432,9 @@ public:
           for(size_t idx = 0; idx < bayer10.size(); idx++) {
             bayer8[idx] = bayer10[idx] >> 8;
           }
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_bg((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerRG2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_BAYER10GRBG: {
@@ -585,14 +444,9 @@ public:
           for(size_t idx = 0; idx < bayer10.size(); idx++) {
             bayer8[idx] = bayer10[idx] >> 8;
           }
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_gr((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGB2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_BAYER10RGGB: {
@@ -602,14 +456,9 @@ public:
           for(size_t idx = 0; idx < bayer10.size(); idx++) {
             bayer8[idx] = bayer10[idx] >> 8;
           }
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_rg((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerBG2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_MONO12: {
@@ -619,7 +468,9 @@ public:
           for(size_t idx = 0; idx < mono12.size(); idx++) {
             mono8[idx] = mono12[idx] >> 8;
           }
-          monoToRGB(&mono8[0], width, height, dst_buffer);
+          src_mat = cv::Mat(height, width, CV_8U, &mono8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_GRAY2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_BAYER12GBRG: {
@@ -629,14 +480,9 @@ public:
           for(size_t idx = 0; idx < bayer12.size(); idx++) {
             bayer8[idx] = bayer12[idx] >> 8;
           }
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_gb((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGR2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_BAYER12BGGR: {
@@ -646,14 +492,9 @@ public:
           for(size_t idx = 0; idx < bayer12.size(); idx++) {
             bayer8[idx] = bayer12[idx] >> 8;
           }
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_bg((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerRG2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_BAYER12GRBG: {
@@ -663,14 +504,9 @@ public:
           for(size_t idx = 0; idx < bayer12.size(); idx++) {
             bayer8[idx] = bayer12[idx] >> 8;
           }
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_gr((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGB2RGB);
           break;
         }
         case TY_PIXEL_FORMAT_CSI_BAYER12RGGB: {
@@ -680,14 +516,9 @@ public:
           for(size_t idx = 0; idx < bayer12.size(); idx++) {
             bayer8[idx] = bayer12[idx] >> 8;
           }
-          for (i = 0; i < width; i += 2) {
-            for (j = 0; j < height; j += 2) {
-              if (i == 0 || j == 0 || i == width - 2 || j == height - 2)
-                bayer_clear((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-              else
-                bayer_bilinear_rg((u8*)&bayer8[0], (u8*)dst_buffer, i, j, width);
-            }
-          }
+          src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerBG2RGB);
           break;
         }    
         case TY_PIXEL_FORMAT_MONO16:
@@ -697,7 +528,9 @@ public:
           for(size_t idx = 0; idx < width * height; idx++) {
             mono8[idx] = ptr[idx] >> 8;
           }
-          monoToRGB(&mono8[0], width, height, dst_buffer);
+          src_mat = cv::Mat(height, width, CV_8U, &mono8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_GRAY2RGB);
           break;
         }
         default:
@@ -707,3 +540,6 @@ public:
       return 0;
     }
 };
+
+std::vector<distortion_data> ImgProc::depth_dist_map_list;
+std::vector<distortion_data> ImgProc::color_dist_map_list;

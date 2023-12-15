@@ -1,4 +1,11 @@
 /*
+ * @Description: 
+ * @Author: zxy
+ * @Date: 2023-10-19 17:10:35
+ * @LastEditors: zxy
+ * @LastEditTime: 2023-12-14 10:15:46
+ */
+/*
  * Copyright (c) 2013, Willow Garage, Inc.
  * All rights reserved.
  *
@@ -44,10 +51,10 @@ int main(int argc, char **argv){
   ros::NodeHandle pnh("~");
 
   percipio_wrapper::PercipioDriver drv(n, pnh);
-  dynamic_reconfigure::Server<percipio_camera::PercipioConfig> server;
-	dynamic_reconfigure::Server<percipio_camera::PercipioConfig>::CallbackType f;
-  f = boost::bind(&callback, _1, _2);
-  server.setCallback(f);
+  //dynamic_reconfigure::Server<percipio_camera::PercipioConfig> server;
+	//dynamic_reconfigure::Server<percipio_camera::PercipioConfig>::CallbackType f;
+  //f = boost::bind(&callback, _1, _2);
+  //server.setCallback(f);
 
   ros::spin();
 

@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-13 09:58:14
+ * @LastEditTime: 2023-12-14 16:12:40
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -665,6 +665,7 @@ namespace percipio
                 TYDepthSpeckleFilter(&frame.image[i], &param);
               }
               cam->DepthStream.get()->cb(cam->DepthStream.get(), cam->DepthStream.get()->frame_listener, &frame.image[i]);
+
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_RGB_CAM){ 
@@ -787,6 +788,9 @@ namespace percipio
       TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_WIDTH, &current_rgb_width);
       TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_HEIGHT, &current_rgb_height);
       b_stream_with_color = true;
+
+      //add depth distortion map
+      ImgProc::addColorDistortionMap(color_calib, current_rgb_width, current_rgb_height);
     }else {
       TYDisableComponents(_M_DEVICE, TY_COMPONENT_RGB_CAM);
       current_rgb_width = 0;
@@ -799,7 +803,11 @@ namespace percipio
       component_list += "depth ";
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_WIDTH, &current_depth_width);
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_HEIGHT, &current_depth_height);
-      TYHasFeature(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &depth_distortion);
+      TYHasFeature(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_DISTORTION, &depth_distortion);
+      if(depth_distortion) {
+        //add depth distortion map
+        ImgProc::addDepthDistortionMap(depth_calib, current_depth_width, current_depth_height);
+      }
 
       TYSetBool(_M_DEVICE, TY_COMPONENT_LASER, TY_BOOL_LASER_AUTO_CTRL, true);
     }else {
@@ -1193,7 +1201,7 @@ namespace percipio
   }
 
   void  VideoStream::parseImageData(TY_IMAGE_DATA* img)
-  { 
+  {
     //TODO
     VideoFrameData vframe, tframe;
     vframe.setData(img);

@@ -10,11 +10,6 @@ find_package(PkgConfig)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fpic")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
 
-add_subdirectory(./third-party/libjpeg-turbo)
-
-include_directories(./third-party/libjpeg-turbo)
-link_libraries(turbojpeg-static)
-
 generate_dynamic_reconfigure_options(cfg/Percipio.cfg)
 add_service_files(FILES
   GetSerial.srv)
@@ -65,21 +60,22 @@ set(TYCAM ${CMAKE_CURRENT_SOURCE_DIR}/camport3/lib/linux/lib_${ARCH}/libtycam.so
 
 target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TYCAM})
 
-add_executable(test_wrapper test/test_wrapper.cpp )
-target_link_libraries(test_wrapper percipio_wrapper ${Boost_LIBRARIES} ${TYCAM})
+#add_executable(test_wrapper test/test_wrapper.cpp )
+#target_link_libraries(test_wrapper percipio_wrapper ${Boost_LIBRARIES} ${TYCAM})
 
 add_library(percipio_driver_lib
    src/percipio_driver.cpp
 )
 
-#find_package(OpenCV REQUIRED)
-#if (NOT OpenCV_FOUND)
-#    message(FATAL_ERROR "OpenCV library not found")
-#else()
-#    message(STATUS "OpenCV version: ${OpenCV_VERSION}")
-#    include_directories(${OpenCV_INCLUDE_DIRS})
-#    target_link_libraries(percipio_driver_lib ${OpenCV_LIBS})
-#endif()
+find_package(OpenCV REQUIRED)
+if (NOT OpenCV_FOUND)
+    message(FATAL_ERROR "OpenCV library not found")
+else()
+    message(STATUS "OpenCV version: ${OpenCV_VERSION}")
+    include_directories(${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(percipio_wrapper ${OpenCV_LIBS})
+    target_link_libraries(percipio_driver_lib ${OpenCV_LIBS})
+endif()
 
 target_link_libraries(percipio_driver_lib percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} )
 add_dependencies(percipio_driver_lib ${PROJECT_NAME}_gencfg)
@@ -101,10 +97,10 @@ add_executable(list_devices
 )
 target_link_libraries(list_devices percipio_wrapper)
 
-if (UNIX AND NOT APPLE)
-  add_executable(usb_reset src/usb_reset.c)
-  set(ADDITIONAL_EXECUTABLES "usb_reset")
-endif()
+#if (UNIX AND NOT APPLE)
+#  add_executable(usb_reset src/usb_reset.c)
+#  set(ADDITIONAL_EXECUTABLES "usb_reset")
+#endif()
 
 install(TARGETS percipio_wrapper percipio_camera_nodelet percipio_camera_node list_devices percipio_driver_lib ${ADDITIONAL_EXECUTABLES}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
