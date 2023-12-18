@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-07-18 15:55:24
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-15 13:29:19
+ * @LastEditTime: 2023-12-18 17:02:30
  */
 
 #include <iostream>
@@ -161,8 +161,22 @@ public:
 
       if(!has) {
         cv::Mat mapX, mapY;
-        cv::Mat intrinsic = cv::Mat(cv::Size(3,3), CV_32FC1, depth_calib.intrinsic.data);
-        cv::Mat distCoeffs = cv::Mat(cv::Size(12, 1), CV_32FC1, depth_calib.distortion.data);
+        std::vector<float> f_intrinsic;
+        f_intrinsic.resize(9);
+        f_intrinsic[0] = depth_calib.intrinsic.data[0] * width / depth_calib.intrinsicWidth;
+        f_intrinsic[1] = 0;
+        f_intrinsic[2] = depth_calib.intrinsic.data[2] * width / depth_calib.intrinsicWidth;
+
+        f_intrinsic[3] = 0;
+        f_intrinsic[4] = depth_calib.intrinsic.data[4] * height / depth_calib.intrinsicHeight;
+        f_intrinsic[5] = depth_calib.intrinsic.data[5] * height / depth_calib.intrinsicHeight;
+        
+        f_intrinsic[6] = 0;
+        f_intrinsic[7] = 0;
+        f_intrinsic[8] = 1;
+
+        cv::Mat intrinsic = cv::Mat(cv::Size(3,3), CV_32F, &f_intrinsic[0]);
+        cv::Mat distCoeffs = cv::Mat(cv::Size(1, 12), CV_32F, depth_calib.distortion.data);
         cv::initUndistortRectifyMap(intrinsic, distCoeffs, cv::Mat(), intrinsic, cv::Size(width, height), CV_32FC1, mapX, mapY);
 
         distortion_data temp = distortion_data(depth_calib, mapX, mapY);
@@ -227,8 +241,23 @@ public:
 
       if(!has) {
         cv::Mat mapX, mapY;
-        cv::Mat intrinsic = cv::Mat(cv::Size(3,3), CV_32FC1, color_calib.intrinsic.data);
-        cv::Mat distCoeffs = cv::Mat(cv::Size(12, 1), CV_32FC1, color_calib.distortion.data);
+        std::vector<float> f_intrinsic;
+        f_intrinsic.resize(9);
+        f_intrinsic[0] = color_calib.intrinsic.data[0] * width / color_calib.intrinsicWidth;
+        f_intrinsic[1] = 0;
+        f_intrinsic[2] = color_calib.intrinsic.data[2] * width / color_calib.intrinsicWidth;
+
+        f_intrinsic[3] = 0;
+        f_intrinsic[4] = color_calib.intrinsic.data[4] * height / color_calib.intrinsicHeight;
+        f_intrinsic[5] = color_calib.intrinsic.data[5] * height / color_calib.intrinsicHeight;
+        
+        f_intrinsic[6] = 0;
+        f_intrinsic[7] = 0;
+        f_intrinsic[8] = 1;
+
+        cv::Mat intrinsic = cv::Mat(cv::Size(3,3), CV_32F, &f_intrinsic[0]);
+        cv::Mat distCoeffs = cv::Mat(cv::Size(1, 12), CV_32F, color_calib.distortion.data);
+
         cv::initUndistortRectifyMap(intrinsic, distCoeffs, cv::Mat(), intrinsic, cv::Size(width, height), CV_32FC1, mapX, mapY);
 
         distortion_data temp = distortion_data(color_calib, mapX, mapY);

@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-15 14:17:18
+ * @LastEditTime: 2023-12-18 16:17:58
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -308,7 +308,6 @@ namespace percipio
   TY_STATUS percipio_depth_cam::parseColorStream(VideoFrameData* src, VideoFrameData* dst)
   {
     TY_STATUS status = TY_STATUS_OK;
-    pthread_mutex_lock(&m_mutex);
     if(color_undistortion)
       status = ImgProc::doRGBUndistortion(&color_calib, src, dst);
     else
@@ -319,12 +318,10 @@ namespace percipio
   TY_STATUS percipio_depth_cam::parseDepthStream(VideoFrameData* src, VideoFrameData* dst)
   {
     TY_STATUS status = TY_STATUS_OK;
-    pthread_mutex_lock(&m_mutex);
     if(depth_distortion)
       status = ImgProc::doDepthUndistortion(&depth_calib, src, dst);
     else
       dst->clone(*src);
-    pthread_mutex_unlock(&m_mutex);
     return status;
   }
 
