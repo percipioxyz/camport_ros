@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-18 16:17:58
+ * @LastEditTime: 2023-12-18 18:42:18
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -538,9 +538,11 @@ namespace percipio
     uint32_t value = 0;
     pthread_mutex_lock(&m_mutex);
     TY_COMPONENT_ID comp = get_stream_component_id(stream);
-    if(0 == comp)
+    if(0 == comp) {
+      pthread_mutex_unlock(&m_mutex);
       return VideoMode();
-    
+    }
+
     TYGetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, &value);
     pthread_mutex_unlock(&m_mutex);
     return VideoMode(value);
