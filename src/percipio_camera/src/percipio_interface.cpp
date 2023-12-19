@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-19 09:50:32
+ * @LastEditTime: 2023-12-19 14:09:48
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -115,6 +115,14 @@ namespace percipio
       TYGetStruct(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_CALIB_DATA, &depth_calib, sizeof(depth_calib));
     }
 
+    bool hasTrigger = false;
+    TYHasFeature(_M_DEVICE, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM, &hasTrigger);
+    if (hasTrigger) {
+        TY_TRIGGER_PARAM trigger;
+        trigger.mode = TY_TRIGGER_MODE_OFF;
+        TYSetStruct(_M_DEVICE, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM, &trigger, sizeof(trigger));
+    }
+
     current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName);
     TYRegisterEventCallback(_M_DEVICE, eventCallback, &current_device_info);
     return TY_STATUS_OK;
@@ -139,7 +147,7 @@ namespace percipio
       TY_PIXEL_FORMAT fmt = TYPixelFormat(mode);
       if((comp == TY_COMPONENT_DEPTH_CAM) && (fmt == TY_PIXEL_FORMAT_XYZ48))
         continue;
-        
+
       if((w == width) && (h == height)) {
         if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
           ROS_INFO("%s resolution set to %dx%d.", get_component_desc(comp).c_str(), width, height, w, h);
