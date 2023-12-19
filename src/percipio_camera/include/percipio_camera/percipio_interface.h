@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-04 17:25:04
+ * @LastEditTime: 2023-12-19 15:37:27
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -172,6 +172,7 @@ namespace percipio
       ImageRegistrationMode DeviceGetImageRegistrationMode();
       TY_STATUS MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS FrameDecoder(VideoFrameData& src, VideoFrameData& dst);
+      TY_STATUS parseIrStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseColorStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseDepthStream(VideoFrameData* src, VideoFrameData* dst);
 

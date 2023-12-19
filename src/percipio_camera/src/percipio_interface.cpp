@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-19 14:09:48
+ * @LastEditTime: 2023-12-19 15:33:57
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -325,6 +325,12 @@ namespace percipio
     else
       dst->clone(*src);
     return status;
+  }
+
+  TY_STATUS percipio_depth_cam::parseIrStream(VideoFrameData* src, VideoFrameData* dst)
+  {
+    dst->clone(*src);
+    return TY_STATUS_OK;
   }
 
   TY_STATUS percipio_depth_cam::parseDepthStream(VideoFrameData* src, VideoFrameData* dst)
@@ -1221,19 +1227,38 @@ namespace percipio
     //TODO
     VideoFrameData vframe, tframe;
     vframe.setData(img);
-    if(img->pixelFormat == TY_PIXEL_FORMAT_DEPTH16) {
-      g_Context->parseDepthStream(&vframe, &tframe);
-      ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
-      if(mode == IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
-        g_Context->MapDepthFrameToColorCoordinate(&tframe, &frame);
-      } else {
-        frame.clone(tframe);
-      }
-    } else if(img->pixelFormat == TY_PIXEL_FORMAT_MONO) {
-      frame.clone(vframe);
-    } else {
-      g_Context->FrameDecoder(vframe, tframe);
-      g_Context->parseColorStream(&tframe, &frame);
+    switch(img->componentID)
+    {
+      case TY_COMPONENT_DEPTH_CAM:
+        if(img->pixelFormat == TY_PIXEL_FORMAT_DEPTH16) {
+          g_Context->parseDepthStream(&vframe, &tframe);
+          ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
+          if(mode == IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
+            g_Context->MapDepthFrameToColorCoordinate(&tframe, &frame);
+          } else {
+            frame.clone(tframe);
+          }
+        }
+        break;
+      case TY_COMPONENT_RGB_CAM:
+        if(img->pixelFormat == TY_PIXEL_FORMAT_MONO) {
+          frame.clone(vframe);
+        } else {
+          g_Context->FrameDecoder(vframe, tframe);
+          g_Context->parseColorStream(&tframe, &frame);
+        }
+        break;
+      case TY_COMPONENT_IR_CAM_LEFT:
+      case TY_COMPONENT_IR_CAM_RIGHT:
+        if(img->pixelFormat == TY_PIXEL_FORMAT_MONO) {
+          frame.clone(vframe);
+        } else {
+          g_Context->FrameDecoder(vframe, tframe);
+          g_Context->parseIrStream(&tframe, &frame);
+        }
+        break;
+      default:
+        break;
     }
     return;
   }
