@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-19 15:33:57
+ * @LastEditTime: 2023-12-19 17:43:07
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -133,13 +133,90 @@ namespace percipio
     return current_device_info;
   }
 
+  static TY_STATUS depth_image_mode_configure(TY_DEV_HANDLE handle, TY_COMPONENT_ID  comp, std::vector<TY_IMAGE_MODE>& list)
+  {
+    if(list.size()) {
+      for(size_t i = 0; i < list.size(); i++) {
+        TY_IMAGE_MODE mode = list[i];
+        TY_PIXEL_FORMAT fmt = TYPixelFormat(mode);
+        if(fmt == TY_PIXEL_FORMAT_DEPTH16) {
+          return TYSetEnum(handle, comp, TY_ENUM_IMAGE_MODE, mode);
+        }
+      }
+    }
+    ROS_WARN("depth image resolution adaptation failed!");
+    return TY_STATUS_ERROR;
+  }
+
+  static TY_STATUS cmos_image_mode_configure(TY_DEV_HANDLE handle, TY_COMPONENT_ID  comp, std::vector<TY_IMAGE_MODE>& list)
+  {
+    std::vector<TY_IMAGE_MODE> bgr, yuv, jpeg, raw8, raw10, raw12, mono;
+    if(list.size()) {
+      for(size_t i = 0; i < list.size(); i++) {
+        TY_IMAGE_MODE mode = list[i];
+        TY_PIXEL_FORMAT fmt = TYPixelFormat(mode);
+        switch (fmt) {
+          case TY_PIXEL_FORMAT_RGB:
+          case TY_PIXEL_FORMAT_BGR:
+            bgr.push_back(mode);
+            break;
+          case TY_PIXEL_FORMAT_YVYU:
+          case TY_PIXEL_FORMAT_YUYV:
+            yuv.push_back(mode);
+            break;
+          case TY_PIXEL_FORMAT_JPEG:
+          case TY_PIXEL_FORMAT_MJPG:
+            jpeg.push_back(mode);
+            break;
+          case TY_PIXEL_FORMAT_BAYER8GRBG:
+          case TY_PIXEL_FORMAT_BAYER8RGGB:
+          case TY_PIXEL_FORMAT_BAYER8GBRG:
+          case TY_PIXEL_FORMAT_BAYER8BGGR:
+            raw8.push_back(mode);
+            break;
+          case TY_PIXEL_FORMAT_CSI_BAYER10GRBG:
+          case TY_PIXEL_FORMAT_CSI_BAYER10RGGB:
+          case TY_PIXEL_FORMAT_CSI_BAYER10GBRG:
+          case TY_PIXEL_FORMAT_CSI_BAYER10BGGR:
+            raw10.push_back(mode);
+            break;
+          case TY_PIXEL_FORMAT_CSI_BAYER12GRBG:
+          case TY_PIXEL_FORMAT_CSI_BAYER12RGGB:
+          case TY_PIXEL_FORMAT_CSI_BAYER12GBRG:
+          case TY_PIXEL_FORMAT_CSI_BAYER12BGGR:
+            raw12.push_back(mode);
+            break;
+          case TY_PIXEL_FORMAT_MONO:
+          case TY_PIXEL_FORMAT_CSI_MONO10:
+          case TY_PIXEL_FORMAT_CSI_MONO12:
+            mono.push_back(mode);
+            break;
+          default:
+            break;
+        }
+      }
+
+      if(bgr.size()) return TYSetEnum(handle, comp, TY_ENUM_IMAGE_MODE, bgr[0]);
+      if(yuv.size()) return TYSetEnum(handle, comp, TY_ENUM_IMAGE_MODE, yuv[0]);
+      if(jpeg.size()) return TYSetEnum(handle, comp, TY_ENUM_IMAGE_MODE, jpeg[0]);
+      if(raw8.size()) return TYSetEnum(handle, comp, TY_ENUM_IMAGE_MODE, raw8[0]);
+      if(raw10.size()) return TYSetEnum(handle, comp, TY_ENUM_IMAGE_MODE, raw10[0]);
+      if(raw12.size()) return TYSetEnum(handle, comp, TY_ENUM_IMAGE_MODE, raw12[0]);
+      if(mono.size()) return TYSetEnum(handle, comp, TY_ENUM_IMAGE_MODE, mono[0]);
+    }
+    
+    ROS_WARN("cmos image format adaptation failed!");
+    return TY_STATUS_ERROR;
+  }
+
   bool percipio_depth_cam::set_image_mode(TY_COMPONENT_ID  comp, int width, int height)
   {
     std::vector<TY_ENUM_ENTRY> image_mode_list;
     TY_STATUS rc = get_feature_enum_list(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, image_mode_list);
     if(rc != TY_STATUS_OK)
       return false;
-    
+
+    std::vector<TY_IMAGE_MODE> image_mode_arr(0);
     for(size_t i = 0; i < image_mode_list.size(); i++) {
       TY_IMAGE_MODE mode = image_mode_list[i].value;
       int w = TYImageWidth(mode);
@@ -148,24 +225,44 @@ namespace percipio
       if((comp == TY_COMPONENT_DEPTH_CAM) && (fmt == TY_PIXEL_FORMAT_XYZ48))
         continue;
 
-      if((w == width) && (h == height)) {
-        if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
-          ROS_INFO("%s resolution set to %dx%d.", get_component_desc(comp).c_str(), width, height, w, h);
-          return true;
-        }
-      }
-
-      if((w == width) || (h == height)) {
-        if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
-          ROS_WARN("%s resolution mismatch %dx%d  != %dx%d.", get_component_desc(comp).c_str(), width, height, w, h);
-          return true;
-        }
-      }
+      if((w == width) && (h == height))
+        image_mode_arr.push_back(mode);
     }
 
-    ROS_WARN("%s unsuitable resolution %dx%d.", get_component_desc(comp).c_str(), width, height);
-    return false;
+    if(image_mode_arr.size()) {
+      if(comp == TY_COMPONENT_DEPTH_CAM)
+        return depth_image_mode_configure(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, image_mode_arr);
+      else
+        return cmos_image_mode_configure(_M_DEVICE, comp, image_mode_arr);
+    } else {
+      for(size_t i = 0; i < image_mode_list.size(); i++) {
+        TY_IMAGE_MODE mode = image_mode_list[i].value;
+        int w = TYImageWidth(mode);
+        int h = TYImageHeight(mode);
+        TY_PIXEL_FORMAT fmt = TYPixelFormat(mode);
+        if((comp == TY_COMPONENT_DEPTH_CAM) && (fmt == TY_PIXEL_FORMAT_XYZ48))
+          continue;
+
+        if((w == width) && (h == height)) {
+          if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
+            ROS_INFO("%s resolution set to %dx%d.", get_component_desc(comp).c_str(), width, height, w, h);
+            return true;
+          }
+        }
+
+        if((w == width) || (h == height)) {
+          if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
+            ROS_WARN("%s resolution mismatch %dx%d  != %dx%d.", get_component_desc(comp).c_str(), width, height, w, h);
+            return true;
+          }
+        }
+      }
+
+      ROS_WARN("%s unsuitable resolution %dx%d.", get_component_desc(comp).c_str(), width, height);
+      return false;
+    }
   }
+
 
   void percipio_depth_cam::eventCallback(TY_EVENT_INFO *event_info, void *userdata)
   {
