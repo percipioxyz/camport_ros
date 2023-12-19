@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-18 18:42:18
+ * @LastEditTime: 2023-12-19 09:50:32
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -136,6 +136,10 @@ namespace percipio
       TY_IMAGE_MODE mode = image_mode_list[i].value;
       int w = TYImageWidth(mode);
       int h = TYImageHeight(mode);
+      TY_PIXEL_FORMAT fmt = TYPixelFormat(mode);
+      if((comp == TY_COMPONENT_DEPTH_CAM) && (fmt == TY_PIXEL_FORMAT_XYZ48))
+        continue;
+        
       if((w == width) && (h == height)) {
         if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
           ROS_INFO("%s resolution set to %dx%d.", get_component_desc(comp).c_str(), width, height, w, h);
