@@ -64,7 +64,7 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   config_init_(false),
   depth_registration_(false),
   gvsp_resend_(false),
-  color_depth_synchronization_(true),
+  cmos_sync_(true),
   use_device_time_(false),
   tof_depth_channel_(0),
   tof_depth_quality_(4),
@@ -774,10 +774,10 @@ void PercipioDriver::readConfigFromParameterServer()
     depth_registration_ = false;
   }
 
-  if (!pnh_.getParam("color_depth_synchronization", color_depth_synchronization_))
+  if (!pnh_.getParam("cmos_sync", cmos_sync_))
   {
-    ROS_WARN ("~color_depth_synchronization is not set! Using default.");
-    color_depth_synchronization_ = true;
+    ROS_WARN ("~cmos_sync is not set! Using default.");
+    cmos_sync_ = true;
   }
 
   if (!pnh_.getParam("tof_channel", tof_depth_channel_))
@@ -1016,7 +1016,7 @@ void PercipioDriver::initDevice()
       }
 
       if(device_.get()->isDeviceRGBDSyncSupported()) {
-        device_.get()->setDeviceRGBDSynchronization(color_depth_synchronization_);
+        device_.get()->setDeviceRGBDSynchronization(cmos_sync_);
       }
 
       if(tof_depth_channel_!= PARAMTER_DEFAULT)

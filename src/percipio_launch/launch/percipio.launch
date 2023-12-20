@@ -26,7 +26,7 @@
   <arg name="rgb_resolution" default="640x480" />
   <arg name="depth_resolution" default="640x480" />
 
-  <arg name="color_depth_synchronization"     default="true" />
+  <arg name="cmos_sync"     default="true" />
   
   <!-- Software depth registration -->
   <arg name="depth_registration" default="true" />
@@ -129,7 +129,7 @@
       
       <arg name="depth_registration"              value="$(arg depth_registration)" />
 
-      <arg name="color_depth_synchronization"     value="$(arg color_depth_synchronization)" />
+      <arg name="cmos_sync"                       value="$(arg cmos_sync)" />
       
       <arg name="tof_channel"                     value="$(arg tof_channel)" />
       <arg name="tof_depth_quality"               value="$(arg tof_depth_quality)" />

@@ -10,7 +10,7 @@
   <arg name="ir_camera_info_url" />
   <arg name="gvsp_resend" default="false" />
   <arg name="depth_registration" default="true" />
-  <arg name="color_depth_synchronization" default="true" />
+  <arg name="cmos_sync" default="true" />
   <!--<arg name="auto_exposure" default="true" /> -->
   <!--<arg name="auto_white_balance" default="true" /> -->
   <arg name="respawn" default="false" />

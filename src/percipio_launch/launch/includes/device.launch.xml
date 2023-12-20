@@ -14,7 +14,7 @@
   <arg name="gvsp_resend" default="false" />
   <arg name="color_undistortion" default="true" />
   <arg name="depth_registration" default="true" />
-  <arg name="color_depth_synchronization" default="true" />
+  <arg name="cmos_sync" default="true" />
 
   <arg name="tof_channel" />
   <arg name="tof_depth_quality" />
@@ -70,7 +70,7 @@
     <param name="gvsp_resend" type="bool" value="$(arg gvsp_resend)" />
     <param name="color_undistortion" type="bool" value="$(arg color_undistortion)" />
     <param name="depth_registration" type="bool" value="$(arg depth_registration)" />
-    <param name="color_depth_synchronization" value="$(arg color_depth_synchronization)" />
+    <param name="cmos_sync" value="$(arg cmos_sync)" />
 
     <param name="tof_channel" value="$(arg tof_channel)" />
     <param name="tof_depth_quality" value="$(arg tof_depth_quality)" />

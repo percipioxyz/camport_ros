@@ -124,7 +124,7 @@ private:
 
   bool depth_registration_;
 
-  bool color_depth_synchronization_;
+  bool cmos_sync_;
 
   /** \brief get_serial server*/
   ros::ServiceServer get_serial_server;
