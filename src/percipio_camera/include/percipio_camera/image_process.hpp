@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-07-18 15:55:24
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-18 17:02:30
+ * @LastEditTime: 2023-12-21 14:14:38
  */
 
 #include <iostream>
@@ -50,21 +50,34 @@ class distortion_data {
     distortion_data(const distortion_data& data);
     ~distortion_data();
 
+    const int get_map_width() const;
+    const int get_map_height() const;
     const cv::Mat& get_map_x() const;
     const cv::Mat& get_map_y() const;
     const TY_CAMERA_CALIB_INFO& get_calib_data() const;
 
   private:
     TY_CAMERA_CALIB_INFO calib_data;
+    int map_size_width;
+    int map_size_height;
     cv::Mat map_x;
     cv::Mat map_y;
 };
 
 distortion_data::distortion_data(const TY_CAMERA_CALIB_INFO& calib, const cv::Mat& x, const cv::Mat& y)
 {
+  if((map_x.cols != map_y.cols) || 
+     (map_x.rows != map_y.rows))
+  {
+    ROS_ERROR("Invalid distortion map");
+    return;
+  }
+
   calib_data = calib;
   map_x = x.clone();
   map_y = y.clone();
+  map_size_width = map_x.cols;
+  map_size_height = map_x.rows;
 }
 
 distortion_data::distortion_data(const distortion_data& data)
@@ -72,6 +85,9 @@ distortion_data::distortion_data(const distortion_data& data)
   calib_data = data.get_calib_data();
   map_x = data.get_map_x().clone();
   map_y = data.get_map_y().clone();
+
+  map_size_width = map_x.cols;
+  map_size_height = map_x.rows;
 }
 
 distortion_data::~distortion_data()
@@ -92,6 +108,16 @@ const cv::Mat& distortion_data::get_map_x() const
 const cv::Mat& distortion_data::get_map_y() const
 {
   return map_y;
+}
+
+const int distortion_data::get_map_width() const
+{
+  return map_size_width;
+}
+
+const int distortion_data::get_map_height() const
+{
+  return map_size_height;
 }
 
 class ImgProc 
@@ -153,7 +179,10 @@ public:
     {
       bool has = false;
       for(size_t i = 0; i < depth_dist_map_list.size(); i++) {
-        if(0 == memcmp(&depth_calib, &depth_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
+        if((0 == memcmp(&depth_calib, static_cast<const void*>(&depth_dist_map_list[i].get_calib_data()), sizeof(TY_CAMERA_CALIB_INFO))) &&
+          (width == depth_dist_map_list[i].get_map_width()) &&
+          (height == depth_dist_map_list[i].get_map_height()))
+        {
           has = true;
           break;
         }
@@ -216,7 +245,9 @@ public:
       dst_image.buffer = dst->getData();
 
       for(size_t i = 0; i < depth_dist_map_list.size(); i++) {
-        if(0 == memcmp(depth_calib, &depth_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
+        if((0 == memcmp(depth_calib, static_cast<const void*>(&depth_dist_map_list[i].get_calib_data()), sizeof(TY_CAMERA_CALIB_INFO))) &&
+          (depth_dist_map_list[i].get_map_width() == src_image.width) &&
+          (depth_dist_map_list[i].get_map_height() == src_image.height)) {
           cv::Mat depth           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_16U, src_image.buffer);
           cv::Mat undistory_depth = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_16U, dst_image.buffer);
           cv::remap(depth, undistory_depth, depth_dist_map_list[i].get_map_x(), depth_dist_map_list[i].get_map_y(), cv::INTER_NEAREST);
