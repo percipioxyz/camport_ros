@@ -175,6 +175,9 @@ private:
   int m_ir_analog_gain_;
   int m_ir_gain_;
 
+  int m_tof_hw_speckle_size_;
+  int m_tof_hw_speckle_diff_;
+
   //
   bool depth_speckle_filter_;
   int max_speckle_size_;
@@ -191,6 +194,7 @@ private:
   int tof_depth_modulation_threshold_;
   int tof_depth_jitter_threshold_;
   int tof_depth_hdr_ratio_;
+  int tof_depth_anti_sunlight_index_;
 
   int sgbm_image_channel_num_  = PARAMTER_DEFAULT;
   int sgbm_disparity_num_  = PARAMTER_DEFAULT;

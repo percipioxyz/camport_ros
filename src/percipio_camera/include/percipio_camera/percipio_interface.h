@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-19 15:37:27
+ * @LastEditTime: 2023-12-28 16:08:22
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -523,6 +523,10 @@ public:
     TY_STATUS setExposure(int exposure);
     TY_STATUS setTOFCamDepthChannel(int channel);
     TY_STATUS setTOFCamDepthQuality(int quality);
+    
+    TY_STATUS setTofAntiSunlightIndex(int index);
+    TY_STATUS setFilterSpeckMaxSize(int size);
+    TY_STATUS setFilterSpecMaxDiff(int diff);
 
     TY_STATUS setFilterThreshold(int threshold);
     TY_STATUS setModulationThreshold(int threshold);
@@ -561,6 +565,10 @@ public:
     bool getGain(int* gain) const;
     bool getTOFCamDepthChannel(int* channel) const;
     bool getTOFCamDepthQuality(int* quality) const;
+
+    bool getTofAntiSunlightIndex(int* index) const;
+    bool getFilterSpeckMaxSize(int* size) const;
+    bool getFilterSpecMaxDiff(int* diff) const;
 
     bool getFilterThreshold(int* threshold) const;
     bool getModulationThreshold(int* threshold) const;

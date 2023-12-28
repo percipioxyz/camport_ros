@@ -811,6 +811,36 @@ bool PercipioDevice::hasTofJitterThreshold() const
   return false;
 }
 
+bool PercipioDevice::hasTofDepthAntiSunlightIndex() const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int index = 0;
+    return camera_seeting->getTofAntiSunlightIndex(&index);
+  }
+  return false;
+}
+
+bool PercipioDevice::hasDepthFilterSpeckMaxSize() const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int speck_size = 0;
+    return camera_seeting->getFilterSpeckMaxSize(&speck_size);
+  }
+  return false;
+}
+
+bool PercipioDevice::hasDepthFilterSpecMaxDiff() const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting) {
+    int diff = 0;
+    return camera_seeting->getFilterSpecMaxDiff(&diff);
+  }
+  return false;
+}
+
 void PercipioDevice::setLaserPower(int power)
 {
   percipio::CameraSettings* depth_camera_seeting = getDepthCameraSettingsPtr();
@@ -1011,6 +1041,39 @@ void PercipioDevice::setTofJitterThreshold(int value)
     const TY_STATUS rc = camera_seeting->setTofJitterThreshold(value);
     if (rc != TY_STATUS_OK)
       ROS_WARN("Couldn't set depth jitter threshold: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
+void PercipioDevice::setTofDepthAntiSunlightIndex(int value)
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setTofAntiSunlightIndex(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set anti-sunlight index: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
+void PercipioDevice::setDepthFilterSpeckMaxSize(int value)
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setFilterSpeckMaxSize(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set max size of speckle: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
+void PercipioDevice::setDepthFilterSpecMaxDiff(int value)
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setFilterSpecMaxDiff(value);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set max diff of speckle: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
@@ -1357,6 +1420,33 @@ bool PercipioDevice::getTofJitterThreshold(int* value) const
   percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
   if (camera_seeting)
     return camera_seeting->getTofJitterThreshold(value);
+  else
+    return false;
+}
+
+bool PercipioDevice::getTofDepthAntiSunlightIndex(int* value) const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getTofAntiSunlightIndex(value);
+  else
+    return false;
+}
+
+bool PercipioDevice::getDepthFilterSpeckMaxSize(int* value) const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getFilterSpeckMaxSize(value);
+  else
+    return false;
+}
+
+bool PercipioDevice::getDepthFilterSpecMaxDiff(int* value) const
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getFilterSpecMaxDiff(value);
   else
     return false;
 }

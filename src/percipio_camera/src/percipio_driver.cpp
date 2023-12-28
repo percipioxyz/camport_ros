@@ -72,6 +72,7 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   tof_depth_modulation_threshold_(640),
   tof_depth_jitter_threshold_(0),
   tof_depth_hdr_ratio_(1),
+  tof_depth_anti_sunlight_index_(0),
 
   data_skip_ir_counter_(0),
   data_skip_color_counter_(0),
@@ -124,6 +125,11 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("ir_analog_gain");  
   if(!device_->hasIrGain())
     pnh.deleteParam("ir_gain");
+
+  if(!device_->hasDepthFilterSpeckMaxSize())
+    pnh.deleteParam("tof_hw_speckle_size");
+  if(!device_->hasDepthFilterSpecMaxDiff())
+    pnh.deleteParam("tof_hw_speckle_diff");
 
   while (!config_init_)
   {
@@ -245,6 +251,9 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       device_->getIrAnalogGain(&m_ir_analog_gain_);
       device_->getIrGain(&m_ir_gain_);
 
+      device_->getDepthFilterSpeckMaxSize(&m_tof_hw_speckle_size_);
+      device_->getDepthFilterSpecMaxDiff(&m_tof_hw_speckle_diff_);
+
       depth_speckle_filter_ = device_->getDepthSpecFilterEn();
       max_speckle_size_ = device_->getDepthSpecFilterSpecSize();
       max_speckle_diff_ = device_->getDepthSpeckFilterDiff();
@@ -272,6 +281,9 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       config.ir_exposure_time = m_ir_exposure_time_;
       config.ir_analog_gain = m_ir_analog_gain_;
       config.ir_gain = m_ir_gain_;
+
+      config.tof_hw_speckle_size = m_tof_hw_speckle_size_;
+      config.tof_hw_speckle_diff = m_tof_hw_speckle_diff_;
     }
   }
   else {
@@ -341,6 +353,16 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
     if(m_ir_gain_ != config.ir_gain) {
       m_ir_gain_ = config.ir_gain;
       if(device_) device_->setIrGain(m_ir_gain_);
+    }
+
+    if(m_tof_hw_speckle_size_ != config.tof_hw_speckle_size) {
+      m_tof_hw_speckle_size_ = config.tof_hw_speckle_size;
+      if(device_) device_->setDepthFilterSpeckMaxSize(m_tof_hw_speckle_size_);
+    }
+
+    if(m_tof_hw_speckle_diff_ != config.tof_hw_speckle_diff) {
+      m_tof_hw_speckle_diff_ = config.tof_hw_speckle_diff;
+      if(device_) device_->setDepthFilterSpecMaxDiff(m_tof_hw_speckle_diff_);
     }
 
     if(depth_speckle_filter_ != config.depth_speckle_filter) {
@@ -810,6 +832,11 @@ void PercipioDriver::readConfigFromParameterServer()
     tof_depth_hdr_ratio_ = PARAMTER_DEFAULT;
   }
 
+  if (!pnh_.getParam("tof_anti_sunlight_index", tof_depth_anti_sunlight_index_))
+  {
+    tof_depth_anti_sunlight_index_ = PARAMTER_DEFAULT;
+  }
+
   //SGBM paramters
   {
     pnh_.getParam("sgbm_image_channel_num",             sgbm_image_channel_num_);
@@ -1034,6 +1061,9 @@ void PercipioDriver::initDevice()
       }
       if(tof_depth_hdr_ratio_ != PARAMTER_DEFAULT) {
         device_->setTofHdrRatio(tof_depth_hdr_ratio_);
+      }
+      if(tof_depth_anti_sunlight_index_ != PARAMTER_DEFAULT) {
+        device_->setTofDepthAntiSunlightIndex(tof_depth_anti_sunlight_index_);
       }
 
       if(!isnan(depth_value_scale_unit_)) {

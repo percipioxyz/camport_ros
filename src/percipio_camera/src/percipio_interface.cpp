@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-19 17:43:07
+ * @LastEditTime: 2023-12-28 16:07:42
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -1580,6 +1580,21 @@ namespace percipio
     return setProperty(TY_ENUM_DEPTH_QUALITY, &quality);
   }
 
+  TY_STATUS CameraSettings::setTofAntiSunlightIndex(int index)
+  {
+    return setProperty(TY_INT_TOF_ANTI_SUNLIGHT_INDEX, &index);
+  }
+  
+  TY_STATUS CameraSettings::setFilterSpeckMaxSize(int size)
+  {
+    return setProperty(TY_INT_MAX_SPECKLE_SIZE, &size);
+  }
+  
+  TY_STATUS CameraSettings::setFilterSpecMaxDiff(int diff)
+  {
+    return setProperty(TY_INT_MAX_SPECKLE_DIFF, &diff);
+  }
+
   TY_STATUS CameraSettings::setFilterThreshold(int threshold)
   {
     return setProperty(TY_INT_FILTER_THRESHOLD, &threshold);
@@ -1668,6 +1683,24 @@ namespace percipio
   bool CameraSettings::getTOFCamDepthQuality(int* quality) const
   {
     TY_STATUS rc = getProperty(TY_ENUM_DEPTH_QUALITY, quality);
+    return rc == TY_STATUS_OK;
+  }
+
+  bool CameraSettings::getTofAntiSunlightIndex(int* index) const
+  {
+    TY_STATUS rc = getProperty(TY_INT_TOF_ANTI_SUNLIGHT_INDEX, index);
+    return rc == TY_STATUS_OK;
+  }
+
+  bool CameraSettings::getFilterSpeckMaxSize(int* size) const
+  {
+    TY_STATUS rc = getProperty(TY_INT_MAX_SPECKLE_SIZE, size);
+    return rc == TY_STATUS_OK;
+  }
+
+  bool CameraSettings::getFilterSpecMaxDiff(int* diff) const
+  {
+    TY_STATUS rc = getProperty(TY_INT_MAX_SPECKLE_DIFF, diff);
     return rc == TY_STATUS_OK;
   }
 

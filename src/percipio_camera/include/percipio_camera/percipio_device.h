@@ -168,6 +168,10 @@ public:
   bool hasTofModulationThreshold() const;
   bool hasTofHdrRatio() const;
   bool hasTofJitterThreshold() const;
+
+  bool hasTofDepthAntiSunlightIndex() const;
+  bool hasDepthFilterSpeckMaxSize() const;
+  bool hasDepthFilterSpecMaxDiff() const;
   
   void setLaserPower(int value);
   void setAutoExposure(bool enable);
@@ -190,6 +194,10 @@ public:
   void setTofModulationThreshold(int value);
   void setTofHdrRatio(int value);
   void setTofJitterThreshold(int value);
+
+  void setTofDepthAntiSunlightIndex(int value);
+  void setDepthFilterSpeckMaxSize(int value);
+  void setDepthFilterSpecMaxDiff(int value);
 
   void setDepthScale(float scale);
 
@@ -233,6 +241,10 @@ public:
   bool getTofModulationThreshold(int* value) const;
   bool getTofHdrRatio(int* value) const;
   bool getTofJitterThreshold(int* value) const;
+
+  bool getTofDepthAntiSunlightIndex(int* value) const;
+  bool getDepthFilterSpeckMaxSize(int* value) const;
+  bool getDepthFilterSpecMaxDiff(int* value) const;
 
 /*
   bool getAutoExposure() const;
