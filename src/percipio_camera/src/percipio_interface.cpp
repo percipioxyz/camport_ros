@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-28 16:07:42
+ * @LastEditTime: 2023-12-29 13:27:54
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -245,7 +245,7 @@ namespace percipio
 
         if((w == width) && (h == height)) {
           if(TYSetEnum(_M_DEVICE, comp, TY_ENUM_IMAGE_MODE, mode) == TY_STATUS_OK) {
-            ROS_INFO("%s resolution set to %dx%d.", get_component_desc(comp).c_str(), width, height, w, h);
+            ROS_INFO("%s resolution set to %dx%d.", get_component_desc(comp).c_str(), width, height);
             return true;
           }
         }
@@ -1117,6 +1117,7 @@ namespace percipio
       case TY_COMPONENT_DEPTH_CAM:
         return get_depth_stream_image_mode(videoMode);
     }
+    return 0;
   }
   uint32_t percipio_depth_cam::get_leftir_stream_image_mode(const VideoMode& videoMode)
   {
@@ -1230,23 +1231,6 @@ namespace percipio
       return TY_STATUS_ERROR;
   }
   
-  TY_STATUS VideoStream::getProperty(int propertyId, void* data, int* dataSize) const
-  {
-    if (!isValid())
-    {
-      return TY_STATUS_ERROR;
-    }
-    //return (Status)oniStreamGetProperty(m_stream, propertyId, data, dataSize);
-  }
-
-  TY_STATUS VideoStream::setProperty(int propertyId, const void* data, int dataSize)
-  {
-    if (!isValid())
-    {
-      return TY_STATUS_ERROR; 
-    }
-    //return (Status)oniStreamSetProperty(m_stream, propertyId, data, dataSize);
-  }
   VideoMode VideoStream::getVideoMode() const
   {
     VideoMode videoMode = g_Context.get()->get_current_video_mode(m_stream);

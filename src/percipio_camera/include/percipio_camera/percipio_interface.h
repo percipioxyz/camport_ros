@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-28 16:08:22
+ * @LastEditTime: 2023-12-29 13:27:49
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -647,10 +647,6 @@ public:
 
       TY_STATUS readFrame(VideoFrameRef* pFrame);
       
-      TY_STATUS getProperty(int propertyId, void* data, int* dataSize) const;
-
-      TY_STATUS setProperty(int propertyId, const void* data, int dataSize);
-
       VideoMode getVideoMode() const;
 
       TY_STATUS setVideoMode(const VideoMode& videoMode);
