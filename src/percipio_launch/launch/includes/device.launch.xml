@@ -58,6 +58,7 @@
   <arg name="depth_registered" default="depth_registered" />
 
   <!-- Driver nodelet -->
+  <!--<node pkg="percipio_camera" type="percipio_camera_node" name="percipio_camera_node" respawn="$(arg respawn)">-->
   <node pkg="nodelet" type="nodelet" name="driver"
         args="load percipio_camera/PercipioDriverNodelet $(arg manager)"
 	    respawn="$(arg respawn)">

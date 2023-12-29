@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-29 13:27:54
+ * @LastEditTime: 2023-12-29 13:51:28
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -1042,38 +1042,34 @@ namespace percipio
 
   TY_STATUS percipio_depth_cam::create_leftIR_stream(StreamHandle& stream)
   {
-    if(leftIRStream.get() == NULL) {
+    if(leftIRStream.get() == NULL)
       leftIRStream = boost::make_shared<NewFrameCallbackManager>();
-      stream = leftIRStream.get();
-      return TY_STATUS_OK;
-    }
+    stream = leftIRStream.get();
+    return TY_STATUS_OK;
   }
 
   TY_STATUS percipio_depth_cam::create_rightIR_stream(StreamHandle& stream)
   {
-    if(rightIRStream.get() == NULL) {
+    if(rightIRStream.get() == NULL)
       rightIRStream = boost::make_shared<NewFrameCallbackManager>();
-      stream = rightIRStream.get();
-      return TY_STATUS_OK;
-    }
+    stream = rightIRStream.get();
+    return TY_STATUS_OK;
   }
   
   TY_STATUS percipio_depth_cam::create_color_stream(StreamHandle& stream)
   {
-    if(ColorStream.get() == NULL) {
+    if(ColorStream.get() == NULL)
       ColorStream = boost::make_shared<NewFrameCallbackManager>();
-      stream = ColorStream.get();
-      return TY_STATUS_OK;
-    }
+    stream = ColorStream.get();
+    return TY_STATUS_OK;
   }
 
   TY_STATUS percipio_depth_cam::create_depth_stream(StreamHandle& stream)
   {
-    if(DepthStream.get() == NULL) {
+    if(DepthStream.get() == NULL) 
       DepthStream = boost::make_shared<NewFrameCallbackManager>();
-      stream = DepthStream.get();
-      return TY_STATUS_OK;
-    }
+    stream = DepthStream.get();
+    return TY_STATUS_OK;
   }
   const TY_COMPONENT_ID percipio_depth_cam::get_stream_component_id(StreamHandle stream)
   {
