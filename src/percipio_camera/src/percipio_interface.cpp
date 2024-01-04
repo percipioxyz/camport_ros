@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-29 13:51:28
+ * @LastEditTime: 2024-01-04 18:52:22
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -903,10 +903,14 @@ namespace percipio
     if(ColorStream.get() && ColorStream.get()->isInvalid()) {
       TYEnableComponents(_M_DEVICE, TY_COMPONENT_RGB_CAM);
       component_list += "color ";
-      TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_WIDTH, &current_rgb_width);
-      TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_HEIGHT, &current_rgb_height);
+      //ASSERT_OK(TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_WIDTH, &current_rgb_width));
+      //ASSERT_OK(TYGetInt(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_INT_HEIGHT, &current_rgb_height));
       b_stream_with_color = true;
 
+      uint32_t image_mode;
+      TYGetEnum(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_ENUM_IMAGE_MODE, &image_mode);
+      current_rgb_width = TYImageWidth(image_mode);
+      current_rgb_height = TYImageHeight(image_mode);
       //add depth distortion map
       ImgProc::addColorDistortionMap(color_calib, current_rgb_width, current_rgb_height);
     }else {
@@ -1318,12 +1322,11 @@ namespace percipio
         }
         break;
       case TY_COMPONENT_RGB_CAM:
-        if(img->pixelFormat == TY_PIXEL_FORMAT_MONO) {
-          frame.clone(vframe);
-        } else {
+        if(img->pixelFormat == TY_PIXEL_FORMAT_MONO)
+          tframe.clone(vframe);
+        else
           g_Context->FrameDecoder(vframe, tframe);
-          g_Context->parseColorStream(&tframe, &frame);
-        }
+        g_Context->parseColorStream(&tframe, &frame);
         break;
       case TY_COMPONENT_IR_CAM_LEFT:
       case TY_COMPONENT_IR_CAM_RIGHT:
@@ -1492,7 +1495,6 @@ namespace percipio
       free(buffer);
     
     buffer = malloc(size);
-
     memcpy(buffer, frame.getData(), size);
 
     m_isOwner = true;

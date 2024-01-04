@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-07-18 15:55:24
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-21 14:14:38
+ * @LastEditTime: 2024-01-04 18:50:30
  */
 
 #include <iostream>
@@ -303,7 +303,8 @@ public:
                                 percipio::VideoFrameData* src, 
                                 percipio::VideoFrameData* dst)
     {
-      if(src->getPixelFormat() != TY_PIXEL_FORMAT_RGB) {
+      if(src->getPixelFormat() != TY_PIXEL_FORMAT_RGB &&
+         src->getPixelFormat() != TY_PIXEL_FORMAT_MONO) {
         printf("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
         return-1;
       }
@@ -329,8 +330,14 @@ public:
 
       for(size_t i = 0; i < color_dist_map_list.size(); i++) {
         if(0 == memcmp(color_calib, &color_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
-          cv::Mat color           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_8UC3, src_image.buffer);
-          cv::Mat undistory_color = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_8UC3, dst_image.buffer);
+          cv::Mat color, undistory_color;
+          if(src->getPixelFormat() == TY_PIXEL_FORMAT_RGB) {
+            color           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_8UC3, src_image.buffer);
+            undistory_color = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_8UC3, dst_image.buffer);
+          } else {
+            color           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_8UC1, src_image.buffer);
+            undistory_color = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_8UC1, dst_image.buffer);
+          }
           cv::remap(color, undistory_color, color_dist_map_list[i].get_map_x(), color_dist_map_list[i].get_map_y(), cv::INTER_LINEAR);
           return TY_STATUS_OK;
         }
