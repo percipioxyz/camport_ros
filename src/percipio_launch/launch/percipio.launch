@@ -60,8 +60,14 @@
   <arg name="sgbm_lrc_max_diff"                 default=""  />
   <arg name="sgbm_median_filter_thresh"         default=""  />
   <arg name="sgbm_semi_global_param_p1_scale"   default=""  />
-  
   <arg name="depth_value_scale_unit"            default=""  />
+
+  <!-- only net cam device support -->
+  <arg name="network_transmission_packet_delay"    default=""  />
+  <arg name="network_transmission_packet_size"     default=""  />
+  <arg name="device_time_sync_type"                default=""  />
+  <arg name="device_time_sync_ntp_server_ip"       default="192.168.120.105"  />
+  
 
   <!--<arg name="auto_exposure"                   default="true" /> -->
   <!--<arg name="auto_white_balance"              default="true" /> -->
@@ -159,6 +165,11 @@
       <arg name="sgbm_semi_global_param_p1_scale"   value="$(arg sgbm_semi_global_param_p1_scale)" />
 
       <arg name="depth_value_scale_unit"            value="$(arg depth_value_scale_unit)" />
+
+      <arg name="network_transmission_packet_delay"    value="$(arg network_transmission_packet_delay)" />
+      <arg name="network_transmission_packet_size"     value="$(arg network_transmission_packet_size)" />
+      <arg name="device_time_sync_type"                value="$(arg device_time_sync_type)" />
+      <arg name="device_time_sync_ntp_server_ip"       value="$(arg device_time_sync_ntp_server_ip)" />
       
 
       <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->

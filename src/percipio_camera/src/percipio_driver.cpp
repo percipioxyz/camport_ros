@@ -856,8 +856,13 @@ void PercipioDriver::readConfigFromParameterServer()
     pnh_.getParam("sgbm_median_filter_thresh",          sgbm_median_filter_thresh_);
     pnh_.getParam("sgbm_semi_global_param_p1_scale",    sgbm_semi_global_param_p1_scale_);
 
-    pnh_.getParam("depth_value_scale_unit",    depth_value_scale_unit_);
+    pnh_.getParam("depth_value_scale_unit",             depth_value_scale_unit_);
   }
+
+  pnh_.getParam("network_transmission_packet_delay",          m_net_stream_packet_size_);
+  pnh_.getParam("network_transmission_packet_size",           m_net_stream_packet_delay_);
+  pnh_.getParam("device_time_sync_type",                      m_device_time_sync_type_);
+  pnh_.getParam("device_time_sync_ntp_server_ip",             std_ntp_server_ip);
 
   // Camera TF frames
   pnh_.param("ir_frame_id", ir_frame_id_, std::string("/percipio_ir_optical_frame"));
@@ -1068,6 +1073,22 @@ void PercipioDriver::initDevice()
 
       if(!isnan(depth_value_scale_unit_)) {
         device_->setDepthScale(depth_value_scale_unit_);
+      }
+
+      if(m_net_stream_packet_size_ != PARAMTER_DEFAULT) {
+        device_->setDevicePacketSize(m_net_stream_packet_size_);
+      }
+
+      if(m_net_stream_packet_delay_ != PARAMTER_DEFAULT) {
+        device_->setDevicePacketDelay(m_net_stream_packet_delay_);
+      }
+
+      if(m_device_time_sync_type_ != PARAMTER_DEFAULT) {
+        device_->setDeiveTimeSyncType(m_device_time_sync_type_);
+      }
+
+      if(std_ntp_server_ip.length()) {
+        device_->setDeviceNTPServerIP(std_ntp_server_ip);
       }
 
       //SGBM paramters init

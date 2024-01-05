@@ -1086,6 +1086,97 @@ void PercipioDevice::setDepthScale(float scale)
   }
 }
 
+//
+void PercipioDevice::setDevicePacketSize(int size)
+{
+  percipio::CameraSettings* depth_camera_seeting = getDepthCameraSettingsPtr();
+  percipio::CameraSettings* ir_camera_seeting = getIRCameraSettingsPtr();
+  percipio::CameraSettings* color_camera_seeting = getColorCameraSettingsPtr();
+  if (depth_camera_seeting) {
+    const TY_STATUS rc =  depth_camera_seeting->setDevicePacketSize(size);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set packet size: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else if(ir_camera_seeting) {
+    const TY_STATUS rc =  ir_camera_seeting->setDevicePacketSize(size);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set packet size: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else if(color_camera_seeting) {
+    const TY_STATUS rc =  color_camera_seeting->setDevicePacketSize(size);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set packet size: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else {
+    ;
+  }
+}
+
+void PercipioDevice::setDevicePacketDelay(int microseconds)
+{
+  percipio::CameraSettings* depth_camera_seeting = getDepthCameraSettingsPtr();
+  percipio::CameraSettings* ir_camera_seeting = getIRCameraSettingsPtr();
+  percipio::CameraSettings* color_camera_seeting = getColorCameraSettingsPtr();
+  if (depth_camera_seeting) {
+    const TY_STATUS rc =  depth_camera_seeting->setDevicePacketDelay(microseconds);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set packet delay: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else if(ir_camera_seeting) {
+    const TY_STATUS rc =  ir_camera_seeting->setDevicePacketDelay(microseconds);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set packet delay: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else if(color_camera_seeting) {
+    const TY_STATUS rc =  color_camera_seeting->setDevicePacketDelay(microseconds);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set packet delay: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else {
+    ;
+  }
+}
+
+void PercipioDevice::setDeiveTimeSyncType(int type)
+{
+  percipio::CameraSettings* depth_camera_seeting = getDepthCameraSettingsPtr();
+  percipio::CameraSettings* ir_camera_seeting = getIRCameraSettingsPtr();
+  percipio::CameraSettings* color_camera_seeting = getColorCameraSettingsPtr();
+  if (depth_camera_seeting) {
+    const TY_STATUS rc =  depth_camera_seeting->setDeiveTimeSyncType(microseconds);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set time sync type: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else if(ir_camera_seeting) {
+    const TY_STATUS rc =  ir_camera_seeting->setDeiveTimeSyncType(microseconds);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set time sync type: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else if(color_camera_seeting) {
+    const TY_STATUS rc =  color_camera_seeting->setDeiveTimeSyncType(microseconds);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set time sync type: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else {
+    ;
+  }
+}
+
+void PercipioDevice::setDeviceNTPServerIP(std::string ip)
+{
+
+  ROS_WARN("setDeviceNTPServerIP : %s", ip.c_str());
+  percipio::CameraSettings* depth_camera_seeting = getDepthCameraSettingsPtr();
+  percipio::CameraSettings* ir_camera_seeting = getIRCameraSettingsPtr();
+  percipio::CameraSettings* color_camera_seeting = getColorCameraSettingsPtr();
+  if (depth_camera_seeting) {
+    const TY_STATUS rc =  depth_camera_seeting->setDeviceNTPServerIP(ip);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set time sync type: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else if(ir_camera_seeting) {
+    const TY_STATUS rc =  ir_camera_seeting->setDeviceNTPServerIP(ip);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set time sync type: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else if(color_camera_seeting) {
+    const TY_STATUS rc =  color_camera_seeting->setDeviceNTPServerIP(ip);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set time sync type: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  } else {
+    ;
+  }
+}
+
 /*sgbm paramters setting*/
 void PercipioDevice::setSgbmImageChanNumber(int value)
 {

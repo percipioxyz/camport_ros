@@ -201,6 +201,12 @@ public:
 
   void setDepthScale(float scale);
 
+  void setDevicePacketSize(int size);
+  void setDevicePacketDelay(int microseconds);
+  void setDeiveTimeSyncType(int type);
+  void setDeviceNTPServerIP(std::string ip);
+
+
   void setSgbmImageChanNumber(int value);
   void setSgbmDispNumber(int value);
   void setSgbmDispOffset(int value);

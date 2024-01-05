@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2024-01-04 18:52:22
+ * @LastEditTime: 2024-01-05 14:18:30
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -530,6 +530,13 @@ namespace percipio
     TY_FEATURE_TYPE type = TYFeatureType(propertyId);
     if(propertyId == TY_INT_LASER_POWER)
       comp = TY_COMPONENT_LASER;
+
+    if((propertyId == TY_INT_PACKET_DELAY) || 
+       (propertyId == TY_INT_PACKET_SIZE) || 
+       (propertyId == TY_ENUM_TIME_SYNC_TYPE) ||
+       (propertyId == TY_INT_NTP_SERVER_IP)) {
+      comp = TY_COMPONENT_DEVICE;
+    }
     
     TY_AEC_ROI_PARAM aec_roi;
     double min_x, min_y, max_x, max_y;
@@ -1601,6 +1608,33 @@ namespace percipio
   {
     return setProperty(TY_FLOAT_SCALE_UNIT, &scale);
   }
+
+  TY_STATUS  CameraSettings::setDevicePacketSize(int size)
+  {
+    return setProperty(TY_INT_PACKET_SIZE, &size);
+  }
+
+  TY_STATUS  CameraSettings::setDevicePacketDelay(int microseconds)
+  {
+    return setProperty(TY_INT_PACKET_DELAY, &microseconds);
+  }
+
+  TY_STATUS  CameraSettings::setDeiveTimeSyncType(int type)
+  {
+    return setProperty(TY_ENUM_TIME_SYNC_TYPE, &type);
+  }
+
+  TY_STATUS  CameraSettings::setDeviceNTPServerIP(std::string ip)
+  {
+    int32_t ip_i[4];
+    uint8_t ip_b[4];
+    int32_t ip32;
+    sscanf(ip.c_str(), "%d.%d.%d.%d", &ip_i[0], &ip_i[1], &ip_i[2], &ip_i[3]);
+    ip_b[0] = ip_i[0];ip_b[1] = ip_i[1];ip_b[2] = ip_i[2];ip_b[3] = ip_i[3];
+    ip32 = TYIPv4ToInt(ip_b);
+    return setProperty(TY_INT_NTP_SERVER_IP, &ip32);
+  }
+
   
   TY_STATUS CameraSettings::setColorAecROI(double roi_x, double roi_y, double roi_w, double roi_h)
   {

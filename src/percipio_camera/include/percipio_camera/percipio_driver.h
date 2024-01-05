@@ -214,6 +214,11 @@ private:
   int sgbm_semi_global_param_p1_scale_  = PARAMTER_DEFAULT;
 
   float depth_value_scale_unit_ = NAN;
+
+  int m_net_stream_packet_size_ = PARAMTER_DEFAULT;
+  int m_net_stream_packet_delay_ = PARAMTER_DEFAULT;
+  int m_device_time_sync_type_ = PARAMTER_DEFAULT;
+  std::string std_ntp_server_ip = "";
   
   ros::Duration ir_time_offset_;
   ros::Duration color_time_offset_;

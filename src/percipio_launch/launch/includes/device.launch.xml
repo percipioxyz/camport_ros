@@ -44,6 +44,11 @@
 
   <arg name="depth_value_scale_unit" />
 
+  <arg name="network_transmission_packet_delay" />
+  <arg name="network_transmission_packet_size" />
+  <arg name="device_time_sync_type" />
+  <arg name="device_time_sync_ntp_server_ip" />
+
   <!--<arg name="auto_exposure" default="true" /> -->
   <!--<arg name="auto_white_balance" default="true" />-->
   <arg name="rgb_resolution" default="640x480" />
@@ -106,6 +111,11 @@
     <param name="sgbm_median_filter_thresh"       value="$(arg sgbm_median_filter_thresh)" />
     <param name="sgbm_semi_global_param_p1_scale" value="$(arg sgbm_semi_global_param_p1_scale)" />
     <param name="depth_value_scale_unit"          value="$(arg depth_value_scale_unit)" />
+
+    <param name="network_transmission_packet_delay" value="$(arg network_transmission_packet_delay)" />
+    <param name="network_transmission_packet_size"  value="$(arg network_transmission_packet_size)" />
+    <param name="device_time_sync_type"             value="$(arg device_time_sync_type)" />
+    <param name="device_time_sync_ntp_server_ip"    value="$(arg device_time_sync_ntp_server_ip)" />
 
     <remap from="ir" to="$(arg ir)" />
     <remap from="rgb" to="$(arg rgb)" />

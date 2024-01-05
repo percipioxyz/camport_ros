@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2023-12-29 13:27:49
+ * @LastEditTime: 2024-01-05 14:10:16
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -553,6 +553,11 @@ public:
     TY_STATUS setDepthSgbmLRCMaxDiff(int value);
     TY_STATUS setDepthSgbmMedianFilterThresh(int value);
     TY_STATUS setDepthSgbmSemiP1Scale(int value);
+
+    TY_STATUS setDevicePacketSize(int size);
+    TY_STATUS setDevicePacketDelay(int microseconds);
+    TY_STATUS setDeiveTimeSyncType(int type);
+    TY_STATUS setDeviceNTPServerIP(std::string ip);
     //
     bool getLaserPower(int* power) const;
     bool getAutoExposureEnabled(bool* enable) const;
