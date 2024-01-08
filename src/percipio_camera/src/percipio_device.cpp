@@ -1137,15 +1137,15 @@ void PercipioDevice::setDeiveTimeSyncType(int type)
   percipio::CameraSettings* ir_camera_seeting = getIRCameraSettingsPtr();
   percipio::CameraSettings* color_camera_seeting = getColorCameraSettingsPtr();
   if (depth_camera_seeting) {
-    const TY_STATUS rc =  depth_camera_seeting->setDeiveTimeSyncType(microseconds);
+    const TY_STATUS rc =  depth_camera_seeting->setDeiveTimeSyncType(type);
     if (rc != TY_STATUS_OK)
       ROS_WARN("Couldn't set time sync type: \n%s\n", percipio::Percipio::getExtendedError(rc));
   } else if(ir_camera_seeting) {
-    const TY_STATUS rc =  ir_camera_seeting->setDeiveTimeSyncType(microseconds);
+    const TY_STATUS rc =  ir_camera_seeting->setDeiveTimeSyncType(type);
     if (rc != TY_STATUS_OK)
       ROS_WARN("Couldn't set time sync type: \n%s\n", percipio::Percipio::getExtendedError(rc));
   } else if(color_camera_seeting) {
-    const TY_STATUS rc =  color_camera_seeting->setDeiveTimeSyncType(microseconds);
+    const TY_STATUS rc =  color_camera_seeting->setDeiveTimeSyncType(type);
     if (rc != TY_STATUS_OK)
       ROS_WARN("Couldn't set time sync type: \n%s\n", percipio::Percipio::getExtendedError(rc));
   } else {
