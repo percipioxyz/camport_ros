@@ -859,8 +859,8 @@ void PercipioDriver::readConfigFromParameterServer()
     pnh_.getParam("depth_value_scale_unit",             depth_value_scale_unit_);
   }
 
-  pnh_.getParam("network_transmission_packet_delay",          m_net_stream_packet_size_);
-  pnh_.getParam("network_transmission_packet_size",           m_net_stream_packet_delay_);
+  pnh_.getParam("network_transmission_packet_delay",          m_net_stream_packet_delay_);
+  pnh_.getParam("network_transmission_packet_size",           m_net_stream_packet_size_);
   pnh_.getParam("device_time_sync_type",                      m_device_time_sync_type_);
   pnh_.getParam("device_time_sync_ntp_server_ip",             std_ntp_server_ip);
 
