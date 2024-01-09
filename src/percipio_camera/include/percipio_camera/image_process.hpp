@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-07-18 15:55:24
  * @LastEditors: zxy
- * @LastEditTime: 2024-01-04 18:50:30
+ * @LastEditTime: 2024-01-09 16:34:33
  */
 
 #include <iostream>
@@ -473,7 +473,7 @@ public:
           std::vector<uint8_t> mono8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &mono10[0], width, height);
           for(size_t idx = 0; idx < mono10.size(); idx++) {
-            mono8[idx] = mono10[idx] >> 8;
+            mono8[idx] = static_cast<uint8_t>(mono10[idx] >> 2);
           }
           src_mat = cv::Mat(height, width, CV_8U, &mono8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
@@ -485,7 +485,7 @@ public:
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &bayer10[0], width, height);
           for(size_t idx = 0; idx < bayer10.size(); idx++) {
-            bayer8[idx] = bayer10[idx] >> 8;
+            bayer8[idx] = static_cast<uint8_t>(bayer10[idx] >> 2);
           }
           src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
@@ -497,7 +497,7 @@ public:
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &bayer10[0], width, height);
           for(size_t idx = 0; idx < bayer10.size(); idx++) {
-            bayer8[idx] = bayer10[idx] >> 8;
+            bayer8[idx] = static_cast<uint8_t>(bayer10[idx] >> 2);
           }
           src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
@@ -509,7 +509,7 @@ public:
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &bayer10[0], width, height);
           for(size_t idx = 0; idx < bayer10.size(); idx++) {
-            bayer8[idx] = bayer10[idx] >> 8;
+            bayer8[idx] = static_cast<uint8_t>(bayer10[idx] >> 2);
           }
           src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
@@ -521,7 +521,7 @@ public:
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &bayer10[0], width, height);
           for(size_t idx = 0; idx < bayer10.size(); idx++) {
-            bayer8[idx] = bayer10[idx] >> 8;
+            bayer8[idx] = static_cast<uint8_t>(bayer10[idx] >> 2);
           }
           src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
@@ -533,7 +533,7 @@ public:
           std::vector<uint8_t> mono8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &mono12[0], width, height);
           for(size_t idx = 0; idx < mono12.size(); idx++) {
-            mono8[idx] = mono12[idx] >> 8;
+            mono8[idx] = static_cast<uint8_t>(mono12[idx] >> 4);
           }
           src_mat = cv::Mat(height, width, CV_8U, &mono8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
@@ -545,7 +545,7 @@ public:
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &bayer12[0], width, height);
           for(size_t idx = 0; idx < bayer12.size(); idx++) {
-            bayer8[idx] = bayer12[idx] >> 8;
+            bayer8[idx] = static_cast<uint8_t>(bayer12[idx] >> 4);
           }
           src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
@@ -557,7 +557,7 @@ public:
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &bayer12[0], width, height);
           for(size_t idx = 0; idx < bayer12.size(); idx++) {
-            bayer8[idx] = bayer12[idx] >> 8;
+            bayer8[idx] = static_cast<uint8_t>(bayer12[idx] >> 4);
           }
           src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
@@ -569,7 +569,7 @@ public:
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &bayer12[0], width, height);
           for(size_t idx = 0; idx < bayer12.size(); idx++) {
-            bayer8[idx] = bayer12[idx] >> 8;
+            bayer8[idx] = static_cast<uint8_t>(bayer12[idx] >> 4);
           }
           src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
@@ -581,7 +581,7 @@ public:
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &bayer12[0], width, height);
           for(size_t idx = 0; idx < bayer12.size(); idx++) {
-            bayer8[idx] = bayer12[idx] >> 8;
+            bayer8[idx] = static_cast<uint8_t>(bayer12[idx] >> 4);
           }
           src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
