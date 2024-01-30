@@ -42,6 +42,7 @@
   <arg name="tof_jitter_threshold"     default="" />
   <arg name="tof_hdr_ratio"            default="" />
   <arg name="tof_anti_sunlight_index"  default="" />
+  <arg name="tof_anti_interference"    default="" />
 
   <!--SGBM parameters -->
   <arg name="sgbm_image_channel_num"            default="" />
@@ -146,6 +147,7 @@
       <arg name="tof_jitter_threshold"            value="$(arg tof_jitter_threshold)" />
       <arg name="tof_hdr_ratio"                   value="$(arg tof_hdr_ratio)" />
       <arg name="tof_anti_sunlight_index"         value="$(arg tof_anti_sunlight_index)" /> 
+      <arg name="tof_anti_interference"           value="$(arg tof_anti_interference)" /> 
 
       <arg name="sgbm_image_channel_num"            value="$(arg sgbm_image_channel_num)" />
       <arg name="sgbm_disparity_num"                value="$(arg sgbm_disparity_num)" />

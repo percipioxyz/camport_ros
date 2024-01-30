@@ -195,6 +195,7 @@ private:
   int tof_depth_jitter_threshold_;
   int tof_depth_hdr_ratio_;
   int tof_depth_anti_sunlight_index_;
+  int tof_depth_anti_interference_flag_;
 
   int sgbm_image_channel_num_  = PARAMTER_DEFAULT;
   int sgbm_disparity_num_  = PARAMTER_DEFAULT;

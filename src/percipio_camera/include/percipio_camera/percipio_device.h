@@ -196,6 +196,8 @@ public:
   void setTofJitterThreshold(int value);
 
   void setTofDepthAntiSunlightIndex(int value);
+  void setTofDepthAntiInterferenceFlag(bool en);
+
   void setDepthFilterSpeckMaxSize(int value);
   void setDepthFilterSpecMaxDiff(int value);
 

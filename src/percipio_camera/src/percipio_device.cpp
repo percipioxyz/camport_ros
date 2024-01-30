@@ -1055,6 +1055,17 @@ void PercipioDevice::setTofDepthAntiSunlightIndex(int value)
   }
 }
 
+void PercipioDevice::setTofDepthAntiInterferenceFlag(bool en)
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setTofAntiInterferenceEnable(en);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set anti interferenc flag: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
 void PercipioDevice::setDepthFilterSpeckMaxSize(int value)
 {
   percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();

@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2024-01-05 14:18:30
+ * @LastEditTime: 2024-01-30 13:09:55
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -1572,6 +1572,11 @@ namespace percipio
   TY_STATUS CameraSettings::setTofAntiSunlightIndex(int index)
   {
     return setProperty(TY_INT_TOF_ANTI_SUNLIGHT_INDEX, &index);
+  }
+
+  TY_STATUS CameraSettings::setTofAntiInterferenceEnable(bool enabled)
+  {
+    return setProperty(TY_BOOL_TOF_ANTI_INTERFERENCE, &enabled);
   }
   
   TY_STATUS CameraSettings::setFilterSpeckMaxSize(int size)

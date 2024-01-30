@@ -73,6 +73,7 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   tof_depth_jitter_threshold_(0),
   tof_depth_hdr_ratio_(1),
   tof_depth_anti_sunlight_index_(0),
+  tof_depth_anti_interference_flag_(0),
 
   data_skip_ir_counter_(0),
   data_skip_color_counter_(0),
@@ -837,6 +838,11 @@ void PercipioDriver::readConfigFromParameterServer()
     tof_depth_anti_sunlight_index_ = PARAMTER_DEFAULT;
   }
 
+  if (!pnh_.getParam("tof_anti_interference", tof_depth_anti_interference_flag_))
+  {
+    tof_depth_anti_interference_flag_ = PARAMTER_DEFAULT;
+  }
+
   //SGBM paramters
   {
     pnh_.getParam("sgbm_image_channel_num",             sgbm_image_channel_num_);
@@ -1069,6 +1075,10 @@ void PercipioDriver::initDevice()
       }
       if(tof_depth_anti_sunlight_index_ != PARAMTER_DEFAULT) {
         device_->setTofDepthAntiSunlightIndex(tof_depth_anti_sunlight_index_);
+      }
+
+      if(tof_depth_anti_interference_flag_ != PARAMTER_DEFAULT) {
+        device_->setTofDepthAntiInterferenceFlag(static_cast<bool>(tof_depth_anti_interference_flag_));
       }
 
       if(!isnan(depth_value_scale_unit_)) {

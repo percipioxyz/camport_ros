@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2024-01-05 14:10:16
+ * @LastEditTime: 2024-01-30 11:46:34
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -525,6 +525,8 @@ public:
     TY_STATUS setTOFCamDepthQuality(int quality);
     
     TY_STATUS setTofAntiSunlightIndex(int index);
+    TY_STATUS setTofAntiInterferenceEnable(bool enabled);
+
     TY_STATUS setFilterSpeckMaxSize(int size);
     TY_STATUS setFilterSpecMaxDiff(int diff);
 

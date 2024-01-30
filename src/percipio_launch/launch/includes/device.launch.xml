@@ -23,6 +23,7 @@
   <arg name="tof_jitter_threshold" />
   <arg name="tof_hdr_ratio" />
   <arg name="tof_anti_sunlight_index" />
+  <arg name="tof_anti_interference" />
 
 
   <arg name="sgbm_image_channel_num" />
@@ -86,6 +87,7 @@
     <param name="tof_jitter_threshold" value="$(arg tof_jitter_threshold)" />
     <param name="tof_hdr_ratio" value="$(arg tof_hdr_ratio)" />
     <param name="tof_anti_sunlight_index" value="$(arg tof_anti_sunlight_index)" />
+    <param name="tof_anti_interference" value="$(arg tof_anti_interference)" />
     
 
     <!--<param name="auto_exposure" value="$(arg auto_exposure)" />-->
