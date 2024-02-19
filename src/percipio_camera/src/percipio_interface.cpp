@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2024-01-30 13:09:55
+ * @LastEditTime: 2024-02-19 09:36:50
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -1508,7 +1508,7 @@ namespace percipio
     pthread_mutex_unlock(&_mutex);
   }
 
-  void  VideoFrameData::setPixelFormat(int32_t fmt) 
+  void  VideoFrameData::setPixelFormat(uint32_t fmt) 
   {
     pixelFormat = fmt;
   }

@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2024-01-30 11:46:34
+ * @LastEditTime: 2024-02-19 09:35:48
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -424,7 +424,7 @@ namespace percipio
       int32_t  getWidth() const {return width;}
       int32_t  getHeight() const {return height;}
       int32_t  getDataSize() const {return size;}
-      int32_t  getPixelFormat() const {return pixelFormat;}
+      uint32_t  getPixelFormat() const {return pixelFormat;}
       void*    getData() const {return buffer;}
       int32_t  getFrameIndex() const {return imageIndex;}
       int32_t  getComponentID() const {return componentID;};
@@ -434,7 +434,7 @@ namespace percipio
       void  setWidth(int32_t w);
       void  setHeight(int32_t h);
       void  Resize(int32_t sz);
-      void  setPixelFormat(int32_t fmt);
+      void  setPixelFormat(uint32_t fmt);
       void  setFrameIndex(int32_t idx);
       void  setComponentID(int32_t compID);
 
@@ -453,7 +453,7 @@ namespace percipio
       void*           buffer;         ///< Pointer to data buffer
       int32_t         width;          ///< Image width in pixels
       int32_t         height;         ///< Image height in pixels
-      int32_t         pixelFormat;    ///< Pixel format, see TY_PIXEL_FORMAT_LIST
+      uint32_t        pixelFormat;    ///< Pixel format, see TY_PIXEL_FORMAT_LIST
   };
 
   class VideoFrameRef

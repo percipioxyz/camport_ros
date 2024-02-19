@@ -49,7 +49,7 @@ namespace percipio_wrapper
 class PercipioDeviceInfoComparator
 {
 public:
-  bool operator()(const PercipioDeviceInfo& di1, const PercipioDeviceInfo& di2)
+  bool operator()(const PercipioDeviceInfo& di1, const PercipioDeviceInfo& di2) const
   {
     return (di1.uri_.compare(di2.uri_) < 0);
   }
