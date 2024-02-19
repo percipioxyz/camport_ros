@@ -67,7 +67,7 @@
   <arg name="network_transmission_packet_delay"    default=""  />
   <arg name="network_transmission_packet_size"     default=""  />
   <arg name="device_time_sync_type"                default=""  />
-  <arg name="device_time_sync_ntp_server_ip"       default="192.168.120.105"  />
+  <arg name="device_time_sync_ntp_server_ip"       default=""  />
   
 
   <!--<arg name="auto_exposure"                   default="true" /> -->
