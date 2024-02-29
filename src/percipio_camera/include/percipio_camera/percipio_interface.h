@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2024-02-19 09:35:48
+ * @LastEditTime: 2024-02-22 09:39:34
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -131,7 +131,8 @@ namespace percipio
       TY_STATUS initialize();
       void GetDeviceList(DeviceInfo** device_info_ptr, int* cnt);
 
-      TY_STATUS open(const char* sn);
+      TY_STATUS openWithSN(const char* sn);
+      TY_STATUS openWithIP(const char* ip);
 
       const DeviceInfo& get_current_device_info();
 
@@ -734,6 +735,8 @@ public:
       bool m_isOwner;
       DeviceInfo m_deviceInfo;
       TY_STATUS DeviceGetInfo();
+
+      bool IPv4_verify(const char *ip);
   };
 
   #define PERCIPIO_USB_PID    (0x1003)

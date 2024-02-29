@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2024-02-19 09:36:50
+ * @LastEditTime: 2024-02-27 10:31:14
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -61,7 +61,33 @@ namespace percipio
     if(rc == TY_STATUS_OK && selected.size()) {
       device_list.clear();
       for(size_t i = 0; i < selected.size(); i++) {
-        device_list.push_back(DeviceInfo(selected[i].id, selected[i].vendorName, selected[i].modelName));
+
+        if (TYIsNetworkInterface(selected[i].iface.type)) {
+          device_list.push_back(DeviceInfo(selected[i].id, selected[i].vendorName, selected[i].modelName, selected[i].netInfo.ip));
+        } else {
+          TY_INTERFACE_HANDLE hIface;
+          rc = TYOpenInterface(selected[i].iface.id, &hIface);
+          if(rc == TY_STATUS_OK) {
+            TY_DEV_HANDLE handle;
+            int32_t ret = TYOpenDevice(hIface, selected[i].id, &handle);
+            if (ret == 0) {
+              TY_DEVICE_BASE_INFO dev;
+              memset(&dev, 0, sizeof(TY_DEVICE_BASE_INFO));
+
+              TYGetDeviceInfo(handle, &dev);
+              TYCloseDevice(handle);
+
+              if (strlen(dev.userDefinedName) != 0) {
+                device_list.push_back(DeviceInfo(selected[i].id, dev.userDefinedName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID));
+              } else {
+                //LOGD("          vendor     : %s", dev.vendorName);
+                device_list.push_back(DeviceInfo(selected[i].id, dev.vendorName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID));
+              }
+            }
+            TYCloseInterface(hIface);
+
+          }
+        }
       }
     }
     
@@ -71,7 +97,7 @@ namespace percipio
       *(*device_info_ptr + i) = device_list[i];
   }
 
-  TY_STATUS percipio_depth_cam::open(const char* sn)
+  TY_STATUS percipio_depth_cam::openWithSN(const char* sn)
   {
     TY_DEV_HANDLE deviceHandle;
     std::vector<TY_DEVICE_BASE_INFO> selected;
@@ -123,7 +149,77 @@ namespace percipio
         TYSetStruct(_M_DEVICE, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM, &trigger, sizeof(trigger));
     }
 
-    current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName);
+    //current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName);
+    if (TYIsNetworkInterface(selectedDev.iface.type)) {
+      current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName, selectedDev.netInfo.ip);
+    } else {
+      current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID);
+    }
+
+    TYRegisterEventCallback(_M_DEVICE, eventCallback, &current_device_info);
+    return TY_STATUS_OK;
+  }
+
+  
+  TY_STATUS percipio_depth_cam::openWithIP(const char* ip)
+  {
+    TY_DEV_HANDLE deviceHandle;
+    std::vector<TY_DEVICE_BASE_INFO> selected;
+    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", ip, 1, selected);
+    if(!selected.size())
+      return TY_STATUS_ERROR;
+    TY_DEVICE_BASE_INFO& selectedDev = selected[0];
+    rc = TYOpenInterface(selectedDev.iface.id, &_M_IFACE);
+    if(rc != TY_STATUS_OK)
+      return rc;
+    rc = TYOpenDevice(_M_IFACE, selectedDev.id, &deviceHandle);
+    if(rc != TY_STATUS_OK) {
+      TYCloseInterface(_M_IFACE);
+      return rc;
+    }
+    _M_DEVICE = deviceHandle;
+    TYGetComponentIDs(_M_DEVICE, &m_ids);
+    std::vector<TY_ENUM_ENTRY> feature_info;
+    if(m_ids & TY_COMPONENT_IR_CAM_LEFT) {
+      feature_info.clear();
+      get_feature_enum_list(_M_DEVICE,TY_COMPONENT_IR_CAM_LEFT,TY_ENUM_IMAGE_MODE, feature_info);
+      generate_video_mode(feature_info, leftIRVideoMode);
+
+      TYGetStruct(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_STRUCT_CAM_CALIB_DATA, &color_calib, sizeof(color_calib));
+    }
+    if(m_ids & TY_COMPONENT_IR_CAM_RIGHT) {
+      feature_info.clear();
+      get_feature_enum_list(_M_DEVICE,TY_COMPONENT_IR_CAM_RIGHT,TY_ENUM_IMAGE_MODE, feature_info);
+      generate_video_mode(feature_info, rightIRVideoMode);
+    }
+    if(m_ids & TY_COMPONENT_RGB_CAM) {
+      feature_info.clear();
+      get_feature_enum_list(_M_DEVICE,TY_COMPONENT_RGB_CAM,TY_ENUM_IMAGE_MODE, feature_info);
+      generate_video_mode(feature_info, RGBVideoMode);
+    }
+    if(m_ids & TY_COMPONENT_DEPTH_CAM) {
+      feature_info.clear();
+      get_feature_enum_list(_M_DEVICE,TY_COMPONENT_DEPTH_CAM,TY_ENUM_IMAGE_MODE, feature_info);
+      generate_video_mode(feature_info, DepthVideoMode);
+
+      TYGetStruct(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_CALIB_DATA, &depth_calib, sizeof(depth_calib));
+    }
+
+    bool hasTrigger = false;
+    TYHasFeature(_M_DEVICE, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM, &hasTrigger);
+    if (hasTrigger) {
+        TY_TRIGGER_PARAM trigger;
+        trigger.mode = TY_TRIGGER_MODE_OFF;
+        TYSetStruct(_M_DEVICE, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM, &trigger, sizeof(trigger));
+    }
+
+    //current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName);
+    if (TYIsNetworkInterface(selectedDev.iface.type)) {
+      current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName, selectedDev.netInfo.ip);
+    } else {
+      current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID);
+    }
+
     TYRegisterEventCallback(_M_DEVICE, eventCallback, &current_device_info);
     return TY_STATUS_OK;
   }
@@ -394,6 +490,7 @@ namespace percipio
   TY_STATUS percipio_depth_cam::DeviceSetImageRegistrationMode(ImageRegistrationMode mode)
   {
     registration_mode = mode;
+    printf("================registration_mode = %d\n", registration_mode);
     return TY_STATUS_OK;
   }
 
@@ -1857,7 +1954,11 @@ namespace percipio
       }
     }
 
-    rc = g_Context.get()->open(uri);
+    bool isIP = IPv4_verify(uri);   
+    if(isIP)
+      rc = g_Context.get()->openWithIP(uri);
+    else
+      rc = g_Context.get()->openWithSN(uri);
     if(rc != TY_STATUS_OK)
       return rc;
 
@@ -2030,7 +2131,13 @@ namespace percipio
     rc = g_Context->get_device_info(info);
     if(rc != TY_STATUS_OK)
       return rc;
-    m_deviceInfo = DeviceInfo(info.id, info.vendorName, info.modelName);
+
+    if (TYIsNetworkInterface(info.iface.type)) {
+      m_deviceInfo = DeviceInfo(info.id, info.vendorName, info.modelName, info.netInfo.ip);
+    } else {
+      m_deviceInfo = DeviceInfo(info.id, info.vendorName, info.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID);
+    }
+#if 0    
     if(info.iface.type == TY_INTERFACE_USB) {
       m_deviceInfo.setUsbVendorId(PERCIPIO_USB_VID);
       m_deviceInfo.setUsbProductId(PERCIPIO_USB_PID);
@@ -2038,6 +2145,23 @@ namespace percipio
       m_deviceInfo.setUsbVendorId(0);
       m_deviceInfo.setUsbProductId(0);
     }
+#endif
+  }
+
+  bool Device::IPv4_verify(const char *ip) 
+  {
+    int a,b,c,d;
+    char t;
+
+	  if (4 == sscanf(ip,"%d.%d.%d.%d%c",&a,&b,&c,&d,&t)) {
+      if (0<=a && a<=255 && 
+          0<=b && b<=255 && 
+          0<=c && c<=255 && 
+          0<=d && d<=255) {
+        return true;
+      }
+    }
+    return false;
   }
 
   ////

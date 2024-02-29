@@ -95,7 +95,10 @@ public:
 
     const PercipioDeviceInfo device_info_wrapped = percipio_convert(pInfo);
 
-    ROS_INFO("Device \"%s\" found.", pInfo->getUri());
+    if(strlen(pInfo->getIp()))
+      ROS_INFO("Device \"%s\" IP:%s found.", pInfo->getUri(), pInfo->getIp());
+    else
+      ROS_INFO("Device \"%s\" found.", pInfo->getUri());
 
     // make sure it does not exist in set before inserting
     device_set_.erase(device_info_wrapped);
@@ -106,7 +109,10 @@ public:
   {
     boost::mutex::scoped_lock l(device_mutex_);
 
-    ROS_WARN("Device \"%s\" disconnected\n", pInfo->getUri());
+    if(strlen(pInfo->getIp()))
+      ROS_WARN("Device \"%s\" IP:%s disconnected\n", pInfo->getUri(), pInfo->getIp());
+    else
+      ROS_WARN("Device \"%s\" disconnected\n", pInfo->getUri());
 
     const PercipioDeviceInfo device_info_wrapped = percipio_convert(pInfo);
     device_set_.erase(device_info_wrapped);
@@ -133,8 +139,11 @@ public:
     std::set<PercipioDeviceInfo, PercipioDeviceInfoComparator>::const_iterator it;
     std::set<PercipioDeviceInfo, PercipioDeviceInfoComparator>::const_iterator it_end = device_set_.end();
 
-    for (it = device_set_.begin(); it != it_end; ++it)
+    for (it = device_set_.begin(); it != it_end; ++it) {
       result->push_back(it->uri_);
+      if(strlen(it->ip_.c_str()))
+        result->push_back(it->ip_);
+    }
 
     return result;
   }

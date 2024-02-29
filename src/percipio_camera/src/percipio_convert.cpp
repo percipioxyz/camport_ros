@@ -49,8 +49,10 @@ const PercipioDeviceInfo percipio_convert(const percipio::DeviceInfo* pInfo)
   output.name_       = pInfo->getName();
   output.uri_        = pInfo->getUri();
   output.vendor_     = pInfo->getVendor();
+  output.ip_         = pInfo->getIp();
   output.product_id_ = pInfo->getUsbProductId();
   output.vendor_id_  = pInfo->getUsbVendorId();
+
 
   return output;
 }

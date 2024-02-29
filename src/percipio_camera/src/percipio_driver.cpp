@@ -892,7 +892,10 @@ std::string PercipioDriver::resolveDeviceURI(const std::string& device_id)
   device_manager_->getConnectedDeviceURIs();
 
   // look for '#<number>' format
-  if (device_id.size() > 1 && device_id[0] == '#')
+  if(0 == device_id.size() && available_device_URIs->size()) {
+    return available_device_URIs->at(0);
+  }
+  else if (device_id.size() > 1 && device_id[0] == '#')
   {
     std::istringstream device_number_str(device_id.substr(1));
     int device_number;
@@ -912,50 +915,6 @@ std::string PercipioDriver::resolveDeviceURI(const std::string& device_id)
     {
       return available_device_URIs->at(device_index);
     }
-  }
-  // look for '<bus>@<number>' format
-  //   <bus>  is usb bus id, typically start at 1
-  //   <number> is the device number, for consistency with percipio_camera, these start at 1
-  //         although 0 specifies "any device on this bus"
-  else if (device_id.size() > 1 && device_id.find('@') != std::string::npos && device_id.find('/') == std::string::npos)
-  {
-    // get index of @ character
-    size_t index = device_id.find('@');
-    if (index <= 0)
-    {
-      THROW_PERCIPIO_EXCEPTION(
-              "%s is not a valid device URI, you must give the bus number before the @.",
-              device_id.c_str());
-    }
-    if (index >= device_id.size() - 1)
-    {
-      THROW_PERCIPIO_EXCEPTION(
-              "%s is not a valid device URI, you must give a number after the @, specify 0 for first device",
-              device_id.c_str());
-    }
-
-    // pull out device number on bus
-    std::istringstream device_number_str(device_id.substr(index+1));
-    int device_number;
-    device_number_str >> device_number;
-
-    // reorder to @<bus>
-    std::string bus = device_id.substr(0, index);
-    bus.insert(0, "@");
-
-    for (size_t i = 0; i < available_device_URIs->size(); ++i)
-    {
-      std::string s = (*available_device_URIs)[i];
-      if (s.find(bus) != std::string::npos)
-      {
-        // this matches our bus, check device number
-        --device_number;
-        if (device_number <= 0)
-          return s;
-      }
-    }
-
-    THROW_PERCIPIO_EXCEPTION("Device not found %s", device_id.c_str());
   }
   else
   {
