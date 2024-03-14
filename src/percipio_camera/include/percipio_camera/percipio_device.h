@@ -156,6 +156,7 @@ public:
   bool hasColorGreenGain() const;
   bool hasColorBlueGain() const;
   bool hasColorAecROI() const;
+  bool hasColorAecTargetV() const;
   
   bool hasIrExposureTime() const;
   bool hasIrAnalogGain() const;
@@ -183,6 +184,7 @@ public:
   void setColorGreenGain(int value);
   void setColorBlueGain(int value);
   void setColorAecROI(double p1_x, double p1_y, double p2_x, double p2_y);
+  void setColorAecTargetV(int v);
   
   void setIrExposureTime(int value);
   void setIrAnalogGain(int value);
@@ -237,6 +239,7 @@ public:
   bool getColorGreenGain(int* value) const;
   bool getColorBlueGain(int* value) const;
   bool getColorAecROI(double* p1_x, double* p1_y, double* p2_x, double* p2_y);
+  bool getColorAecTargetV(int* value) const;
   
   bool getIrExposureTime(int* value) const;
   bool getIrAnalogGain(int* value) const;

@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2024-02-27 10:31:14
+ * @LastEditTime: 2024-03-14 15:37:33
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -490,7 +490,6 @@ namespace percipio
   TY_STATUS percipio_depth_cam::DeviceSetImageRegistrationMode(ImageRegistrationMode mode)
   {
     registration_mode = mode;
-    printf("================registration_mode = %d\n", registration_mode);
     return TY_STATUS_OK;
   }
 
@@ -1748,6 +1747,11 @@ namespace percipio
     return setProperty(TY_STRUCT_AEC_ROI, &roi);
   }
 
+  TY_STATUS CameraSettings::setColorTargetV(int v)
+  {
+    return setProperty(TY_INT_AE_TARGET_V, &v);
+  }
+
   bool CameraSettings::getLaserPower(int* power) const
   {
     TY_STATUS rc = getProperty(TY_INT_LASER_POWER, power);
@@ -1849,6 +1853,12 @@ namespace percipio
   bool CameraSettings::getColorAecROI(double* roi) const
   {
     TY_STATUS rc = getProperty(TY_STRUCT_AEC_ROI, roi);
+    return rc == TY_STATUS_OK;
+  }
+
+  bool CameraSettings::getColorTargetV(int* v) const
+  {
+    TY_STATUS rc = getProperty(TY_INT_AE_TARGET_V, v);
     return rc == TY_STATUS_OK;
   }
   ///////////////////////////////

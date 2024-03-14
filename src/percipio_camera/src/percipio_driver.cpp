@@ -107,8 +107,6 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("auto_exposure_p2_y");
   }
   
-  if(!device_->hasColorExposureTime())
-    pnh.deleteParam("rgb_exposure_time");
   if(!device_->hasColorAnalogGain())
     pnh.deleteParam("rgb_analog_gain");
   if(!device_->hasColorRedGain())
@@ -119,7 +117,8 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
     pnh.deleteParam("rgb_b_gain");
   if(!device_->hasColorAecROI())
     pnh.deleteParam("rgb_aec_roi");
-  
+  if(!device_->hasColorAecTargetV())
+    pnh.deleteParam("rgb_aec_target_v");
   if(!device_->hasIrExposureTime())
     pnh.deleteParam("ir_exposure_time");
   if(!device_->hasIrAnalogGain())
@@ -247,6 +246,7 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       device_->getColorBlueGain(&m_rgb_b_gain_);
       device_->getColorExposureTime(&m_rgb_exposure_time_);
       device_->getColorAecROI(&auto_exposure_p1_x_, &auto_exposure_p1_y_, &auto_exposure_p2_x_, &auto_exposure_p2_y_);
+      device_->getColorAecTargetV(&m_rgb_aec_target_v_);
 
       device_->getIrExposureTime(&m_ir_exposure_time_);
       device_->getIrAnalogGain(&m_ir_analog_gain_);
@@ -278,6 +278,7 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       config.rgb_g_gain = m_rgb_g_gain_;
       config.rgb_b_gain = m_rgb_b_gain_;
       config.rgb_exposure_time = m_rgb_exposure_time_;
+      config.rgb_aec_target_v = m_rgb_aec_target_v_;
 
       config.ir_exposure_time = m_ir_exposure_time_;
       config.ir_analog_gain = m_ir_analog_gain_;
@@ -339,6 +340,11 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
     if(m_rgb_exposure_time_ != config.rgb_exposure_time) {
       m_rgb_exposure_time_ = config.rgb_exposure_time;
       if(device_) device_->setColorExposureTime(m_rgb_exposure_time_);
+    }
+
+    if(m_rgb_aec_target_v_ != config.rgb_aec_target_v) {
+      m_rgb_aec_target_v_ = config.rgb_aec_target_v;
+      if(device_) device_->setColorAecTargetV(m_rgb_aec_target_v_);
     }
 
     if(m_ir_exposure_time_ != config.ir_exposure_time) {

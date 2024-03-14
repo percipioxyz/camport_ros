@@ -712,6 +712,16 @@ bool PercipioDevice::hasColorAecROI() const
   return false;
 }
 
+bool PercipioDevice::hasColorAecTargetV() const
+{
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if(camera_seeting) {
+    int rgb_target_v = 0;
+    return camera_seeting->getColorTargetV(&rgb_target_v);
+  }
+  return false;
+}
+
 bool PercipioDevice::hasColorExposureTime() const
 {
   percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
@@ -931,6 +941,17 @@ void PercipioDevice::setColorAecROI(double p1_x, double p1_y, double p2_x, doubl
     const TY_STATUS rc = camera_seeting->setColorAecROI(p1_x, p1_y, p2_x, p2_y);
     if (rc != TY_STATUS_OK)
       ROS_WARN("Couldn't set aec roi: \n%s\n", percipio::Percipio::getExtendedError(rc));
+  }
+}
+
+void PercipioDevice::setColorAecTargetV(int v)
+{
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    const TY_STATUS rc = camera_seeting->setColorTargetV(v);
+    if (rc != TY_STATUS_OK)
+      ROS_WARN("Couldn't set aec target v: \n%s\n", percipio::Percipio::getExtendedError(rc));
   }
 }
 
@@ -1433,6 +1454,15 @@ bool PercipioDevice::getColorAecROI(double* p1_x, double* p1_y, double* p2_x, do
     *p2_y = roi[3];
     return true;
   }else
+    return false;
+}
+
+bool PercipioDevice::getColorAecTargetV(int* value) const
+{
+  percipio::CameraSettings* camera_seeting = getColorCameraSettingsPtr();
+  if (camera_seeting)
+    return camera_seeting->getColorTargetV(value);
+  else
     return false;
 }
 

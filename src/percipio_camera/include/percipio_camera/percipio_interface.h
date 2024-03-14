@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2024-02-22 09:39:34
+ * @LastEditTime: 2024-03-14 15:31:15
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -539,6 +539,7 @@ public:
     TY_STATUS setDepthScaleValue(float scale);
 
     TY_STATUS setColorAecROI(double p1_x, double p1_y, double p2_x, double p2_y);
+    TY_STATUS setColorTargetV(int v);
 
     TY_STATUS setDepthSgbmImageChanNumber(int value);
     TY_STATUS setDepthSgbmDispNumber(int value);
@@ -561,6 +562,7 @@ public:
     TY_STATUS setDevicePacketDelay(int microseconds);
     TY_STATUS setDeiveTimeSyncType(int type);
     TY_STATUS setDeviceNTPServerIP(std::string ip);
+
     //
     bool getLaserPower(int* power) const;
     bool getAutoExposureEnabled(bool* enable) const;
@@ -583,6 +585,7 @@ public:
     bool getTofHdrRatio(int* ratio) const;
     bool getTofJitterThreshold(int* threshold) const;
     bool getColorAecROI(double* roi) const;
+    bool getColorTargetV(int* v) const;
 
     bool isValid() const;
   private:

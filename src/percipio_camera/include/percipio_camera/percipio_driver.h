@@ -170,6 +170,8 @@ private:
   int m_rgb_r_gain_;
   int m_rgb_g_gain_;
   int m_rgb_b_gain_;
+
+  int m_rgb_aec_target_v_;
   
   int m_ir_exposure_time_;
   int m_ir_analog_gain_;
