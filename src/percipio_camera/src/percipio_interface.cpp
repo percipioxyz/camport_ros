@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2024-03-14 15:37:33
+ * @LastEditTime: 2024-03-21 10:49:03
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -101,18 +101,28 @@ namespace percipio
   {
     TY_DEV_HANDLE deviceHandle;
     std::vector<TY_DEVICE_BASE_INFO> selected;
-    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, sn, "", 1, selected);
+    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, sn, "", 10, selected);
     if(!selected.size())
       return TY_STATUS_ERROR;
+
     TY_DEVICE_BASE_INFO& selectedDev = selected[0];
-    rc = TYOpenInterface(selectedDev.iface.id, &_M_IFACE);
+    for(size_t m = 0; m < selected.size(); m++) {
+      selectedDev = selected[m];
+      rc = TYOpenInterface(selectedDev.iface.id, &_M_IFACE);
+      if(rc != TY_STATUS_OK)
+        continue;
+      rc = TYOpenDevice(_M_IFACE, selectedDev.id, &deviceHandle);
+      if(rc != TY_STATUS_OK) {
+        TYCloseInterface(_M_IFACE);
+        continue;
+      }
+      else
+        break;
+    }
+
     if(rc != TY_STATUS_OK)
       return rc;
-    rc = TYOpenDevice(_M_IFACE, selectedDev.id, &deviceHandle);
-    if(rc != TY_STATUS_OK) {
-      TYCloseInterface(_M_IFACE);
-      return rc;
-    }
+
     _M_DEVICE = deviceHandle;
     TYGetComponentIDs(_M_DEVICE, &m_ids);
     std::vector<TY_ENUM_ENTRY> feature_info;
@@ -165,18 +175,29 @@ namespace percipio
   {
     TY_DEV_HANDLE deviceHandle;
     std::vector<TY_DEVICE_BASE_INFO> selected;
-    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", ip, 1, selected);
+    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", ip, 10, selected);
     if(!selected.size())
       return TY_STATUS_ERROR;
+    
     TY_DEVICE_BASE_INFO& selectedDev = selected[0];
-    rc = TYOpenInterface(selectedDev.iface.id, &_M_IFACE);
+    for(size_t m = 0; m < selected.size(); m++) {
+      selectedDev = selected[m];
+      rc = TYOpenInterface(selectedDev.iface.id, &_M_IFACE);
+      if(rc != TY_STATUS_OK)
+        continue;
+      rc = TYOpenDevice(_M_IFACE, selectedDev.id, &deviceHandle);
+      if(rc != TY_STATUS_OK) {
+        TYCloseInterface(_M_IFACE);
+        continue;
+      }
+      else
+        break;
+    }
+
     if(rc != TY_STATUS_OK)
       return rc;
-    rc = TYOpenDevice(_M_IFACE, selectedDev.id, &deviceHandle);
-    if(rc != TY_STATUS_OK) {
-      TYCloseInterface(_M_IFACE);
-      return rc;
-    }
+
+
     _M_DEVICE = deviceHandle;
     TYGetComponentIDs(_M_DEVICE, &m_ids);
     std::vector<TY_ENUM_ENTRY> feature_info;
