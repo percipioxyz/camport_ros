@@ -45,6 +45,10 @@
 #include <image_transport/image_transport.h>
 #include <camera_info_manager/camera_info_manager.h>
 
+#include <sensor_msgs/PointCloud2.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <pcl/point_types.h>
+
 #include <string>
 #include <vector>
 
@@ -60,7 +64,6 @@
 
 namespace percipio_wrapper
 {
-
 class PercipioDriver
 {
 public:
@@ -73,6 +76,7 @@ private:
   void newIRFrameCallback(sensor_msgs::ImagePtr image);
   void newColorFrameCallback(sensor_msgs::ImagePtr image);
   void newDepthFrameCallback(sensor_msgs::ImagePtr image);
+  void newPoint3DFrameCallback(sensor_msgs::ImagePtr image);
 
   // Methods to get calibration parameters for the various cameras
   sensor_msgs::CameraInfoPtr getDefaultCameraInfo(int width, int height, double f);
@@ -91,6 +95,7 @@ private:
   void colorConnectCb();
   void depthConnectCb();
   void irConnectCb();
+  void cloud3DConnectCb();
 
   bool getSerialCb(percipio_camera::GetSerialRequest& req, percipio_camera::GetSerialResponse& res);
 
@@ -100,10 +105,6 @@ private:
 
   sensor_msgs::ImageConstPtr rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, float scale);
 
-  //void setIRVideoMode(const PercipioVideoMode& ir_video_mode);
-  //void setColorVideoMode(const PercipioVideoMode& color_video_mode);
-  //void setDepthVideoMode(const PercipioVideoMode& depth_video_mode);
-  
   PercipioVideoMode getIRVideoMode();
   PercipioVideoMode getColorVideoMode();
   PercipioVideoMode getDepthVideoMode();
@@ -137,16 +138,13 @@ private:
   // published topics
   image_transport::CameraPublisher pub_color_;
   image_transport::CameraPublisher pub_depth_;
-  image_transport::CameraPublisher pub_point3d_;
   image_transport::CameraPublisher pub_ir_;
-  ros::Publisher pub_projector_info_;
+  
+  sensor_msgs::PointCloud2 pub_point3d_cloud;
+  ros::Publisher pub_point3d_;
 
   /** \brief Camera info manager objects. */
   boost::shared_ptr<camera_info_manager::CameraInfoManager> color_info_manager_, depth_info_manager_, ir_info_manager;
-
-  PercipioVideoMode ir_video_mode_;
-  PercipioVideoMode color_video_mode_;
-  PercipioVideoMode depth_video_mode_;
 
   std::string ir_frame_id_;
   std::string color_frame_id_;

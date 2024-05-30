@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-09 09:11:59
  * @LastEditors: zxy
- * @LastEditTime: 2024-03-21 10:49:03
+ * @LastEditTime: 2024-05-30 14:59:24
  */
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
@@ -250,9 +250,19 @@ namespace percipio
     return current_device_info;
   }
 
-  static TY_STATUS depth_image_mode_configure(TY_DEV_HANDLE handle, TY_COMPONENT_ID  comp, std::vector<TY_IMAGE_MODE>& list)
+  static TY_STATUS depth_image_mode_configure(TY_DEV_HANDLE handle, TY_COMPONENT_ID  comp, bool need_p3d, std::vector<TY_IMAGE_MODE>& list)
   {
     if(list.size()) {
+      if(need_p3d) {
+        for(size_t i = 0; i < list.size(); i++) {
+          TY_IMAGE_MODE mode = list[i];
+          TY_PIXEL_FORMAT fmt = TYPixelFormat(mode);
+          if(fmt == TY_PIXEL_FORMAT_XYZ48) {
+            return TYSetEnum(handle, comp, TY_ENUM_IMAGE_MODE, mode);
+          }
+        }
+      }
+
       for(size_t i = 0; i < list.size(); i++) {
         TY_IMAGE_MODE mode = list[i];
         TY_PIXEL_FORMAT fmt = TYPixelFormat(mode);
@@ -339,17 +349,18 @@ namespace percipio
       int w = TYImageWidth(mode);
       int h = TYImageHeight(mode);
       TY_PIXEL_FORMAT fmt = TYPixelFormat(mode);
-      if((comp == TY_COMPONENT_DEPTH_CAM) && (fmt == TY_PIXEL_FORMAT_XYZ48))
-        continue;
-
       if((w == width) && (h == height))
         image_mode_arr.push_back(mode);
     }
 
     if(image_mode_arr.size()) {
-      if(comp == TY_COMPONENT_DEPTH_CAM)
-        return depth_image_mode_configure(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, image_mode_arr);
-      else
+      if(comp == TY_COMPONENT_DEPTH_CAM) {
+        //TODO
+        bool need_depth = false;
+        if(DepthStream.get() && DepthStream.get()->isInvalid())
+          need_depth = true;
+        return depth_image_mode_configure(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, !need_depth, image_mode_arr);
+      } else
         return cmos_image_mode_configure(_M_DEVICE, comp, image_mode_arr);
     } else {
       for(size_t i = 0; i < image_mode_list.size(); i++) {
@@ -529,6 +540,11 @@ namespace percipio
   TY_STATUS percipio_depth_cam::MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
     return ImgProc::MapDepthImageToColorCoordinate(&depth_calib, &color_calib, current_rgb_width, current_rgb_height, src, dst, f_depth_scale_unit);
+  }
+
+  TY_STATUS percipio_depth_cam::MapXYZ48FrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
+  {
+    return ImgProc::MapXYZ48ToColorCoordinate(&depth_calib, &color_calib, current_rgb_width, current_rgb_height, src, dst, f_depth_scale_unit);
   }
 
   TY_STATUS percipio_depth_cam::parseColorStream(VideoFrameData* src, VideoFrameData* dst)
@@ -735,7 +751,6 @@ namespace percipio
 
   TY_STATUS percipio_depth_cam::DeviceSetProperty(int propertyId, const void* data, int* dataSize)
   {
-    //TODO
     return TY_STATUS_NOT_PERMITTED;
   }
 
@@ -767,6 +782,8 @@ namespace percipio
         return create_color_stream(streamHandle);
       case SENSOR_DEPTH:
         return create_depth_stream(streamHandle);
+      case SENSOR_POINT3D:
+        return create_point3d_stream(streamHandle);
       default:
         return TY_STATUS_INVALID_PARAMETER;
     }
@@ -811,6 +828,8 @@ namespace percipio
       ColorStream.get()->register_callback(listener, cb);
     } else if(DepthStream.get() == stream) {
       DepthStream.get()->register_callback(listener, cb);
+    } else if(Point3DStream.get() == stream) {
+      Point3DStream.get()->register_callback(listener, cb);
     } else {
       pthread_mutex_unlock(&m_mutex);
       return TY_STATUS_INVALID_PARAMETER;
@@ -830,6 +849,8 @@ namespace percipio
       ColorStream.get()->unregister_callback();
     } else if(DepthStream.get() == stream) {
       DepthStream.get()->unregister_callback();
+    } else if(Point3DStream.get() == stream) {
+      Point3DStream.get()->unregister_callback();
     }
     pthread_mutex_unlock(&m_mutex);
   }
@@ -900,27 +921,30 @@ namespace percipio
         for (int i = 0; i < frame.validCount; i++){
           if (frame.image[i].status != TY_STATUS_OK) continue;
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
-            if(cam->DepthStream.get()->cb) {
+            if(cam->DepthStream.get() && cam->DepthStream.get()->cb) {
               if(cam->depth_stream_spec_enable) {
                 DepthSpeckleFilterParameters param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff};
                 TYDepthSpeckleFilter(&frame.image[i], &param);
               }
               cam->DepthStream.get()->cb(cam->DepthStream.get(), cam->DepthStream.get()->frame_listener, &frame.image[i]);
-
+            }
+            if(cam->Point3DStream.get() && cam->Point3DStream.get()->cb) {
+              //TODO
+              cam->Point3DStream.get()->cb(cam->Point3DStream.get(), cam->Point3DStream.get()->frame_listener, &frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_RGB_CAM){ 
-            if(cam->ColorStream.get()->cb) {
+            if(cam->ColorStream.get() && cam->ColorStream.get()->cb) {
               cam->ColorStream.get()->cb(cam->ColorStream.get(), cam->ColorStream.get()->frame_listener, &frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_LEFT){ 
-            if(cam->leftIRStream.get()->cb) {
+            if(cam->leftIRStream.get() && cam->leftIRStream.get()->cb) {
               cam->leftIRStream.get()->cb(cam->leftIRStream.get(), cam->leftIRStream.get()->frame_listener, &frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_RIGHT){ 
-            if(cam->rightIRStream.get()->cb) {
+            if(cam->rightIRStream.get() && cam->rightIRStream.get()->cb) {
               cam->leftIRStream.get()->cb(cam->rightIRStream.get(), cam->leftIRStream.get()->frame_listener, &frame.image[i]);
             }
           }
@@ -947,6 +971,9 @@ namespace percipio
     if(DepthStream.get() && DepthStream.get()->isInvalid())
       return true;
     
+    if(Point3DStream.get() && Point3DStream.get()->isInvalid())
+      return true;
+
     return false;
   }
 
@@ -960,8 +987,11 @@ namespace percipio
       ColorStream.get()->enableCallback(true);
     } else if(DepthStream.get() == stream) {
       DepthStream.get()->enableCallback(true);
-    } else {
-      printf("unknown stream : %p %p %p %p %p\n", stream, leftIRStream.get(), rightIRStream.get(), ColorStream.get(), DepthStream.get());
+    } else if(Point3DStream.get() == stream) {
+      Point3DStream.get()->enableCallback(true);
+    }
+    else {
+      printf("unknown stream : %p %p %p %p %p %p\n", stream, leftIRStream.get(), rightIRStream.get(), ColorStream.get(), DepthStream.get(), Point3DStream.get());
     }
   }
 
@@ -975,7 +1005,10 @@ namespace percipio
       ColorStream.get()->enableCallback(false);
     } else if(DepthStream.get() == stream) {
       DepthStream.get()->enableCallback(false);
-    } 
+    } else if(Point3DStream.get() == stream) {
+      Point3DStream.get()->enableCallback(false);
+    } else
+      ;
   }
 
   
@@ -1044,12 +1077,21 @@ namespace percipio
       b_stream_with_color = false;
     }
 
-    if(DepthStream.get() && DepthStream.get()->isInvalid()) {
+    bool b_support_depth = false;
+    bool b_support_point3d = false;
+    if(DepthStream.get() && DepthStream.get()->isInvalid())
+      b_support_depth = true;
+    if(Point3DStream.get() && Point3DStream.get()->isInvalid())
+      b_support_point3d = true;
+    
+    if( b_support_depth || b_support_point3d ) {
       TYEnableComponents(_M_DEVICE, TY_COMPONENT_DEPTH_CAM);
       component_list += "depth ";
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_WIDTH, &current_depth_width);
       TYGetInt(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_INT_HEIGHT, &current_depth_height);
       TYHasFeature(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_DISTORTION, &depth_distortion);
+      set_image_mode(TY_COMPONENT_DEPTH_CAM, current_depth_width, current_depth_height);
+
       if(depth_distortion) {
         //add depth distortion map
         ImgProc::addDepthDistortionMap(depth_calib, current_depth_width, current_depth_height);
@@ -1199,6 +1241,15 @@ namespace percipio
     stream = DepthStream.get();
     return TY_STATUS_OK;
   }
+
+  TY_STATUS percipio_depth_cam::create_point3d_stream(StreamHandle& stream)
+  {
+    if(Point3DStream.get() == NULL)
+      Point3DStream = boost::make_shared<NewFrameCallbackManager>();
+    stream = Point3DStream.get();
+    return TY_STATUS_OK;
+  }
+
   const TY_COMPONENT_ID percipio_depth_cam::get_stream_component_id(StreamHandle stream)
   {
     if(leftIRStream.get() == stream) {
@@ -1209,7 +1260,10 @@ namespace percipio
       return TY_COMPONENT_RGB_CAM;
     } else if(DepthStream.get() == stream) {
       return TY_COMPONENT_DEPTH_CAM;
-    } else {
+    } else if(Point3DStream.get() == stream) {
+      return TY_COMPONENT_DEPTH_CAM;
+    }
+    else {
       return 0;
     }
   }
@@ -1224,6 +1278,8 @@ namespace percipio
       return SENSOR_COLOR;
     } else if(DepthStream.get() == stream) {
       return SENSOR_DEPTH;
+    } else if(Point3DStream.get() == stream) {
+      return SENSOR_POINT3D;
     } else {
       return SENSOR_NONE;
     }
@@ -1369,7 +1425,6 @@ namespace percipio
   float VideoStream::getVerticalFieldOfView() const
   {
     float vertical = 0;
-    ////TODO
     return vertical;
   }
 
@@ -1400,7 +1455,6 @@ namespace percipio
     }
     if (m_stream != NULL)
     {
-      ////TODO
       m_stream = NULL;
     }
   }
@@ -1417,7 +1471,6 @@ namespace percipio
 
   void VideoStream::_setHandle(StreamHandle stream)
   {
-    ////TODO
     //need bind stream handle & sensorInfo
     m_sensorInfo._setInternal(SENSOR_NONE);
     m_stream = stream;
@@ -1429,12 +1482,13 @@ namespace percipio
 
   void  VideoStream::parseImageData(TY_IMAGE_DATA* img)
   {
-    //TODO
     VideoFrameData vframe, tframe;
+    SensorType type;
     vframe.setData(img);
     switch(img->componentID)
     {
       case TY_COMPONENT_DEPTH_CAM:
+        type = getSensorInfo().getSensorType();
         if(img->pixelFormat == TY_PIXEL_FORMAT_DEPTH16) {
           g_Context->parseDepthStream(&vframe, &tframe);
           ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
@@ -1443,6 +1497,18 @@ namespace percipio
           } else {
             frame.clone(tframe);
           }
+        } else if(img->pixelFormat == TY_PIXEL_FORMAT_XYZ48) {
+#if 0
+          ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
+          if(mode == IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
+            g_Context->MapXYZ48FrameToColorCoordinate(&vframe, &frame);
+          } else {
+            frame.clone(vframe);
+          }
+#else
+          //xyz48 fmt do not support rgbd registration
+          frame.clone(vframe);
+#endif
         }
         break;
       case TY_COMPONENT_RGB_CAM:
@@ -2124,6 +2190,7 @@ namespace percipio
       break;
     }
 	  case SENSOR_DEPTH:
+    case SENSOR_POINT3D:
     {
       if(g_Context->get_components() & TY_COMPONENT_DEPTH_CAM)
         has = true;
@@ -2135,9 +2202,8 @@ namespace percipio
     return has;
   }
 
-  bool Device::ReslotionSetting(SensorType sensorType, int width, int height)
+  bool Device::ResolutionSetting(SensorType sensorType, int width, int height)
   {
-    //TODO
     switch (sensorType)
     {
       case SENSOR_COLOR:

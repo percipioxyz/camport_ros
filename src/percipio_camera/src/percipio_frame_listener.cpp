@@ -109,7 +109,6 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
     image->height = m_frame.getHeight();
 
     std::size_t data_size = m_frame.getDataSize();
-
     image->data.resize(data_size);
     memcpy(&image->data[0], m_frame.getData(), data_size);
     image->is_bigendian = 0;
@@ -132,6 +131,10 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       case percipio::PIXEL_FORMAT_GRAY16:
         image->encoding = sensor_msgs::image_encodings::MONO16;
         image->step = sizeof(unsigned char) * 2 * image->width;
+        break;
+      case TY_PIXEL_FORMAT_XYZ48:
+        image->encoding = sensor_msgs::image_encodings::TYPE_16UC3;
+        image->step = sizeof(unsigned short) * 3 * image->width;
         break;
       default:
         ROS_ERROR("Invalid image encoding");

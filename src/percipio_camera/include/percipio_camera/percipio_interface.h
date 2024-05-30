@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-08-04 14:20:07
  * @LastEditors: zxy
- * @LastEditTime: 2024-03-14 15:31:15
+ * @LastEditTime: 2024-05-30 15:02:57
  */
 #ifndef _PERCIPIO_H_
 #define _PERCIPIO_H_
@@ -37,13 +37,12 @@ namespace percipio
   typedef enum
   {
     SENSOR_NONE     = 0,
-	  SENSOR_IR_LEFT  = 1,
+    SENSOR_IR_LEFT  = 1,
     SENSOR_IR_RIGHT = 2,
-	  SENSOR_COLOR    = 3,
-	  SENSOR_DEPTH    = 4,
+    SENSOR_COLOR    = 3,
+    SENSOR_DEPTH    = 4,
+    SENSOR_POINT3D  = 5,
   } SensorType;
-
-  
 
   typedef enum
   {
@@ -172,6 +171,7 @@ namespace percipio
       TY_STATUS DeviceSetImageRegistrationMode(ImageRegistrationMode mode);
       ImageRegistrationMode DeviceGetImageRegistrationMode();
       TY_STATUS MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
+      TY_STATUS MapXYZ48FrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS FrameDecoder(VideoFrameData& src, VideoFrameData& dst);
       TY_STATUS parseIrStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseColorStream(VideoFrameData* src, VideoFrameData* dst);
@@ -238,6 +238,7 @@ namespace percipio
       boost::shared_ptr<NewFrameCallbackManager> rightIRStream;
       boost::shared_ptr<NewFrameCallbackManager> ColorStream;
       boost::shared_ptr<NewFrameCallbackManager> DepthStream;
+      boost::shared_ptr<NewFrameCallbackManager> Point3DStream;
 
       //std::mutex m_mutex;
       pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -288,6 +289,8 @@ namespace percipio
       TY_STATUS create_color_stream(StreamHandle& stream);
 
       TY_STATUS create_depth_stream(StreamHandle& stream);
+
+      TY_STATUS create_point3d_stream(StreamHandle& stream);
 
       const TY_COMPONENT_ID get_stream_component_id(StreamHandle stream);
 
@@ -706,7 +709,7 @@ public:
 
       bool isValid() const;
 
-      bool ReslotionSetting(SensorType sensorType, int width, int height);
+      bool ResolutionSetting(SensorType sensorType, int width, int height);
 
       TY_STATUS _setHandle(TY_DEV_HANDLE deviceHandle);
 

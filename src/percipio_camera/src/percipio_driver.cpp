@@ -152,12 +152,8 @@ void PercipioDriver::advertiseROSTopics()
   
   ros::NodeHandle depth_nh(nh_, "depth");
   image_transport::ImageTransport depth_it(depth_nh);
-  
-  ros::NodeHandle point3d_nh(nh_, "depth");
-  image_transport::ImageTransport point3d_it(point3d_nh);
-  
-  // Advertise all published topics
 
+  // Advertise all published topics
   // Prevent connection callbacks from executing until we've set all the publishers. Otherwise
   // connectCb() can fire while we're advertising (say) "depth/image_raw", but before we actually
   // assign to pub_depth_raw_. Then pub_depth_raw_.getNumSubscribers() returns 0, and we fail to start
@@ -167,37 +163,28 @@ void PercipioDriver::advertiseROSTopics()
   // Asus Xtion PRO does not have an RGB camera
   if (device_->hasColorSensor())
   {
-    if((color_video_mode_.x_resolution_ > 0) && (color_video_mode_.y_resolution_ > 0))
-    {
-      image_transport::SubscriberStatusCallback itssc = boost::bind(&PercipioDriver::colorConnectCb, this);
-      ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::colorConnectCb, this);
-      pub_color_ = color_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
-    }
-    else
-      ROS_WARN("color video mode err : %d, %d.\n", color_video_mode_.x_resolution_, color_video_mode_.y_resolution_);
+    image_transport::SubscriberStatusCallback itssc = boost::bind(&PercipioDriver::colorConnectCb, this);
+    ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::colorConnectCb, this);
+    pub_color_ = color_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
   }
   else
     ROS_WARN("Device do not has color sensor.\n");
 
   if (device_->hasIRSensor())
   {
-    if((ir_video_mode_.x_resolution_ > 0) && (ir_video_mode_.y_resolution_ > 0))
-    {
-      image_transport::SubscriberStatusCallback itssc = boost::bind(&PercipioDriver::irConnectCb, this);
-      ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::irConnectCb, this);
-      pub_ir_ = ir_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
-    }
+    image_transport::SubscriberStatusCallback itssc = boost::bind(&PercipioDriver::irConnectCb, this);
+    ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::irConnectCb, this);
+    pub_ir_ = ir_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
   }
 
   if (device_->hasDepthSensor())
   {
-    if((depth_video_mode_.x_resolution_ > 0) && (depth_video_mode_.y_resolution_ > 0))
-    {
-      image_transport::SubscriberStatusCallback itssc = boost::bind(&PercipioDriver::depthConnectCb, this);
-      ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::depthConnectCb, this);
-      pub_depth_ = depth_it.advertiseCamera("image_raw", 1, itssc, itssc, rssc, rssc);
-      //pub_point3d_ = point3d_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
-    }
+    image_transport::SubscriberStatusCallback itssc = boost::bind(&PercipioDriver::depthConnectCb, this);
+    ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::depthConnectCb, this);
+    pub_depth_ = depth_it.advertiseCamera("image_raw", 1, itssc, itssc, rssc, rssc);
+
+    const ros::SubscriberStatusCallback& rssc2 = boost::bind(&PercipioDriver::cloud3DConnectCb, this);
+    pub_point3d_ = nh_.advertise<sensor_msgs::PointCloud2>("PointCloud2", 1, rssc2, rssc2);
   }
 
   ////////// CAMERA INFO MANAGER
@@ -390,12 +377,6 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
   
   z_scaling_ = config.z_scaling;
 
-  // assign pixel format
-  //ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY16;
-  ir_video_mode_.pixel_format_ = PIXEL_FORMAT_GRAY8;
-  color_video_mode_.pixel_format_ = PIXEL_FORMAT_RGB888;
-  depth_video_mode_.pixel_format_ = PIXEL_FORMAT_DEPTH_1_MM;
-
   auto_exposure_ = config.auto_exposure;
   auto_exposure_p1_x_ = config.auto_exposure_p1_x;
   auto_exposure_p1_y_ = config.auto_exposure_p1_y;
@@ -435,10 +416,6 @@ void PercipioDriver::applyConfigToPercipioDevice()
   data_skip_ir_counter_ = 0;
   data_skip_color_counter_= 0;
   data_skip_depth_counter_ = 0;
-  
-  ir_video_mode_ = getIRVideoMode();
-  color_video_mode_ = getColorVideoMode();
-  depth_video_mode_ = getDepthVideoMode();
 
   device_->setUseDeviceTimer(use_device_time_);
 }
@@ -464,11 +441,8 @@ void PercipioDriver::colorConnectCb()
 void PercipioDriver::depthConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
-  //point3d_subscribers_ = pub_point3d_.getNumSubscribers() > 0;
   depth_subscribers_ = pub_depth_.getNumSubscribers() > 0;
-  //bool need_depth = point3d_subscribers_ || depth_subscribers_;
   bool need_depth = depth_subscribers_;
-
   if (need_depth && !device_->isDepthStreamStarted())
   {
     device_->setDepthFrameCallback(boost::bind(&PercipioDriver::newDepthFrameCallback, this, _1));
@@ -480,6 +454,25 @@ void PercipioDriver::depthConnectCb()
   {
     ROS_INFO("Stopping depth stream.");
     device_->stopDepthStream();
+  }
+}
+
+void PercipioDriver::cloud3DConnectCb()
+{
+  boost::lock_guard<boost::mutex> lock(connect_mutex_);
+  point3d_subscribers_ = pub_point3d_.getNumSubscribers() > 0;
+  bool need_p3d = point3d_subscribers_;
+  if (need_p3d && !device_->isPoint3DStreamStarted())
+  {
+    device_->setPoint3DFrameCallback(boost::bind(&PercipioDriver::newPoint3DFrameCallback, this, _1));
+
+    ROS_INFO("Starting point3d stream.");
+    device_->startPoint3DStream();
+  }
+  else if (!need_p3d && device_->isPoint3DStreamStarted())
+  {
+    ROS_INFO("Stopping depth stream.");
+    device_->stopPoint3DStream();
   }
 }
 
@@ -527,7 +520,6 @@ void PercipioDriver::newColorFrameCallback(sensor_msgs::ImagePtr image)
     {
       image->header.frame_id = color_frame_id_;
       image->header.stamp = image->header.stamp + color_time_offset_;
-
       pub_color_.publish(image, getColorCameraInfo(image->width, image->height, image->header.stamp, true));
     }
   }
@@ -539,20 +531,14 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
   {
     data_skip_depth_counter_ = 0;
 
-    //if (depth_subscribers_||point3d_subscribers_)
-    if(depth_subscribers_)
+    if (depth_subscribers_)
     {
-      //sensor_msgs::ImageConstPtr floating_point_image;
-
-      //if (point3d_subscribers_ )
-      //  floating_point_image = rawToFloatingPointConversion(image, z_scaling_);
-
       if(std::abs(z_scaling_ - 1.f ) > 0.001)
       {
         uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
         for (unsigned int i = 0; i < image->width * image->height; ++i)
           if (data[i] != 0)
-        data[i] = static_cast<uint16_t>(data[i]  *  z_scaling_) + 0.5f;
+            data[i] = static_cast<uint16_t>(data[i]  *  z_scaling_) + 0.5f;
       }
 
       sensor_msgs::CameraInfoPtr cam_info;
@@ -567,16 +553,94 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
         cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
       }
 
-      if (depth_subscribers_)
-      {
-        pub_depth_.publish(image, cam_info);
-      }
+      pub_depth_.publish(image, cam_info);
+    }
+  }
+}
 
-      //if (point3d_subscribers_ )
-      //{
-      //  if(floating_point_image != nullptr)
-      //    pub_point3d_.publish(floating_point_image, cam_info);
-      //}
+void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
+{
+  if ((++data_skip_depth_counter_)%data_skip_==0)
+  {
+    data_skip_depth_counter_ = 0;
+    if (point3d_subscribers_)
+    {
+      if(image->encoding == sensor_msgs::image_encodings::TYPE_16UC3)
+      {
+        //TODO
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+
+        int16_t* data = reinterpret_cast<int16_t*>(&image->data[0]);
+        for(int i = 0; i < image->width * image->height; i++) {
+          if(data[3*i] != 0) {
+            pcl::PointXYZRGB  p;
+            p.x = data[3*i] / 1000.f;
+            p.y = data[3*i + 1] / 1000.f;
+            p.z = data[3*i + 2] / 1000.f;
+            p.r = 255;
+            p.g = 255;
+            p.b = 255;
+            point_cloud->points.push_back(p);
+          }
+        }
+
+        point_cloud->width = 1;
+        point_cloud->height = point_cloud->points.size();
+      
+        pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
+        pub_point3d_cloud.header.frame_id = depth_frame_id_;
+        pub_point3d_cloud.header.stamp = image->header.stamp;
+
+        pub_point3d_.publish(pub_point3d_cloud);
+        ros::spinOnce();
+      } 
+      else if(image->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
+      {
+        sensor_msgs::CameraInfoPtr cam_info;
+        if(percipio::IMAGE_REGISTRATION_DEPTH_TO_COLOR == device_.get()->getImageRegistrationMode())
+        {
+          image->header.frame_id = color_frame_id_;
+          cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp, false);
+        }
+        else
+        {
+          image->header.frame_id = depth_frame_id_;
+          cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
+        }
+
+        pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+
+        uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
+        float fx = cam_info->K[0]; //fx
+        float fy = cam_info->K[4]; //fy
+        float cx = cam_info->K[2]; //cx
+        float cy = cam_info->K[5]; //cy
+
+        for(int i = 0; i < image->width * image->height; i++) {
+          int m_pix_x = i % image->width;
+          int m_pix_y = i / image->width;
+          if(data[i] != 0) {
+            pcl::PointXYZRGB  p;
+            p.x = (m_pix_x - cx) * data[i] / (1000.f * fx);
+            p.y = (m_pix_y - cy) * data[i] / (1000.f * fy);
+            p.z = data[i] / 1000.f;
+            p.r = 255;
+            p.g = 255;
+            p.b = 255;
+            point_cloud->points.push_back(p);
+          }
+        }
+
+        point_cloud->width = 1;
+        point_cloud->height = point_cloud->points.size();
+      
+        pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
+        pub_point3d_cloud.header.frame_id = image->header.frame_id;
+        pub_point3d_cloud.header.stamp = image->header.stamp;
+
+        pub_point3d_.publish(pub_point3d_cloud);
+        ros::spinOnce();
+      }
     }
   }
 }

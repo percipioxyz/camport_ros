@@ -84,6 +84,7 @@ public:
   bool hasIRSensor() const;
   bool hasColorSensor() const;
   bool hasDepthSensor() const;
+  bool hasPoint3DSensor() const;
 
   bool setColorResolution(int w, int h);
   bool setDepthResolutuon(int w, int h);
@@ -91,16 +92,19 @@ public:
   void startIRStream();
   void startColorStream();
   void startDepthStream();
+  void startPoint3DStream();
 
   void stopAllStreams();
 
   void stopIRStream();
   void stopColorStream();
   void stopDepthStream();
+  void stopPoint3DStream();
 
   bool isIRStreamStarted();
   bool isColorStreamStarted();
   bool isDepthStreamStarted();
+  bool isPoint3DStreamStarted();
 
   void setColorUndistortion(bool enabled);
 
@@ -119,7 +123,6 @@ public:
 
   bool isDeviceRGBDSyncSupported() const;
   void setDeviceRGBDSynchronization(bool enabled);
-
 
   const PercipioVideoMode getIRVideoMode();
   const PercipioVideoMode getColorVideoMode();
@@ -140,6 +143,7 @@ public:
   void setIRFrameCallback(FrameCallbackFunction callback);
   void setColorFrameCallback(FrameCallbackFunction callback);
   void setDepthFrameCallback(FrameCallbackFunction callback);
+  void setPoint3DFrameCallback(FrameCallbackFunction callback);
 
   float getIRFocalLength (int output_y_resolution) const;
   float getColorFocalLength (int output_y_resolution) const;
@@ -271,10 +275,12 @@ public:
 protected:
   void shutdown();
 
-  boost::shared_ptr<percipio::VideoStream> getIRVideoStream() const;
-  boost::shared_ptr<percipio::VideoStream> getColorVideoStream() const;
-  boost::shared_ptr<percipio::VideoStream> getDepthVideoStream() const;
+  boost::shared_ptr<percipio::VideoStream> getIRVideoStream(bool create) const;
+  boost::shared_ptr<percipio::VideoStream> getColorVideoStream(bool create) const;
+  boost::shared_ptr<percipio::VideoStream> getDepthVideoStream(bool create) const;
+  boost::shared_ptr<percipio::VideoStream> getPoint3DVideoStream(bool create) const;
 
+  percipio::CameraSettings* getPoint3DCameraSettingsPtr() const;
   percipio::CameraSettings* getDepthCameraSettingsPtr() const;
   percipio::CameraSettings* getColorCameraSettingsPtr() const;
   percipio::CameraSettings* getIRCameraSettingsPtr() const;
@@ -285,10 +291,12 @@ protected:
   boost::shared_ptr<PercipioFrameListener> ir_frame_listener;
   boost::shared_ptr<PercipioFrameListener> color_frame_listener;
   boost::shared_ptr<PercipioFrameListener> depth_frame_listener;
+  boost::shared_ptr<PercipioFrameListener> point3d_frame_listener;
 
   mutable boost::shared_ptr<percipio::VideoStream> ir_video_stream_;
   mutable boost::shared_ptr<percipio::VideoStream> color_video_stream_;
   mutable boost::shared_ptr<percipio::VideoStream> depth_video_stream_;
+  mutable boost::shared_ptr<percipio::VideoStream> point3d_video_stream_;
 
   mutable std::vector<PercipioVideoMode> ir_video_modes_;
   mutable std::vector<PercipioVideoMode> color_video_modes_;
@@ -297,6 +305,7 @@ protected:
   bool ir_video_started_;
   bool color_video_started_;
   bool depth_video_started_;
+  bool point3d_video_started_;
 
   bool image_registration_activated_;
 

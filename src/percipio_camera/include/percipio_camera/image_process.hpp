@@ -3,7 +3,7 @@
  * @Author: zxy
  * @Date: 2023-07-18 15:55:24
  * @LastEditors: zxy
- * @LastEditTime: 2024-01-09 16:34:33
+ * @LastEditTime: 2024-05-30 15:01:39
  */
 
 #include <iostream>
@@ -391,6 +391,17 @@ public:
                   f_scale_unit);
     }
 
+    static int MapXYZ48ToColorCoordinate(const TY_CAMERA_CALIB_INFO* depth_calib, 
+                                              const TY_CAMERA_CALIB_INFO* color_calib, 
+                                              int target_width,
+                                              int target_height,
+                                              percipio::VideoFrameData* src, 
+                                              percipio::VideoFrameData* dst,
+                                              float f_scale_unit)
+    {
+      //TODO
+    }
+
     static int cvtColor(percipio::VideoFrameData& src, percipio::VideoFrameData& dst)
     {
       int i, j;
@@ -606,6 +617,7 @@ public:
 
       return 0;
     }
+
 };
 
 std::vector<distortion_data> ImgProc::depth_dist_map_list;
