@@ -8,6 +8,11 @@
 #include "percipio_camera/percipio_interface.h"
 #include "percipio_camera/image_process.hpp"
 
+#include "percipio_camera/crc32.hpp"
+#include "percipio_camera/ParametersParse.hpp"
+
+
+#define MAX_STORAGE_SIZE    (10*1024*1024)
 namespace percipio
 {
   void NewFrameCallbackManager::register_callback(void* listener, NewFrameCallback callback)
@@ -124,6 +129,38 @@ namespace percipio
       return rc;
 
     _M_DEVICE = deviceHandle;
+
+    //TODO :load default parameters
+    TY_STATUS status = TY_STATUS_OK;
+    uint32_t block_size;
+    uint8_t* blocks = new uint8_t[MAX_STORAGE_SIZE] ();
+    status = TYGetByteArraySize(_M_DEVICE, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, &block_size);
+    if(status != TY_STATUS_OK) {
+        delete []blocks;
+    } else {
+      status = TYGetByteArray(_M_DEVICE, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, blocks,  block_size);
+      if(status != TY_STATUS_OK) {
+          delete []blocks;
+      } else {
+        uint32_t crc_data = *(uint32_t*)blocks;
+        if(!crc_data) {
+            LOGE("The CRC check code is empty.");
+            delete []blocks;
+        } else {
+          uint8_t* js_string = blocks + sizeof(uint32_t);
+          uint32_t crc = crc32_bitwise(js_string, strlen((char*)js_string));
+          if(crc_data != crc) {
+              LOGE("The data in the storage area has a CRC check error.");
+              delete []blocks;
+          } else {
+            printf("Default json parameters :\n%s\n",  (const char* )js_string);
+            json_parse(_M_DEVICE, (const char* )js_string);
+            delete []blocks;
+          }
+        }
+      }
+    }
+
     TYGetComponentIDs(_M_DEVICE, &m_ids);
     std::vector<TY_ENUM_ENTRY> feature_info;
     if(m_ids & TY_COMPONENT_IR_CAM_LEFT) {
@@ -197,8 +234,39 @@ namespace percipio
     if(rc != TY_STATUS_OK)
       return rc;
 
-
     _M_DEVICE = deviceHandle;
+    
+    //TODO :load default parameters
+    TY_STATUS status = TY_STATUS_OK;
+    uint32_t block_size;
+    uint8_t* blocks = new uint8_t[MAX_STORAGE_SIZE] ();
+    status = TYGetByteArraySize(_M_DEVICE, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, &block_size);
+    if(status != TY_STATUS_OK) {
+        delete []blocks;
+    } else {
+      status = TYGetByteArray(_M_DEVICE, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, blocks,  block_size);
+      if(status != TY_STATUS_OK) {
+          delete []blocks;
+      } else {
+        uint32_t crc_data = *(uint32_t*)blocks;
+        if(!crc_data) {
+            LOGE("The CRC check code is empty.");
+            delete []blocks;
+        } else {
+          uint8_t* js_string = blocks + sizeof(uint32_t);
+          uint32_t crc = crc32_bitwise(js_string, strlen((char*)js_string));
+          if(crc_data != crc) {
+              LOGE("The data in the storage area has a CRC check error.");
+              delete []blocks;
+          } else {
+            printf("Default json parameters :\n%s\n",  (const char* )js_string);
+            json_parse(_M_DEVICE, (const char* )js_string);
+            delete []blocks;
+          }
+        }
+      }
+    }
+
     TYGetComponentIDs(_M_DEVICE, &m_ids);
     std::vector<TY_ENUM_ENTRY> feature_info;
     if(m_ids & TY_COMPONENT_IR_CAM_LEFT) {
