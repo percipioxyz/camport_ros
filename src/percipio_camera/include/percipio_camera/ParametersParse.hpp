@@ -117,13 +117,21 @@ TY_STATUS device_write_feature(const TY_DEV_HANDLE hDevice, TY_COMPONENT_ID comp
     return status;
 }
 
-void json_parse(const TY_DEV_HANDLE hDevice, const char* jscode)
+struct DevParam
+{
+    TY_COMPONENT_ID compID;
+    TY_FEATURE_ID   featID;
+    Json feat_value;
+};
+
+bool json_parse(const TY_DEV_HANDLE hDevice, const char* jscode)
 {
     std::string err;
     const auto json = Json::parse(jscode, err);
 
     Json components = json["component"];
     if(components.is_array()) {
+        std::vector<DevParam>  param_list(0);   
         for (auto &k : components.array_items()) {
             const Json& comp_id = k["id"];
             const Json& comp_desc = k["desc"];
@@ -153,10 +161,33 @@ void json_parse(const TY_DEV_HANDLE hDevice, const char* jscode)
                 TY_FEATURE_ID m_feat_id;
                 sscanf(feat_id_str,"%x",&m_feat_id);
 
-                device_write_feature(hDevice, m_comp_id, m_feat_id, feat_value);
+                param_list.push_back({m_comp_id, m_feat_id, feat_value});
+            }
+        }
+
+        while(1) 
+        {
+            size_t cnt = param_list.size();
+            for(auto it = param_list.begin(); it != param_list.end(); ) 
+            {
+                if(TY_STATUS_OK == device_write_feature(hDevice, it->compID, it->featID, it->feat_value))
+                {
+                    param_list.erase(it);
+                } else {
+                    ++it;
+                }
+            }
+
+            if(param_list.size() == 0) {
+                return true;
+            }
+
+            if(param_list.size() == cnt) {
+                return false;
             }
         }
     }
+    return false;
 }
 
 #endif
