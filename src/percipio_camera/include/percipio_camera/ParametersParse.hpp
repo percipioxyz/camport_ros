@@ -42,7 +42,7 @@ bool json_parse_arrar(const Json& value, std::vector<char>& buff)
     buff.clear();
     if(value.is_array()) {
         size_t size = value.array_items().size();
-        std::vector<char> buff(size+1);
+        buff.resize(size);
         for(size_t i = 0; i < size; i++)
             buff[i] = static_cast<char>(value[i].number_value());
         return true;
