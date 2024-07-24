@@ -275,10 +275,10 @@ public:
 protected:
   void shutdown();
 
-  boost::shared_ptr<percipio::VideoStream> getIRVideoStream(bool create) const;
-  boost::shared_ptr<percipio::VideoStream> getColorVideoStream(bool create) const;
-  boost::shared_ptr<percipio::VideoStream> getDepthVideoStream(bool create) const;
-  boost::shared_ptr<percipio::VideoStream> getPoint3DVideoStream(bool create) const;
+  boost::shared_ptr<percipio::VideoStream> getIRVideoStream() const;
+  boost::shared_ptr<percipio::VideoStream> getColorVideoStream() const;
+  boost::shared_ptr<percipio::VideoStream> getDepthVideoStream() const;
+  boost::shared_ptr<percipio::VideoStream> getPoint3DVideoStream() const;
 
   percipio::CameraSettings* getPoint3DCameraSettingsPtr() const;
   percipio::CameraSettings* getDepthCameraSettingsPtr() const;

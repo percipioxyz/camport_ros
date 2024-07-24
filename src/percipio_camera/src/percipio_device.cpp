@@ -85,7 +85,7 @@ PercipioDevice::PercipioDevice(const std::string& device_URI) :
   point3d_frame_listener = boost::make_shared<PercipioFrameListener>();
 
   //m_sensorInfo._setInternal(g_Context.get()->StreamGetSensorInfo(m_stream));
-  /*
+  
   boost::shared_ptr<percipio::VideoStream> ir_stream = getIRVideoStream();
   if (ir_stream)
     ir_stream->addNewFrameListener(ir_frame_listener.get());
@@ -101,7 +101,6 @@ PercipioDevice::PercipioDevice(const std::string& device_URI) :
   boost::shared_ptr<percipio::VideoStream> point3d_stream = getPoint3DVideoStream();
   if(point3d_stream)
     point3d_stream->addNewFrameListener(point3d_frame_listener.get());
-  */
 }
 
 PercipioDevice::~PercipioDevice()
@@ -165,7 +164,7 @@ bool PercipioDevice::isValid() const
 float PercipioDevice::getIRFocalLength(int output_y_resolution) const
 {
   float focal_length = 0.0f;
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
   if (stream)
   {
     focal_length = (float)output_y_resolution / (2 * tan(stream->getVerticalFieldOfView() / 2));
@@ -177,7 +176,7 @@ float PercipioDevice::getIRFocalLength(int output_y_resolution) const
 float PercipioDevice::getColorFocalLength(int output_y_resolution) const
 {
   float focal_length = 0.0f;
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
   if (stream)
   {
     focal_length = (float)output_y_resolution / (2 * tan(stream->getVerticalFieldOfView() / 2));
@@ -189,7 +188,7 @@ float PercipioDevice::getColorFocalLength(int output_y_resolution) const
 float PercipioDevice::getDepthFocalLength(int output_y_resolution) const
 {
   float focal_length = 0.0f;
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
 
   if (stream)
   {
@@ -296,7 +295,7 @@ bool PercipioDevice::setDepthResolutuon(int w, int h)
 
 void PercipioDevice::startIRStream()
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream(true);
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
   if (stream)
   {
     stream->addNewFrameListener(ir_frame_listener.get());
@@ -308,7 +307,7 @@ void PercipioDevice::startIRStream()
 
 void PercipioDevice::startColorStream()
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream(true);
+  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
   if (stream)
   {
     stream->addNewFrameListener(color_frame_listener.get());
@@ -318,7 +317,7 @@ void PercipioDevice::startColorStream()
 }
 void PercipioDevice::startDepthStream()
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream(true);
+  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
   if (stream)
   {
     stream->addNewFrameListener(depth_frame_listener.get());
@@ -333,7 +332,7 @@ void PercipioDevice::startDepthStream()
 
 void PercipioDevice::startPoint3DStream()
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getPoint3DVideoStream(true);
+  boost::shared_ptr<percipio::VideoStream> stream = getPoint3DVideoStream();
   if(stream)
   {
     stream->addNewFrameListener(point3d_frame_listener.get());
@@ -426,7 +425,7 @@ bool PercipioDevice::isPoint3DStreamStarted()
 
 const std::vector<PercipioVideoMode>& PercipioDevice::getSupportedIRVideoModes() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
   ir_video_modes_.clear();
 
   if (stream)
@@ -439,7 +438,7 @@ const std::vector<PercipioVideoMode>& PercipioDevice::getSupportedIRVideoModes()
 
 const std::vector<PercipioVideoMode>& PercipioDevice::getSupportedColorVideoModes() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
   color_video_modes_.clear();
   if (stream)
   {
@@ -451,7 +450,7 @@ const std::vector<PercipioVideoMode>& PercipioDevice::getSupportedColorVideoMode
 
 const std::vector<PercipioVideoMode>& PercipioDevice::getSupportedDepthVideoModes() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
   depth_video_modes_.clear();
 
   if (stream)
@@ -550,7 +549,7 @@ void PercipioDevice::setDeviceRGBDSynchronization(bool enabled)
 const PercipioVideoMode PercipioDevice::getIRVideoMode()
 {
   PercipioVideoMode ret;
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
   if (stream)
   {
     percipio::VideoMode video_mode = stream->getVideoMode();
@@ -567,7 +566,7 @@ const PercipioVideoMode PercipioDevice::getColorVideoMode()
 {
   PercipioVideoMode ret;
 
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
   if (stream)
   {
     percipio::VideoMode video_mode = stream->getVideoMode();
@@ -589,7 +588,7 @@ const PercipioVideoMode PercipioDevice::getColorVideoMode()
 const PercipioVideoMode PercipioDevice::getDepthVideoMode()
 {
   PercipioVideoMode ret;
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
 
   if (stream)
   {
@@ -605,7 +604,7 @@ const PercipioVideoMode PercipioDevice::getDepthVideoMode()
 
 void PercipioDevice::setIRVideoMode(const PercipioVideoMode& video_mode)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
 
   if (stream)
   {
@@ -618,7 +617,7 @@ void PercipioDevice::setIRVideoMode(const PercipioVideoMode& video_mode)
 
 void PercipioDevice::setColorVideoMode(const PercipioVideoMode& video_mode)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
 
   if (stream)
   {
@@ -631,7 +630,7 @@ void PercipioDevice::setColorVideoMode(const PercipioVideoMode& video_mode)
 
 void PercipioDevice::setDepthVideoMode(const PercipioVideoMode& video_mode)
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
 
   if (stream)
   {
@@ -644,7 +643,7 @@ void PercipioDevice::setDepthVideoMode(const PercipioVideoMode& video_mode)
 
 percipio::CameraSettings* PercipioDevice::getPoint3DCameraSettingsPtr() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getPoint3DVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getPoint3DVideoStream();
   if(stream)
     return stream->getCameraSettings();
   else
@@ -653,7 +652,7 @@ percipio::CameraSettings* PercipioDevice::getPoint3DCameraSettingsPtr() const
 
 percipio::CameraSettings* PercipioDevice::getDepthCameraSettingsPtr() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
   if(stream) 
     return stream->getCameraSettings();
   else
@@ -662,7 +661,7 @@ percipio::CameraSettings* PercipioDevice::getDepthCameraSettingsPtr() const
 
 percipio::CameraSettings* PercipioDevice::getColorCameraSettingsPtr() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
   if(stream) 
     return stream->getCameraSettings();
   else
@@ -671,7 +670,7 @@ percipio::CameraSettings* PercipioDevice::getColorCameraSettingsPtr() const
 
 percipio::CameraSettings* PercipioDevice::getIRCameraSettingsPtr() const
 {
-  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream(false);
+  boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
   if(stream) 
     return stream->getCameraSettings();
   else
@@ -1665,9 +1664,9 @@ void PercipioDevice::setPoint3DFrameCallback(FrameCallbackFunction callback)
   point3d_frame_listener->setCallback(callback);
 }
 
-boost::shared_ptr<percipio::VideoStream> PercipioDevice::getIRVideoStream(bool create) const
+boost::shared_ptr<percipio::VideoStream> PercipioDevice::getIRVideoStream() const
 {
-  if (ir_video_stream_.get() == 0 && create)
+  if (ir_video_stream_.get() == NULL)
   {
     if (hasIRSensor())
     {
@@ -1681,9 +1680,9 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getIRVideoStream(bool c
   return ir_video_stream_;
 }
 
-boost::shared_ptr<percipio::VideoStream> PercipioDevice::getColorVideoStream(bool create) const
+boost::shared_ptr<percipio::VideoStream> PercipioDevice::getColorVideoStream() const
 {
-  if (color_video_stream_.get() == 0 && create)
+  if (color_video_stream_.get() == NULL)
   {
     if (hasColorSensor())
     {
@@ -1697,9 +1696,9 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getColorVideoStream(boo
   return color_video_stream_;
 }
 
-boost::shared_ptr<percipio::VideoStream> PercipioDevice::getDepthVideoStream(bool create) const
+boost::shared_ptr<percipio::VideoStream> PercipioDevice::getDepthVideoStream() const
 {
-  if (depth_video_stream_.get() == 0 && create)
+  if (depth_video_stream_.get() == NULL)
   {
     if (hasDepthSensor())
     {
@@ -1712,9 +1711,9 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getDepthVideoStream(boo
   return depth_video_stream_;
 }
 
-boost::shared_ptr<percipio::VideoStream> PercipioDevice::getPoint3DVideoStream(bool create) const
+boost::shared_ptr<percipio::VideoStream> PercipioDevice::getPoint3DVideoStream() const
 {
-  if(point3d_video_stream_.get() == 0 && create)
+  if(point3d_video_stream_.get() == NULL)
   {
     if (hasPoint3DSensor())
     {
