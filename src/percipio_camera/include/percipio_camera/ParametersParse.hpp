@@ -172,7 +172,7 @@ bool json_parse(const TY_DEV_HANDLE hDevice, const char* jscode)
             {
                 if(TY_STATUS_OK == device_write_feature(hDevice, it->compID, it->featID, it->feat_value))
                 {
-                    param_list.erase(it);
+                    it = param_list.erase(it);
                 } else {
                     ++it;
                 }
