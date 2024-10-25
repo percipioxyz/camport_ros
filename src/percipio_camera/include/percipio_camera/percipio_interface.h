@@ -122,9 +122,14 @@ namespace percipio
         current_rgb_height = 0;
 
         device_list.clear();
+
+        TY_STATUS rc;
+        rc = TYInitLib();
       }
+      
       ~percipio_depth_cam()
       {
+        TYDeinitLib();
       }
 
       TY_STATUS initialize();

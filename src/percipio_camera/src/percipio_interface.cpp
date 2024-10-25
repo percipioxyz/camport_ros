@@ -41,21 +41,6 @@ namespace percipio
   //// 
   TY_STATUS percipio_depth_cam::initialize()
   {
-    TY_STATUS rc;
-    rc = TYInitLib();
-    //if(rc != TY_STATUS_OK)
-    //  return rc;
-#if 0
-    std::vector<TY_DEVICE_BASE_INFO> selected;
-    rc = selectDevice(TY_INTERFACE_ALL, "", "", 100, selected);
-    if(rc != TY_STATUS_OK || (0 == selected.size())) {
-      TYDeinitLib();
-      return TY_STATUS_OK;
-    }
-    for(size_t i = 0; i < selected.size(); i++) {
-      device_list.push_back(DeviceInfo(selected[i].id, selected[i].vendorName, selected[i].modelName));
-    }
-#endif
     return TY_STATUS_OK;
   }
 
@@ -2352,12 +2337,12 @@ namespace percipio
 
   TY_STATUS Percipio::initialize()
   {
-    if(g_Context.get() == NULL) {
-      g_Context = boost::make_shared<percipio_depth_cam>();
-      return g_Context.get()->initialize();
-    } else {
-      return g_Context.get()->initialize();
-    }
+    if(g_Context.get()) 
+      g_Context.reset();
+
+    g_Context = boost::make_shared<percipio_depth_cam>();
+    return g_Context.get()->initialize();
+
   } 
 
   void Percipio::enumerateDevices(Array<DeviceInfo>* deviceInfoList)

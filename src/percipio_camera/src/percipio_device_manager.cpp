@@ -117,7 +117,8 @@ public:
     const PercipioDeviceInfo device_info_wrapped = percipio_convert(pInfo);
     device_set_.erase(device_info_wrapped);
 
-    
+    //kill node
+    //system("rosnode kill /camera/driver");
   }
 
   boost::shared_ptr<std::vector<std::string> > getConnectedDeviceURIs()
