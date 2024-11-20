@@ -103,6 +103,7 @@ namespace percipio
         continue;
       rc = TYOpenDevice(_M_IFACE, selectedDev.id, &deviceHandle);
       if(rc != TY_STATUS_OK) {
+        ROS_INFO("TYOpenDevice err : %d", rc);
         TYCloseInterface(_M_IFACE);
         continue;
       }
@@ -112,6 +113,11 @@ namespace percipio
 
     if(rc != TY_STATUS_OK)
       return rc;
+
+    TY_DEVICE_BASE_INFO info;
+    TYGetDeviceInfo(deviceHandle, &info);
+
+    m_current_device_sn = info.id;
 
     _M_DEVICE = deviceHandle;
 
@@ -218,6 +224,11 @@ namespace percipio
 
     if(rc != TY_STATUS_OK)
       return rc;
+
+    TY_DEVICE_BASE_INFO info;
+    TYGetDeviceInfo(deviceHandle, &info);
+
+    m_current_device_sn = info.id;
 
     _M_DEVICE = deviceHandle;
     
@@ -459,6 +470,9 @@ namespace percipio
           continue;
         
         cb_list[i].cb->deviceDisconnected(static_cast<DeviceInfo*>(userdata), cb_list[i].pListener);
+
+        percipio_depth_cam::isOffline = true;
+        //
       }
     }
   }
@@ -959,6 +973,32 @@ namespace percipio
     return v;
   }
 
+  bool percipio_depth_cam::isOffline = false;
+  void* percipio_depth_cam::device_offline_reconnect(void* ptr)
+  {
+    percipio_depth_cam* cam = (percipio_depth_cam*)ptr;
+    while(true) {
+      if(cam->isOffline) {
+        cam->StreamStopAll();
+        cam->close();
+        while(true) {
+          if(!cam->openWithSN(cam->m_current_device_sn.c_str())) {
+            ROS_INFO("camera: %s  opened!", cam->m_current_device_sn.c_str());
+            break;
+          }
+
+          ROS_INFO("camera: %s  failed, retry!", cam->m_current_device_sn.c_str());
+          MSLEEP(1000);
+        }
+        
+        percipio_depth_cam::isOffline = false;
+        cam->StreamStart();
+      }
+    }
+
+    return nullptr;
+  }
+
   void* percipio_depth_cam::fetch_thread(void* ptr)
   {
     TY_STATUS rc;
@@ -1201,6 +1241,10 @@ namespace percipio
     isRuning = true;
     pthread_create(&frame_fetch_thread, NULL, fetch_thread, this);
 
+    if(!b_device_opened) {
+      b_device_opened = true;
+      pthread_create(&device_status_listen, NULL, device_offline_reconnect, this);
+    }
     return TY_STATUS_OK;
   }
 

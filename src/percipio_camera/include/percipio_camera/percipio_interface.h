@@ -211,6 +211,8 @@ namespace percipio
 
       static void* fetch_thread(void* ptr);
 
+      static void* device_offline_reconnect(void* ptr);
+
       bool HasStream();
 
       void enable_stream(StreamHandle stream);
@@ -223,6 +225,8 @@ namespace percipio
 
       SensorType StreamGetSensorInfo(StreamHandle stream);
 
+      std::string            m_current_device_sn;
+      static bool            isOffline;
       bool                   isRuning;
       const TY_DEV_HANDLE getCurrentDeviceHandle() const;
       
@@ -238,6 +242,9 @@ namespace percipio
 
       char*                  frameBuffer[2];
       pthread_t              frame_fetch_thread;
+
+      bool                   b_device_opened = false;
+      pthread_t              device_status_listen;
 
       boost::shared_ptr<NewFrameCallbackManager> leftIRStream;
       boost::shared_ptr<NewFrameCallbackManager> rightIRStream;
