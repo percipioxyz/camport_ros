@@ -51,7 +51,7 @@
 namespace percipio_wrapper
 {
 
-PercipioDevice::PercipioDevice(const std::string& device_URI) :
+PercipioDevice::PercipioDevice(const std::string& device_URI, const bool auto_reconnect) :
     percipio_device_(),
     ir_video_started_(false),
     color_video_started_(false),
@@ -66,11 +66,11 @@ PercipioDevice::PercipioDevice(const std::string& device_URI) :
   percipio_device_ = boost::make_shared<percipio::Device>();
   if (device_URI.length() > 0)
   {
-    rc = percipio_device_->open(device_URI.c_str());
+    rc = percipio_device_->open(device_URI.c_str(), auto_reconnect);
   }
   else
   {
-    rc = percipio_device_->open(percipio::ANY_DEVICE);
+    rc = percipio_device_->open(percipio::ANY_DEVICE, auto_reconnect);
   }
 
   if (rc != TY_STATUS_OK)

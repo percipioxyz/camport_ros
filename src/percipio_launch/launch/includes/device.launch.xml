@@ -6,6 +6,7 @@
 
   <!-- Driver parameters -->
   <arg name="device_id" />
+  <arg name="device_reconnection" default="false"/>
   <arg name="rgb_frame_id" />
   <arg name="depth_frame_id" />
   <arg name="gvsp_resend" default="false" />
@@ -66,6 +67,7 @@
         args="load percipio_camera/PercipioDriverNodelet $(arg manager)"
 	    respawn="$(arg respawn)">
     <param name="device_id" type="str" value="$(arg device_id)" />
+    <param name="device_reconnection" type="bool" value="$(arg device_reconnection)" />
     <param name="rgb_frame_id"   value="$(arg rgb_frame_id)" />
     <param name="depth_frame_id" value="$(arg depth_frame_id)" />
 

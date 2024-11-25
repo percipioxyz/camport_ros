@@ -14,6 +14,9 @@
          "IP            : select the net camera with a specified IP"   -->
   <arg name="device_id" default="#1" />
 
+  <!--If the device is offline or disconnected, the driver will attempt to reconnect -->
+  <arg name="device_reconnection" default="false" />
+
   <!-- Driver parameters -->
   <arg name="gvsp_resend" default="false" />
 
@@ -116,6 +119,8 @@
 	     file="$(find percipio_launch)/launch/includes/device.launch.xml">
       <arg name="manager"                         value="$(arg manager)" />
       <arg name="device_id"                       value="$(arg device_id)" />
+      <arg name="device_reconnection"             value="$(arg device_reconnection)" />
+      
       <arg name="rgb_frame_id"                    value="$(arg rgb_frame_id)" />
       <arg name="depth_frame_id"                  value="$(arg depth_frame_id)" />
       <arg name="rgb"                             value="$(arg rgb)" />

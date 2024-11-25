@@ -119,6 +119,8 @@ private:
   std::string rgb_resolution_;
   std::string depth_resolution_;
 
+  bool reconnection_flag_;
+
   bool gvsp_resend_;
 
   bool color_undistortion_;

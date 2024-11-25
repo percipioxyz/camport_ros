@@ -245,9 +245,9 @@ boost::shared_ptr<PercipioDevice> PercipioDeviceManager::getAnyDevice()
 {
   return boost::make_shared<PercipioDevice>("");
 }
-boost::shared_ptr<PercipioDevice> PercipioDeviceManager::getDevice(const std::string& device_URI)
+boost::shared_ptr<PercipioDevice> PercipioDeviceManager::getDevice(const std::string& device_URI, const bool reconnection)
 {
-  return boost::make_shared<PercipioDevice>(device_URI);
+  return boost::make_shared<PercipioDevice>(device_URI, reconnection);
 }
 
 

@@ -87,7 +87,7 @@ namespace percipio
       *(*device_info_ptr + i) = device_list[i];
   }
 
-  TY_STATUS percipio_depth_cam::openWithSN(const char* sn)
+  TY_STATUS percipio_depth_cam::openWithSN(const char* sn, const bool auto_reconnect)
   {
     TY_DEV_HANDLE deviceHandle;
     std::vector<TY_DEVICE_BASE_INFO> selected;
@@ -195,11 +195,19 @@ namespace percipio
     }
 
     TYRegisterEventCallback(_M_DEVICE, eventCallback, this);
+
+    if(!auto_reconnect) 
+      return TY_STATUS_OK;
+    
+    if(!b_device_opened) {
+      b_device_opened = true;
+      pthread_create(&device_status_listen, NULL, device_offline_reconnect, this);
+    }
     return TY_STATUS_OK;
   }
 
   
-  TY_STATUS percipio_depth_cam::openWithIP(const char* ip)
+  TY_STATUS percipio_depth_cam::openWithIP(const char* ip, const bool auto_reconnect)
   {
     TY_DEV_HANDLE deviceHandle;
     std::vector<TY_DEVICE_BASE_INFO> selected;
@@ -306,6 +314,15 @@ namespace percipio
     }
 
     TYRegisterEventCallback(_M_DEVICE, eventCallback, this);
+
+    if(!auto_reconnect) 
+      return TY_STATUS_OK;
+
+    if(!b_device_opened) {
+      b_device_opened = true;
+      pthread_create(&device_status_listen, NULL, device_offline_reconnect, this);
+    }
+
     return TY_STATUS_OK;
   }
 
@@ -998,8 +1015,9 @@ namespace percipio
       }
         
       percipio_depth_cam::isOffline = false;
-      cam->StreamStart();
-      //}
+      if(cam->HasStream()) {
+        cam->StreamStart();
+      }
     }
 
     return nullptr;
@@ -1246,11 +1264,7 @@ namespace percipio
     
     isRuning = true;
     pthread_create(&frame_fetch_thread, NULL, fetch_thread, this);
-
-    if(!b_device_opened) {
-      b_device_opened = true;
-      pthread_create(&device_status_listen, NULL, device_offline_reconnect, this);
-    }
+    
     return TY_STATUS_OK;
   }
 
@@ -2142,7 +2156,7 @@ namespace percipio
     m_pStream = pStream;
   }
 
-  TY_STATUS Device::open(const char* uri)
+  TY_STATUS Device::open(const char* uri, const bool auto_reconnect)
   {
     TY_STATUS rc;
     if(!m_isOwner)
@@ -2156,9 +2170,9 @@ namespace percipio
 
     bool isIP = IPv4_verify(uri);   
     if(isIP)
-      rc = g_Context.get()->openWithIP(uri);
+      rc = g_Context.get()->openWithIP(uri, auto_reconnect);
     else
-      rc = g_Context.get()->openWithSN(uri);
+      rc = g_Context.get()->openWithSN(uri, auto_reconnect);
     if(rc != TY_STATUS_OK)
       return rc;
 

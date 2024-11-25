@@ -837,6 +837,12 @@ void PercipioDriver::readConfigFromParameterServer()
     device_id_ = "#1";
   }
 
+  if (!pnh_.getParam("device_reconnection", reconnection_flag_))
+  {
+    ROS_WARN ("~reconnection flag is not set! Using default.");
+    reconnection_flag_ = false;
+  }
+
   if(!pnh_.getParam("gvsp_resend", gvsp_resend_))
   {
     ROS_WARN ("~gvsp resend is not set! Using default.");
@@ -1057,7 +1063,6 @@ void PercipioDriver::initDevice()
     try
     {
       std::string device_URI = resolveDeviceURI(device_id_);
-
       if(!device_URI.length()) {
         ROS_INFO("No matching device found.... waiting for devices.");
         boost::this_thread::sleep(boost::posix_time::seconds(3));
@@ -1069,7 +1074,7 @@ void PercipioDriver::initDevice()
       resolveDeviceResolution(rgb_resolution_, rgb_width, rgb_height);
       resolveDeviceResolution(depth_resolution_, depth_width, depth_height);
       
-      device_ = device_manager_->getDevice(device_URI);
+      device_ = device_manager_->getDevice(device_URI, reconnection_flag_);
 
       device_.get()->setGvspResendEnable(gvsp_resend_);
 

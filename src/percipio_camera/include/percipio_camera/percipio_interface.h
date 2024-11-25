@@ -138,8 +138,8 @@ namespace percipio
       TY_STATUS initialize();
       void GetDeviceList(DeviceInfo** device_info_ptr, int* cnt);
 
-      TY_STATUS openWithSN(const char* sn);
-      TY_STATUS openWithIP(const char* ip);
+      TY_STATUS openWithSN(const char* sn, const bool auto_reconnect = false);
+      TY_STATUS openWithIP(const char* ip, const bool auto_reconnect = false);
 
       const DeviceInfo& get_current_device_info();
 
@@ -711,7 +711,7 @@ public:
 	    {
 	    }
 
-      TY_STATUS open(const char* uri);
+      TY_STATUS open(const char* uri, const bool auto_reconnect = false);
 
       void close();
 

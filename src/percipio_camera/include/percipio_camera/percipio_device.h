@@ -66,7 +66,7 @@ class PercipioFrameListener;
 class PercipioDevice
 {
 public:
-  PercipioDevice(const std::string& device_URI);
+  PercipioDevice(const std::string& device_URI, const bool auto_reconnect = false);
   virtual ~PercipioDevice();
 
   const std::string getUri() const;

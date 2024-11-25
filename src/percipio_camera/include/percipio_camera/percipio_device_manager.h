@@ -59,7 +59,7 @@ public:
   std::size_t getNumOfConnectedDevices() const;
 
   boost::shared_ptr<PercipioDevice> getAnyDevice();
-  boost::shared_ptr<PercipioDevice> getDevice(const std::string& device_URI);
+  boost::shared_ptr<PercipioDevice> getDevice(const std::string& device_URI, const bool reconnection = false);
 
   std::string getSerial(const std::string& device_URI) const;
 
