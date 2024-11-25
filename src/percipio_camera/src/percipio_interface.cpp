@@ -194,7 +194,7 @@ namespace percipio
       current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID);
     }
 
-    TYRegisterEventCallback(_M_DEVICE, eventCallback, &current_device_info);
+    TYRegisterEventCallback(_M_DEVICE, eventCallback, this);
     return TY_STATUS_OK;
   }
 
@@ -305,7 +305,7 @@ namespace percipio
       current_device_info = DeviceInfo(selectedDev.id, selectedDev.vendorName, selectedDev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID);
     }
 
-    TYRegisterEventCallback(_M_DEVICE, eventCallback, &current_device_info);
+    TYRegisterEventCallback(_M_DEVICE, eventCallback, this);
     return TY_STATUS_OK;
   }
 
@@ -468,11 +468,13 @@ namespace percipio
         
         if(cb_list[i].cb->deviceDisconnected == NULL)
           continue;
-        
-        cb_list[i].cb->deviceDisconnected(static_cast<DeviceInfo*>(userdata), cb_list[i].pListener);
+
+        cb_list[i].cb->deviceDisconnected(&((percipio_depth_cam*)userdata)->current_device_info, cb_list[i].pListener);
 
         percipio_depth_cam::isOffline = true;
-        //
+
+        std::unique_lock<std::mutex> lck( ((percipio_depth_cam*)userdata)->detect_mutex);
+        ((percipio_depth_cam*)userdata)->detect_cond.notify_one();
       }
     }
   }
@@ -974,26 +976,30 @@ namespace percipio
   }
 
   bool percipio_depth_cam::isOffline = false;
+  bool percipio_depth_cam::b_device_opened = false;
+
   void* percipio_depth_cam::device_offline_reconnect(void* ptr)
   {
     percipio_depth_cam* cam = (percipio_depth_cam*)ptr;
-    while(true) {
-      if(cam->isOffline) {
-        cam->StreamStopAll();
-        cam->close();
-        while(true) {
-          if(!cam->openWithSN(cam->m_current_device_sn.c_str())) {
-            ROS_INFO("camera: %s  opened!", cam->m_current_device_sn.c_str());
-            break;
-          }
 
-          ROS_INFO("camera: %s  failed, retry!", cam->m_current_device_sn.c_str());
-          MSLEEP(1000);
+    while(cam->b_device_opened) {
+      std::unique_lock<std::mutex> lck(cam->detect_mutex);
+      cam->detect_cond.wait(lck);
+      cam->StreamStopAll();
+      cam->close();
+      while(true) {
+        if(!cam->openWithSN(cam->m_current_device_sn.c_str())) {
+          ROS_INFO("camera: %s  opened!", cam->m_current_device_sn.c_str());
+          break;
         }
-        
-        percipio_depth_cam::isOffline = false;
-        cam->StreamStart();
+
+        ROS_INFO("camera: %s  failed, retry!", cam->m_current_device_sn.c_str());
+        MSLEEP(1000);
       }
+        
+      percipio_depth_cam::isOffline = false;
+      cam->StreamStart();
+      //}
     }
 
     return nullptr;

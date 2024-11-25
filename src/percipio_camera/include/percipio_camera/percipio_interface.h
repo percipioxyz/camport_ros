@@ -10,6 +10,9 @@
 
 #include <ros/ros.h>
 
+#include <condition_variable>
+#include <mutex>
+
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/thread/mutex.hpp>
@@ -142,8 +145,6 @@ namespace percipio
 
       bool set_image_mode(TY_COMPONENT_ID  comp, int width, int height);
       
-      //static DeviceCallbacks* cb;
-      //static DeviceDisconnectedListener* pListener;
       static void eventCallback(TY_EVENT_INFO *event_info, void *userdata);
 
       TY_STATUS RegisterDeviceCallbacks(DeviceCallbacks* callback, void* listener);
@@ -230,6 +231,11 @@ namespace percipio
       bool                   isRuning;
       const TY_DEV_HANDLE getCurrentDeviceHandle() const;
       
+      std::mutex detect_mutex;
+      std::condition_variable detect_cond;
+      static bool   b_device_opened;
+      pthread_t     device_status_listen;
+      
     private:
       TY_INTERFACE_HANDLE _M_IFACE;
       TY_DEV_HANDLE       _M_DEVICE;
@@ -242,9 +248,6 @@ namespace percipio
 
       char*                  frameBuffer[2];
       pthread_t              frame_fetch_thread;
-
-      bool                   b_device_opened = false;
-      pthread_t              device_status_listen;
 
       boost::shared_ptr<NewFrameCallbackManager> leftIRStream;
       boost::shared_ptr<NewFrameCallbackManager> rightIRStream;
