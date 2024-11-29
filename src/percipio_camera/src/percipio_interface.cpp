@@ -78,7 +78,7 @@ namespace percipio
     
     uint32_t crc_data = *(uint32_t*)blocks;
     if(0 == crc_data || 0xffffffff == crc_data) {
-        LOGE("The CRC check code is empty.");
+        LOGD("The CRC check code is empty.");
         delete []blocks;
         return false;
     } 
@@ -101,7 +101,6 @@ namespace percipio
                 }
                 
                 crc = crc32_bitwise(huffman_ptr, huffman_size);
-                LOGD("crc : 0x%x, 0x%x", crc, crc_data);
                 if(crc_data != crc) {
                     LOGE("Storage area data check failed (check code error).");
                     delete []blocks;
@@ -133,10 +132,14 @@ namespace percipio
         return false;
     }
 
-    json_parse(_M_DEVICE, js_string.c_str());
-
+    bool ret = json_parse(_M_DEVICE, js_string.c_str());
+    if(ret)  
+      LOGD("Loading default parameters successfully!");
+    else
+      LOGD("Failed to load default parameters, some parameters cannot be loaded properly!");
+    
     delete []blocks;
-    return true;
+    return ret;
   }
 
   void percipio_depth_cam::GetDeviceList(DeviceInfo** device_info_ptr, int* cnt)
