@@ -10,6 +10,7 @@
 
 #include "percipio_camera/crc32.hpp"
 #include "percipio_camera/ParametersParse.hpp"
+#include "percipio_camera/huffman.h"
 
 
 #define MAX_STORAGE_SIZE    (10*1024*1024)
@@ -42,6 +43,100 @@ namespace percipio
   TY_STATUS percipio_depth_cam::initialize()
   {
     return TY_STATUS_OK;
+  }
+
+
+  enum EncodingType : uint32_t  
+  {
+    HUFFMAN = 0,
+  };
+
+  static bool isValidJsonString(const char* code)
+  {
+      std::string err;
+      const auto json = Json::parse(code, err);
+      if(json.is_null()) return false;
+      return true;
+  }
+
+  bool percipio_depth_cam::load_default_parameter()
+  {
+    TY_STATUS status = TY_STATUS_OK;
+    uint32_t block_size;
+    uint8_t* blocks = new uint8_t[MAX_STORAGE_SIZE] ();
+    status = TYGetByteArraySize(_M_DEVICE, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, &block_size);
+    if(status != TY_STATUS_OK) {
+        delete []blocks;
+        return false;
+    } 
+    
+    status = TYGetByteArray(_M_DEVICE, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, blocks,  block_size);
+    if(status != TY_STATUS_OK) {
+        delete []blocks;
+        return false;
+    }
+    
+    uint32_t crc_data = *(uint32_t*)blocks;
+    if(0 == crc_data || 0xffffffff == crc_data) {
+        LOGE("The CRC check code is empty.");
+        delete []blocks;
+        return false;
+    } 
+    
+    uint32_t crc;
+    std::string js_string;
+    uint8_t* js_code = blocks + 4;
+    crc = crc32_bitwise(js_code, strlen((const char*)js_code));
+    if((crc != crc_data) || !isValidJsonString((const char*)js_code)) {
+        EncodingType type = *(EncodingType*)(blocks + 4);
+        switch(type) {
+            case HUFFMAN:
+            {
+                uint32_t huffman_size = *(uint32_t*)(blocks + 8);
+                uint8_t* huffman_ptr = (uint8_t*)(blocks + 12);
+                if(huffman_size > (MAX_STORAGE_SIZE - 8)) {
+                    LOGE("Storage data length error.");
+                    delete []blocks;
+                    return false;
+                }
+                
+                crc = crc32_bitwise(huffman_ptr, huffman_size);
+                LOGD("crc : 0x%x, 0x%x", crc, crc_data);
+                if(crc_data != crc) {
+                    LOGE("Storage area data check failed (check code error).");
+                    delete []blocks;
+                    return false;
+                }
+
+                std::string huffman_string(huffman_ptr, huffman_ptr + huffman_size);
+                if(!TextHuffmanDecompression(huffman_string, js_string)) {
+                    LOGE("Huffman decompression error.");
+                    delete []blocks;
+                    return false;
+                }
+                break;
+            }
+            default:
+            {
+                LOGE("Unsupported encoding format.");
+                delete []blocks;
+                return false;
+            }
+        }
+    } else {
+        js_string = std::string((const char*)js_code);
+    }
+
+    if(!isValidJsonString(js_string.c_str())) {
+        LOGE("Incorrect json data.");
+        delete []blocks;
+        return false;
+    }
+
+    json_parse(_M_DEVICE, js_string.c_str());
+
+    delete []blocks;
+    return true;
   }
 
   void percipio_depth_cam::GetDeviceList(DeviceInfo** device_info_ptr, int* cnt)
@@ -121,6 +216,7 @@ namespace percipio
 
     _M_DEVICE = deviceHandle;
 
+#if 0
     //TODO :load default parameters
     TY_STATUS status = TY_STATUS_OK;
     uint32_t block_size;
@@ -151,6 +247,7 @@ namespace percipio
         }
       }
     }
+#endif
 
     TYGetComponentIDs(_M_DEVICE, &m_ids);
     std::vector<TY_ENUM_ENTRY> feature_info;
@@ -205,7 +302,6 @@ namespace percipio
     }
     return TY_STATUS_OK;
   }
-
   
   TY_STATUS percipio_depth_cam::openWithIP(const char* ip, const bool auto_reconnect)
   {
@@ -239,7 +335,7 @@ namespace percipio
     m_current_device_sn = info.id;
 
     _M_DEVICE = deviceHandle;
-    
+  #if 0
     //TODO :load default parameters
     TY_STATUS status = TY_STATUS_OK;
     uint32_t block_size;
@@ -270,7 +366,7 @@ namespace percipio
         }
       }
     }
-
+#endif
     TYGetComponentIDs(_M_DEVICE, &m_ids);
     std::vector<TY_ENUM_ENTRY> feature_info;
     if(m_ids & TY_COMPONENT_IR_CAM_LEFT) {
@@ -1159,6 +1255,8 @@ namespace percipio
       ROS_WARN("device has no stream component!");
       return TY_STATUS_ERROR;
     }
+
+    load_default_parameter();
 
     //VideoStream
     std::string component_list;

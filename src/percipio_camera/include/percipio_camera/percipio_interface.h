@@ -174,6 +174,8 @@ namespace percipio
 
       bool DeviceIsImageRegistrationModeSupported() const;
 
+      bool load_default_parameter();
+
       TY_STATUS DeviceSetImageRegistrationMode(ImageRegistrationMode mode);
       ImageRegistrationMode DeviceGetImageRegistrationMode();
       TY_STATUS MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);

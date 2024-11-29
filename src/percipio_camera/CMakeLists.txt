@@ -40,6 +40,7 @@ add_library(percipio_wrapper
    src/percipio_device_manager.cpp
    src/percipio_exception.cpp
    src/percipio_video_mode.cpp
+   src/huffman.cpp
 )
 
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/camport3/include)
