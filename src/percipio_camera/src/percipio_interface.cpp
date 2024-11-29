@@ -2015,6 +2015,11 @@ namespace percipio
     return setProperty(TY_FLOAT_SCALE_UNIT, &scale);
   }
 
+  float CameraSettings::getDepthScaleValue()
+  {
+    return g_Context.get()->getDepthScaleUnit();
+  }
+
   TY_STATUS  CameraSettings::setDevicePacketSize(int size)
   {
     return setProperty(TY_INT_PACKET_SIZE, &size);

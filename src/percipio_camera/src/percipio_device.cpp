@@ -1164,6 +1164,16 @@ void PercipioDevice::setDepthScale(float scale)
   }
 }
 
+float PercipioDevice::getDepthScale()
+{
+  percipio::CameraSettings* camera_seeting = getDepthCameraSettingsPtr();
+  if (camera_seeting)
+  {
+    return camera_seeting->getDepthScaleValue();
+  }
+  return 1.f;
+}
+
 //
 void PercipioDevice::setDevicePacketSize(int size)
 {

@@ -570,13 +570,14 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
         //TODO
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
 
+        float f_scale_unit = device_->getDepthScale();
         int16_t* data = reinterpret_cast<int16_t*>(&image->data[0]);
         for(int i = 0; i < image->width * image->height; i++) {
           if(data[3*i] != 0) {
             pcl::PointXYZRGB  p;
-            p.x = data[3*i] / 1000.f;
-            p.y = data[3*i + 1] / 1000.f;
-            p.z = data[3*i + 2] / 1000.f;
+            p.x = f_scale_unit * data[3*i] / 1000.f;
+            p.y = f_scale_unit * data[3*i + 1] / 1000.f;
+            p.z = f_scale_unit * data[3*i + 2] / 1000.f;
             p.r = 255;
             p.g = 255;
             p.b = 255;
@@ -609,7 +610,7 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
         }
 
         pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-
+        float f_scale_unit = device_->getDepthScale();
         uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
         float fx = cam_info->K[0]; //fx
         float fy = cam_info->K[4]; //fy
@@ -621,9 +622,9 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
           int m_pix_y = i / image->width;
           if(data[i] != 0) {
             pcl::PointXYZRGB  p;
-            p.x = (m_pix_x - cx) * data[i] / (1000.f * fx);
-            p.y = (m_pix_y - cy) * data[i] / (1000.f * fy);
-            p.z = data[i] / 1000.f;
+            p.x = f_scale_unit * (m_pix_x - cx) * data[i] / (1000.f * fx);
+            p.y = f_scale_unit * (m_pix_y - cy) * data[i] / (1000.f * fy);
+            p.z = f_scale_unit * data[i] / 1000.f;
             p.r = 255;
             p.g = 255;
             p.b = 255;

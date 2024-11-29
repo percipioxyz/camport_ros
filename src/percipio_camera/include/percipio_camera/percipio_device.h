@@ -208,6 +208,7 @@ public:
   void setDepthFilterSpecMaxDiff(int value);
 
   void setDepthScale(float scale);
+  float getDepthScale();
 
   void setDevicePacketSize(int size);
   void setDevicePacketDelay(int microseconds);

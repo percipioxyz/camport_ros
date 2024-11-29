@@ -224,6 +224,8 @@ namespace percipio
 
       TY_STATUS StartCapture();
       void StopCapture(StreamHandle stream);
+
+      float getDepthScaleUnit() { return f_depth_scale_unit; }
       
 
       SensorType StreamGetSensorInfo(StreamHandle stream);
@@ -595,6 +597,8 @@ public:
     bool getGain(int* gain) const;
     bool getTOFCamDepthChannel(int* channel) const;
     bool getTOFCamDepthQuality(int* quality) const;
+
+    float getDepthScaleValue();
 
     bool getTofAntiSunlightIndex(int* index) const;
     bool getFilterSpeckMaxSize(int* size) const;
