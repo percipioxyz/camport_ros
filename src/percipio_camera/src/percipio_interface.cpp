@@ -1286,8 +1286,11 @@ namespace percipio
       TYGetEnum(_M_DEVICE, TY_COMPONENT_RGB_CAM, TY_ENUM_IMAGE_MODE, &image_mode);
       current_rgb_width = TYImageWidth(image_mode);
       current_rgb_height = TYImageHeight(image_mode);
+
+#ifdef IMAGE_DoUndistortion_With_OpenCV
       //add depth distortion map
       ImgProc::addColorDistortionMap(color_calib, current_rgb_width, current_rgb_height);
+#endif
     }else {
       TYDisableComponents(_M_DEVICE, TY_COMPONENT_RGB_CAM);
       current_rgb_width = 0;
@@ -1310,11 +1313,12 @@ namespace percipio
       TYHasFeature(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_DISTORTION, &depth_distortion);
       set_image_mode(TY_COMPONENT_DEPTH_CAM, current_depth_width, current_depth_height);
 
+#ifdef IMAGE_DoUndistortion_With_OpenCV
       if(depth_distortion) {
         //add depth distortion map
         ImgProc::addDepthDistortionMap(depth_calib, current_depth_width, current_depth_height);
       }
-
+#endif
       TYSetBool(_M_DEVICE, TY_COMPONENT_LASER, TY_BOOL_LASER_AUTO_CTRL, true);
     }else {
       TYDisableComponents(_M_DEVICE, TY_COMPONENT_DEPTH_CAM);
@@ -1360,8 +1364,10 @@ namespace percipio
     TYGetFloat(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale_unit);
 
     rc = TYStartCapture(_M_DEVICE);
-    if(rc != TY_STATUS_OK)
+    if(rc != TY_STATUS_OK) {
+      ROS_WARN("TYStartCapture got error code : %d!", rc);
       return rc;
+    }
     
     isRuning = true;
     pthread_create(&frame_fetch_thread, NULL, fetch_thread, this);

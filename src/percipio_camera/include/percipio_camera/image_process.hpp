@@ -26,6 +26,8 @@
 
 #define MAX_DEPTH 0x10000 
 
+#define IMAGE_DoUndistortion_With_OpenCV
+
 static void BGRToRGB(const void* bgrFrame, int width, int height, void* rgbFrame)
 {
   uint8_t* pBGR = (uint8_t*)bgrFrame;
@@ -174,6 +176,7 @@ public:
         return 0;
     }
 
+ #ifdef   IMAGE_DoUndistortion_With_OpenCV
     static std::vector<distortion_data> depth_dist_map_list;
     static bool addDepthDistortionMap(TY_CAMERA_CALIB_INFO& depth_calib, int width, int height)
     {
@@ -215,7 +218,7 @@ public:
 
       return false;
     }
-
+#endif
     static int doDepthUndistortion(const TY_CAMERA_CALIB_INFO* depth_calib,
                                 percipio::VideoFrameData* src, 
                                 percipio::VideoFrameData* dst)
@@ -243,7 +246,7 @@ public:
       dst_image.height = dst->getHeight();
       dst_image.pixelFormat = dst->getPixelFormat();
       dst_image.buffer = dst->getData();
-
+#ifdef   IMAGE_DoUndistortion_With_OpenCV
       for(size_t i = 0; i < depth_dist_map_list.size(); i++) {
         if((0 == memcmp(depth_calib, static_cast<const void*>(&depth_dist_map_list[i].get_calib_data()), sizeof(TY_CAMERA_CALIB_INFO))) &&
           (depth_dist_map_list[i].get_map_width() == src_image.width) &&
@@ -256,9 +259,16 @@ public:
       }
       ROS_WARN("doDepthUndistortion fail!");
       return TY_STATUS_ERROR;
+#else
+      TY_STATUS err = TYUndistortImage(depth_calib, &src_image, nullptr, &dst_image);
+      if(err) {
+        ROS_WARN("TYUndistortImage fail!");
+      }
+      return err;
+#endif
     }
 
-
+#ifdef   IMAGE_DoUndistortion_With_OpenCV
     static std::vector<distortion_data> color_dist_map_list;
     static bool addColorDistortionMap(TY_CAMERA_CALIB_INFO& color_calib, int width, int height)
     {
@@ -298,7 +308,7 @@ public:
 
       return false;
     }
-
+#endif
     static int doRGBUndistortion(const TY_CAMERA_CALIB_INFO* color_calib, 
                                 percipio::VideoFrameData* src, 
                                 percipio::VideoFrameData* dst)
@@ -327,7 +337,7 @@ public:
       dst_image.height = dst->getHeight();
       dst_image.pixelFormat = dst->getPixelFormat();
       dst_image.buffer = dst->getData();
-
+#ifdef   IMAGE_DoUndistortion_With_OpenCV
       for(size_t i = 0; i < color_dist_map_list.size(); i++) {
         if(0 == memcmp(color_calib, &color_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
           cv::Mat color, undistory_color;
@@ -344,6 +354,13 @@ public:
       }
       ROS_WARN("doRGBUndistortion fail!");
       return TY_STATUS_ERROR;
+#else
+      TY_STATUS err = TYUndistortImage(color_calib, &src_image, nullptr, &dst_image);
+      if(err) {
+        ROS_WARN("TYUndistortImage fail!");
+      }
+      return err;
+#endif
     }
 
     static int MapDepthImageToColorCoordinate(const TY_CAMERA_CALIB_INFO* depth_calib, 
@@ -620,5 +637,7 @@ public:
 
 };
 
+#ifdef IMAGE_DoUndistortion_With_OpenCV
 std::vector<distortion_data> ImgProc::depth_dist_map_list;
 std::vector<distortion_data> ImgProc::color_dist_map_list;
+#endif

@@ -141,8 +141,54 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   advertiseROSTopics();
 }
 
+
+void PercipioDriver::publishStaticTF(const ros::Time &t, const tf2::Vector3 &trans,
+  const tf2::Quaternion &q, const std::string &from,
+  const std::string &to) 
+{
+  geometry_msgs::TransformStamped msg;
+  msg.header.stamp = t;
+  msg.header.frame_id = from;
+  msg.child_frame_id = to;
+  msg.transform.translation.x = trans[2] / 1000.0;
+  msg.transform.translation.y = -trans[0] / 1000.0;
+  msg.transform.translation.z = -trans[1] / 1000.0;
+  msg.transform.rotation.x = q.getX();
+  msg.transform.rotation.y = q.getY();
+  msg.transform.rotation.z = q.getZ();
+  msg.transform.rotation.w = q.getW();
+
+  static_tf_msgs_.push_back(msg);
+}
+
+void PercipioDriver::publishStaticTransforms() {
+  tf2::Vector3 trans(0.0, 0.0, 0.0);
+  tf2::Quaternion Q = tf2::Quaternion(0.0, 0.0, 0.0, 1.0);
+
+  tf2::Quaternion quaternion_optical;
+  quaternion_optical.setRPY(-M_PI / 2, 0.0, -M_PI / 2);
+  tf2::Vector3 zero_trans(0.0, 0.0, 0.0);
+  
+  std::string stream_name[] = {"depth", "rgb", "ir"};
+
+  for(size_t i = 0; i < 3; i++) {
+    auto timestamp = ros::Time::now();//node_->now();
+    
+    std::string camera_link_frame_id_ = "camera_link"; //camera_name_ + "_link";
+    std::string frame_id_ = "camera_" + stream_name[i] + "_frame";//camera_name_ + "_" + stream_name[index] + "_frame";
+    std::string optical_frame_id_ = "camera_" + stream_name[i] + "_optical_frame";//camera_name_ + "_" + stream_name[index] + "_optical_frame";
+    publishStaticTF(timestamp, trans,      Q,                  camera_link_frame_id_,   frame_id_);
+    publishStaticTF(timestamp, zero_trans, quaternion_optical, frame_id_,               optical_frame_id_);
+  }
+  //static_tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node_);
+  static_tf_broadcaster_.sendTransform(static_tf_msgs_);
+}
+
+
 void PercipioDriver::advertiseROSTopics()
 {
+  publishStaticTransforms();
+
   // Allow remapping namespaces rgb, ir, depth, depth_registered
   ros::NodeHandle color_nh(nh_, "rgb");
   image_transport::ImageTransport color_it(color_nh);
@@ -155,7 +201,7 @@ void PercipioDriver::advertiseROSTopics()
 
   // Advertise all published topics
   // Prevent connection callbacks from executing until we've set all the publishers. Otherwise
-  // connectCb() can fire while we're advertising (say) "depth/image_raw", but before we actually
+  // connectCb() can fire while we're advertising (say) "depth/image", but before we actually
   // assign to pub_depth_raw_. Then pub_depth_raw_.getNumSubscribers() returns 0, and we fail to start
   // the depth generator.
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
@@ -181,7 +227,7 @@ void PercipioDriver::advertiseROSTopics()
   {
     image_transport::SubscriberStatusCallback itssc = boost::bind(&PercipioDriver::depthConnectCb, this);
     ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::depthConnectCb, this);
-    pub_depth_ = depth_it.advertiseCamera("image_raw", 1, itssc, itssc, rssc, rssc);
+    pub_depth_ = depth_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
 
     const ros::SubscriberStatusCallback& rssc2 = boost::bind(&PercipioDriver::cloud3DConnectCb, this);
     pub_point3d_ = nh_.advertise<sensor_msgs::PointCloud2>("PointCloud2", 1, rssc2, rssc2);

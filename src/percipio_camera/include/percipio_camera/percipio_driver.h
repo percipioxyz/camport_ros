@@ -45,6 +45,12 @@
 #include <image_transport/image_transport.h>
 #include <camera_info_manager/camera_info_manager.h>
 
+#include <geometry_msgs/TransformStamped.h>
+
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/static_transform_broadcaster.h>
+
 #include <sensor_msgs/PointCloud2.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <pcl/point_types.h>
@@ -145,6 +151,9 @@ private:
   sensor_msgs::PointCloud2 pub_point3d_cloud;
   ros::Publisher pub_point3d_;
 
+  std::vector<geometry_msgs::TransformStamped> static_tf_msgs_;
+  tf2_ros::StaticTransformBroadcaster static_tf_broadcaster_;
+
   /** \brief Camera info manager objects. */
   boost::shared_ptr<camera_info_manager::CameraInfoManager> color_info_manager_, depth_info_manager_, ir_info_manager;
 
@@ -226,6 +235,11 @@ private:
   ros::Duration ir_time_offset_;
   ros::Duration color_time_offset_;
   ros::Duration depth_time_offset_;
+
+  void publishStaticTF(const ros::Time &t, const tf2::Vector3 &trans,
+    const tf2::Quaternion &q, const std::string &from,
+    const std::string &to);
+  void publishStaticTransforms();
 
   int data_skip_;
 

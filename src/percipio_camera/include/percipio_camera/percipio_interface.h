@@ -18,6 +18,7 @@
 #include <boost/thread/mutex.hpp>
 
 #include "TYApi.h"
+#include "TYImageProc.h"
 #include "stdio.h"
 
 #include <vector>
@@ -128,6 +129,8 @@ namespace percipio
 
         TY_STATUS rc;
         rc = TYInitLib();
+
+        TYImageProcesAcceEnable(false);
       }
       
       ~percipio_depth_cam()

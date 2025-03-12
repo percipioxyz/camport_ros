@@ -8,6 +8,8 @@
   <arg name="depth_frame_id" default="$(arg camera)_depth_optical_frame" />
   <arg name="ir_frame_id" default="$(arg camera)_ir_optical_frame" />
 
+  <arg name="use_ros_nodelet" default="false" />
+
   <!-- device_id can have the following formats:
          "#1"           : the first device found
          "serial numver : select the camera with a specified serial number" 
@@ -108,7 +110,9 @@
 	  <!-- Start nodelet manager -->
 	  <arg name="manager" value="$(arg camera)_nodelet_manager" />
 	  <arg name="debug" default="false" /> <!-- Run manager in GDB? -->
-	  <include file="$(find rgbd_launch)/launch/includes/manager.launch.xml">
+
+    <include if="$(arg use_ros_nodelet)"
+        file="$(find percipio_launch)/launch/includes/manager.launch.xml">
 	    <arg name="name" value="$(arg manager)" />
 	    <arg name="debug" value="$(arg debug)" />
 	    <arg name="num_worker_threads"  value="$(arg num_worker_threads)" />
@@ -117,6 +121,7 @@
     <!-- Load driver -->
     <include if="$(arg load_driver)"
 	     file="$(find percipio_launch)/launch/includes/device.launch.xml">
+      <arg name="use_ros_nodelet"                 value="$(arg use_ros_nodelet)" /> 
       <arg name="manager"                         value="$(arg manager)" />
       <arg name="device_id"                       value="$(arg device_id)" />
       <arg name="device_reconnection"             value="$(arg device_reconnection)" />
@@ -169,7 +174,6 @@
       <arg name="device_time_sync_type"                value="$(arg device_time_sync_type)" />
       <arg name="device_time_sync_ntp_server_ip"       value="$(arg device_time_sync_ntp_server_ip)" />
       
-
       <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->
       <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->
       <arg name="rgb_resolution"                  value="$(arg rgb_resolution)" />
@@ -177,30 +181,6 @@
       
     </include>
 
-    <!-- Load standard constellation of processing nodelets -->
-    <include file="$(find rgbd_launch)/launch/includes/processing.launch.xml">
-      <arg name="manager"                         value="$(arg manager)" />
-      <arg name="rgb"                             value="$(arg rgb)" />
-      <arg name="ir"                              value="$(arg ir)" />
-      <arg name="depth"                           value="$(arg depth)" />
-      <arg name="respawn"                         value="$(arg respawn)" />
-      <arg name="rgb_processing"                  value="$(arg rgb_processing)" />
-      <arg name="debayer_processing"              value="$(arg debayer_processing)" />
-      <arg name="ir_processing"                   value="$(arg ir_processing)" />
-      <arg name="depth_processing"                value="$(arg depth_processing)" />
-      <arg name="depth_registered_processing"     value="$(arg depth_registered_processing)" />
-      <arg name="disparity_processing"            value="$(arg disparity_processing)" />
-      <arg name="disparity_registered_processing" value="$(arg disparity_registered_processing)" />
-      <arg name="hw_registered_processing"        value="$(arg hw_registered_processing)" />
-      <arg name="sw_registered_processing"        value="$(arg sw_registered_processing)" />
-    </include>
-
   </group> <!-- camera -->
-
-  <!-- Load reasonable defaults for the relative pose between cameras -->
-  <include if="$(arg publish_tf)"
-	   file="$(find rgbd_launch)/launch/kinect_frames.launch">
-    <arg name="camera" value="$(arg camera)" />
-  </include>
 
 </launch>
