@@ -8,4 +8,4 @@ $echo "source ~/camport_ros/devel/setup.bash" >> ~/.bashrc
 
 $source ~/.bashrc
 
-Please refer to http://doc.percipio.xyz/cam/latest/getstarted/sdk-compile.html#ros for more detais.
+Please refer to https://doc.percipio.xyz/cam/latest/getstarted/sdk-ros1-compile.html for more detais.
