@@ -110,29 +110,11 @@ namespace percipio
   class VideoFrameData;
   class Percipio;
   class DeviceDisconnectedListener;
+  class DepthTimeDomainMgr;
   class percipio_depth_cam
   {
     public:
-      percipio_depth_cam() : _M_IFACE(0), _M_DEVICE(0), m_ids(0)
-      {
-        frameBuffer[0] = NULL;
-        frameBuffer[1] = NULL;
-        isRuning = false;
-
-        current_depth_width = 0;
-        current_depth_height = 0;
-
-        current_rgb_width = 0;
-        current_rgb_height = 0;
-
-        device_list.clear();
-
-        TY_STATUS rc;
-        rc = TYInitLib();
-
-        TYImageProcesAcceEnable(false);
-      }
-      
+      percipio_depth_cam();
       ~percipio_depth_cam()
       {
         TYDeinitLib();
@@ -174,6 +156,11 @@ namespace percipio
   
       bool DepthStreamSetSpeckFilterDiff(int spec_diff);
       int DepthStreamGetSpeckFilterDiff();
+
+      bool DepthStreamSetTimeDomainFilterEn(bool enabled);
+      bool DepthStreamGetTimeDomainFilterEn();
+      bool DepthStreamSetTimeDomainFilterFCnt(int frameCnt);
+      int  DepthStreamGetTimeDomainFilterFCnt();
 
       bool DeviceIsImageRegistrationModeSupported() const;
 
@@ -262,6 +249,8 @@ namespace percipio
       boost::shared_ptr<NewFrameCallbackManager> DepthStream;
       boost::shared_ptr<NewFrameCallbackManager> Point3DStream;
 
+      boost::shared_ptr<DepthTimeDomainMgr> DepthDomainTimeFilterMgrPtr;
+
       //std::mutex m_mutex;
       pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -285,6 +274,9 @@ namespace percipio
       bool depth_stream_spec_enable = false;
       int depth_stream_spec_size = 150; //default
       int depth_stream_spec_diff = 64;
+
+      bool depth_time_domain_enable = false;
+      int  depth_time_domain_frame_cnt = 3;
 
       float f_depth_scale_unit = 1.0f;
 
@@ -749,6 +741,12 @@ public:
       
       bool setDepthSpeckFilterDiff(int spec_diff);
       int getDepthSpeckFilterDiff();
+
+      bool setDepthTimeDomainFilterEn(bool enabled);
+      bool getDepthTimeDomainFilterEn();
+  
+      bool setDepthTimeDomainFilterNum(int frames);
+      int getDepthTimeDomainFilterNum();
 
       bool isImageRegistrationModeSupported(ImageRegistrationMode mode) const;
       TY_STATUS setImageRegistrationMode(ImageRegistrationMode mode);

@@ -115,7 +115,13 @@ public:
   int getDepthSpecFilterSpecSize();
 
   bool setDepthSpeckFilterDiff(int spec_diff);
-  int getDepthSpeckFilterDiff();
+  int  getDepthSpeckFilterDiff();
+
+  bool setDepthTimeDomainFilterEn(bool en);
+  bool getDepthTimeDomainFilterEn();
+  
+  bool setDepthTimeDomainFilterNum(int frames);
+  int  getDepthTimeDomainFilterNum();
 
   bool isImageRegistrationModeSupported() const;
   void setImageRegistrationMode(bool enabled);

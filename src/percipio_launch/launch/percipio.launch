@@ -67,8 +67,19 @@
   <arg name="network_transmission_packet_size"     default=""  />
   <arg name="device_time_sync_type"                default=""  />
   <arg name="device_time_sync_ntp_server_ip"       default=""  />
-  
 
+  <!-- Speckle filtering enable/disable switch-->
+  <arg name="depth_speckle_filter"              default="false" />
+  <!-- Blob size smaller than this will be removed-->
+  <arg name="max_speckle_size"                  default="150" />
+  <!-- Maximum difference between neighbor disparity pixels.-->
+  <arg name="max_speckle_diff"                  default="64" />
+  
+  <!-- depth stream Time-domain filtering enable/disable switch-->
+  <arg name="depth_time_domain_filter"          default="false" />
+  <!-- Time-domain filtering frame count：2 - 10 -->
+  <arg name="depth_time_domain_num"             default="3" />
+  
   <!--<arg name="auto_exposure"                   default="true" /> -->
   <!--<arg name="auto_white_balance"              default="true" /> -->
 
@@ -173,6 +184,13 @@
       <arg name="network_transmission_packet_size"     value="$(arg network_transmission_packet_size)" />
       <arg name="device_time_sync_type"                value="$(arg device_time_sync_type)" />
       <arg name="device_time_sync_ntp_server_ip"       value="$(arg device_time_sync_ntp_server_ip)" />
+
+      <arg name="depth_speckle_filter"              value="$(arg depth_speckle_filter)" />
+      <arg name="max_speckle_size"                  value="$(arg max_speckle_size)" />
+      <arg name="max_speckle_diff"                  value="$(arg max_speckle_diff)" />
+
+      <arg name="depth_time_domain_filter"          value="$(arg depth_time_domain_filter)" />
+      <arg name="depth_time_domain_num"             value="$(arg depth_time_domain_num)" />
       
       <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->
       <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->

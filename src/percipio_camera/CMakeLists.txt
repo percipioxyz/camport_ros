@@ -40,6 +40,7 @@ add_library(percipio_wrapper
    src/percipio_device_manager.cpp
    src/percipio_exception.cpp
    src/percipio_video_mode.cpp
+   src/percipio_depth_algorithm.cpp
    src/huffman.cpp
 )
 

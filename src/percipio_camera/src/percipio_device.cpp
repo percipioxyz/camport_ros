@@ -506,6 +506,27 @@ int PercipioDevice::getDepthSpeckFilterDiff()
   return percipio_device_->getDepthSpeckFilterDiff();
 }
 
+//
+bool PercipioDevice::setDepthTimeDomainFilterEn(bool en)
+{
+  return percipio_device_->setDepthTimeDomainFilterEn(en);
+}
+
+bool PercipioDevice::getDepthTimeDomainFilterEn()
+{
+  return percipio_device_->getDepthTimeDomainFilterEn();
+}
+
+bool PercipioDevice::setDepthTimeDomainFilterNum(int frames)
+{
+  return percipio_device_->setDepthTimeDomainFilterNum(frames);
+}
+
+int  PercipioDevice::getDepthTimeDomainFilterNum()
+{
+  return percipio_device_->getDepthTimeDomainFilterNum();
+}
+
 void PercipioDevice::setImageRegistrationMode(bool enabled)
 {
   if (isImageRegistrationModeSupported())

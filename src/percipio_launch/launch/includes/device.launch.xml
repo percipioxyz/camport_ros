@@ -52,6 +52,13 @@
   <arg name="device_time_sync_type" />
   <arg name="device_time_sync_ntp_server_ip" />
 
+  <arg name="depth_speckle_filter" />
+  <arg name="max_speckle_size" />
+  <arg name="max_speckle_diff" />
+
+  <arg name="depth_time_domain_filter" />
+  <arg name="depth_time_domain_num" />
+
   <!--<arg name="auto_exposure" default="true" /> -->
   <!--<arg name="auto_white_balance" default="true" />-->
   <arg name="rgb_resolution" default="640x480" />
@@ -119,6 +126,13 @@
     <param name="device_time_sync_type"             value="$(arg device_time_sync_type)" />
     <param name="device_time_sync_ntp_server_ip"    value="$(arg device_time_sync_ntp_server_ip)" />
 
+    <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
+    <param name="max_speckle_size" value="$(arg max_speckle_size)" />
+    <param name="max_speckle_diff" value="$(arg max_speckle_diff)" />
+
+    <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
+    <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />
+
     <remap from="ir" to="$(arg ir)" />
     <remap from="rgb" to="$(arg rgb)" />
     <remap from="depth" to="$(arg depth)" />
@@ -180,6 +194,13 @@
     <param name="network_transmission_packet_size"  value="$(arg network_transmission_packet_size)" />
     <param name="device_time_sync_type"             value="$(arg device_time_sync_type)" />
     <param name="device_time_sync_ntp_server_ip"    value="$(arg device_time_sync_ntp_server_ip)" />
+
+    <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
+    <param name="max_speckle_size" value="$(arg max_speckle_size)" />
+    <param name="max_speckle_diff" value="$(arg max_speckle_diff)" />
+
+    <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
+    <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />
 
     <remap from="ir" to="$(arg ir)" />
     <remap from="rgb" to="$(arg rgb)" />

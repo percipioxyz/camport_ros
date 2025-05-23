@@ -12,6 +12,8 @@
 #include "percipio_camera/ParametersParse.hpp"
 #include "percipio_camera/huffman.h"
 
+#include "percipio_camera/percipio_depth_algorithm.h"
+
 
 #define MAX_STORAGE_SIZE    (10*1024*1024)
 namespace percipio
@@ -58,6 +60,30 @@ namespace percipio
       if(json.is_null()) return false;
       return true;
   }
+
+  percipio_depth_cam::percipio_depth_cam() : _M_IFACE(0), _M_DEVICE(0), m_ids(0)
+  {
+    frameBuffer[0] = NULL;
+    frameBuffer[1] = NULL;
+    isRuning = false;
+
+    current_depth_width = 0;
+    current_depth_height = 0;
+
+    current_rgb_width = 0;
+    current_rgb_height = 0;
+
+    device_list.clear();
+
+    DepthDomainTimeFilterMgrPtr = boost::make_shared<DepthTimeDomainMgr>(depth_time_domain_frame_cnt);
+
+    TY_STATUS rc;
+    rc = TYInitLib();
+
+    TYImageProcesAcceEnable(false);
+  }
+
+  
 
   bool percipio_depth_cam::load_default_parameter()
   {
@@ -696,6 +722,36 @@ namespace percipio
     return depth_stream_spec_diff;
   }
 
+  bool percipio_depth_cam::DepthStreamSetTimeDomainFilterEn(bool enabled)
+  {
+    depth_time_domain_enable = enabled;
+    DepthDomainTimeFilterMgrPtr->reset(depth_time_domain_frame_cnt);
+    return true;
+  }
+
+  bool percipio_depth_cam::DepthStreamGetTimeDomainFilterEn()
+  {
+    return depth_time_domain_enable;
+  }
+  
+  bool percipio_depth_cam::DepthStreamSetTimeDomainFilterFCnt(int frameCnt)
+  {
+    if(frameCnt > 1 && frameCnt <= 10) {
+      depth_time_domain_frame_cnt = frameCnt;
+      DepthDomainTimeFilterMgrPtr->reset(depth_time_domain_frame_cnt);
+      return true;
+    } else {
+      ROS_WARN("Frame setting out of range (2-10) for time-domain filtering. Current value: %d is invalid, use default : %d",
+           frameCnt, depth_time_domain_frame_cnt);
+      return false;
+    }
+  }
+
+  int  percipio_depth_cam::DepthStreamGetTimeDomainFilterFCnt()
+  {
+    return depth_time_domain_frame_cnt;
+  }
+
   bool percipio_depth_cam::DeviceIsImageRegistrationModeSupported() const
   {
     if((m_ids & TY_COMPONENT_DEPTH_CAM) &&(m_ids &  TY_COMPONENT_RGB_CAM))
@@ -1142,10 +1198,19 @@ namespace percipio
                 DepthSpeckleFilterParameters param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff};
                 TYDepthSpeckleFilter(&frame.image[i], &param);
               }
-              cam->DepthStream.get()->cb(cam->DepthStream.get(), cam->DepthStream.get()->frame_listener, &frame.image[i]);
+
+              if(cam->depth_time_domain_enable) {
+                cam->DepthDomainTimeFilterMgrPtr->add_frame(frame.image[i]);
+                if(cam->DepthDomainTimeFilterMgrPtr->do_time_domain_process(frame.image[i])) {
+                  cam->DepthStream.get()->cb(cam->DepthStream.get(), cam->DepthStream.get()->frame_listener, &frame.image[i]);
+                } else {
+                  ROS_WARN("Do Time-domain filter, drop frame!");
+                }
+              } else {
+                cam->DepthStream.get()->cb(cam->DepthStream.get(), cam->DepthStream.get()->frame_listener, &frame.image[i]);
+              }
             }
             if(cam->Point3DStream.get() && cam->Point3DStream.get()->cb) {
-              //TODO
               cam->Point3DStream.get()->cb(cam->Point3DStream.get(), cam->Point3DStream.get()->frame_listener, &frame.image[i]);
             }
           }
@@ -2344,6 +2409,27 @@ namespace percipio
   int Device::getDepthSpeckFilterDiff()
   {
     return g_Context.get()->DepthStreamGetSpeckFilterDiff();
+  }
+
+  //
+  bool Device::setDepthTimeDomainFilterEn(bool enabled)
+  {
+    return g_Context.get()->DepthStreamSetTimeDomainFilterEn(enabled);
+  }
+
+  bool Device::getDepthTimeDomainFilterEn()
+  {
+    return g_Context.get()->DepthStreamGetTimeDomainFilterEn();
+  }
+
+  bool Device::setDepthTimeDomainFilterNum(int frames)
+  {
+    return g_Context.get()->DepthStreamSetTimeDomainFilterFCnt(frames);
+  }
+
+  int  Device::getDepthTimeDomainFilterNum()
+  {
+    return g_Context.get()->DepthStreamGetTimeDomainFilterFCnt();
   }
 
   bool Device::isImageRegistrationModeSupported(ImageRegistrationMode mode) const

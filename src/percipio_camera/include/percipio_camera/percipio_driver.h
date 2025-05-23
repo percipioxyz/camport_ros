@@ -194,6 +194,9 @@ private:
   int max_speckle_size_;
   int max_speckle_diff_;
 
+  bool depth_time_domain_filter_;
+  int  depth_time_domain_num_;
+
   double depth_ir_offset_x_;
   double depth_ir_offset_y_;
   float z_scaling_;
