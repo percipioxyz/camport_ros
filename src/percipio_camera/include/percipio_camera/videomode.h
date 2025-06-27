@@ -68,14 +68,15 @@ namespace percipio
     public:
       VideoMode() {}
       VideoMode(int32_t pixelFormat, int32_t width, int32_t height) : targetPixelFormat(pixelFormat), resolutionX(width), resolutionY(height) {}
+      /*
       VideoMode(uint32_t img_mode)
-
       {
         image_mode  = img_mode;
 	      resolutionX = TYImageWidth(img_mode);
 	      resolutionY = TYImageHeight(img_mode);
         targetPixelFormat = get_target_ros_pixel_format(img_mode);
       }
+      */
 
       VideoMode& operator=(const VideoMode& other)
       {
@@ -89,7 +90,7 @@ namespace percipio
       int32_t getResolutionY() const {return resolutionY;}
       int32_t getFps() const { return fps; }
       int32_t getPixelFormat() const { return this->targetPixelFormat;}
-      uint32_t getImageMode() const { return this->image_mode; }
+      //uint32_t getImageMode() const { return this->image_mode; }
 
       void setResolution(int32_t resolutionX, int32_t resolutionY)
       {
@@ -105,7 +106,8 @@ namespace percipio
       int32_t resolutionY = 480;
       int32_t  targetPixelFormat;
       int32_t fps = 30;
-      uint32_t image_mode;
+      //uint32_t image_mode;
+
   };
 }
 

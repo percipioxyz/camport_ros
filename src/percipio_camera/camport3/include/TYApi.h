@@ -83,37 +83,6 @@ static inline int32_t TYPixelSize(TY_IMAGE_MODE imageMode)
     return ((imageMode >> 28) & 0xf);
 }
 
-///get pixel size in bits
-static inline int32_t TYBitsPerPixel(TY_IMAGE_MODE imageMode)
-{
-    TY_PIXEL_BITS bits = imageMode & (0xf  << 28);
-    switch(bits){
-      case TY_PIXEL_16BIT:
-        return 16;
-      case TY_PIXEL_24BIT:
-        return 24;
-      case TY_PIXEL_32BIT:
-        return 32;
-      case TY_PIXEL_48BIT:
-        return 48;
-      case TY_PIXEL_64BIT:
-        return 64;
-      case TY_PIXEL_10BIT:
-        return 10;
-      case TY_PIXEL_12BIT:
-        return 12;
-      case TY_PIXEL_8BIT:
-      default:
-        return 8;
-    }
-}
-
-///get line size in bytes
-static inline int32_t TYPixelLineSize(int width, TY_IMAGE_MODE imageMode)
-{
-    return (width * TYBitsPerPixel(imageMode)) >> 3;
-}
-
 ///make a image mode from pixel format & resolution mode
 static inline TY_IMAGE_MODE TYImageMode(TY_PIXEL_FORMAT pix, TY_RESOLUTION_MODE res)
 {
@@ -154,6 +123,22 @@ static inline int32_t TYImageHeight(TY_IMAGE_MODE imageMode)
 {
     return TYResolutionMode(imageMode) & 0x0fff;
 }
+
+
+/*  TYPixFmt  */
+/* 32-bit value layout */
+/* |31            24|23            16|15            08|07            00| */
+/* | C| Comp. Layout| Effective Size |            Pixel ID             | */
+static inline uint32_t TYBitsPerPixel(TYPixFmt fmt)
+{
+    return ((fmt >> 16) & 0xff);
+}
+
+static inline uint32_t TYPixelLineSize(uint32_t width, TYPixFmt fmt)
+{
+  return (width * TYBitsPerPixel(fmt)) >> 3;
+}
+
 
 //------------------------------------------------------------------------------
 //  C API

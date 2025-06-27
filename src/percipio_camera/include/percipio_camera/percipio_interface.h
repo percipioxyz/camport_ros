@@ -18,6 +18,7 @@
 #include <boost/thread/mutex.hpp>
 
 #include "TYApi.h"
+#include "TYParameter.h"
 #include "TYImageProc.h"
 #include "stdio.h"
 
@@ -29,15 +30,6 @@
 
 namespace percipio
 {
-  enum
-  {
-    TY_DEVICE_PROPERTY_SERIAL_NUMBER		= 0, // string
-    TY_DEVICE_PROPERTY_DEPTH_CALIB_INTRISTIC   = 1, // float
-    TY_DEVICE_PROPERTY_COLOR_CALIB_INTRISTIC   = 2, // float
-    TY_DEVICE_PROPERTY_COLOR_CALIB_DISTORTION  = 3, // float
-  };
-
-
   typedef enum
   {
     SENSOR_NONE     = 0,
@@ -62,6 +54,12 @@ namespace percipio
     DEVICE_STATE_NOT_READY 	= 2,
     DEVICE_STATE_EOF 	= 3
   } DeviceState;
+
+  typedef enum
+  {
+    GigeE_2_0,
+    GigeE_2_1,
+  } GigEVersion;
   
   typedef void* StreamHandle;
   
@@ -111,11 +109,50 @@ namespace percipio
   class Percipio;
   class DeviceDisconnectedListener;
   class DepthTimeDomainMgr;
-  class percipio_depth_cam
+
+  class GigEBase
+  {
+  public:
+    GigEBase(const TY_DEV_HANDLE dev) : hDevice(dev){};
+    virtual ~GigEBase() {};
+
+    virtual std::vector<VideoMode>    getLeftIRVideoModeList() = 0;
+    virtual std::vector<VideoMode>    getRightIRVideoModeList() = 0;
+    virtual std::vector<VideoMode>    getColorVideoModeList() = 0;
+    virtual std::vector<VideoMode>    getDepthVideoModeList() = 0;
+
+    virtual TY_STATUS getColorCalibData(TY_CAMERA_CALIB_INFO& calib_data) = 0;
+    virtual TY_STATUS getDepthCalibData(TY_CAMERA_CALIB_INFO& calib_data) = 0;
+
+    virtual TY_STATUS getColorIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic) = 0;
+    virtual TY_STATUS getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic) = 0;
+
+    virtual TY_STATUS AcquisitionInit() = 0;
+
+    virtual TY_STATUS SetImageMode(const SensorType sensorType, const int width, const int height, const std::string& fmt) = 0;
+
+    virtual TY_STATUS PreSetting() = 0;
+
+    virtual TY_STATUS EnableColorStream(const bool en) = 0;
+    virtual TY_STATUS EnableDepthStream(const bool en) = 0;
+    virtual TY_STATUS EnableLeftIRStream(const bool en) = 0;
+    virtual TY_STATUS EnableRightIRStream(const bool en) = 0;
+    
+    const TY_DEV_HANDLE hDevice;
+
+    bool need_depth_undistortion;
+
+    std::map<SensorType, std::vector<VideoMode>> videos;
+    std::map<SensorType, VideoMode> current_video_mode;
+  private:
+    
+  };
+
+  class PercipioDepthCam
   {
     public:
-      percipio_depth_cam();
-      ~percipio_depth_cam()
+      PercipioDepthCam();
+      ~PercipioDepthCam()
       {
         TYDeinitLib();
       }
@@ -128,7 +165,7 @@ namespace percipio
 
       const DeviceInfo& get_current_device_info();
 
-      bool set_image_mode(TY_COMPONENT_ID  comp, int width, int height);
+      TY_STATUS set_image_mode(const SensorType type, const int width, const int height, const std::string& fmt);
       
       static void eventCallback(TY_EVENT_INFO *event_info, void *userdata);
 
@@ -140,11 +177,9 @@ namespace percipio
 
       TY_STATUS get_device_info(TY_DEVICE_BASE_INFO& info);
 
-      bool DeviceSetStreamResendEnable(bool enable);
-
       void close();
 
-      const uint32_t&  get_components() const ;
+      const uint32_t& get_components() const ;
 
       bool DeviceSetColorUndistortionEnable(bool enable);
 
@@ -164,7 +199,7 @@ namespace percipio
 
       bool DeviceIsImageRegistrationModeSupported() const;
 
-      bool load_default_parameter();
+      //bool load_default_parameter();
 
       TY_STATUS DeviceSetImageRegistrationMode(ImageRegistrationMode mode);
       ImageRegistrationMode DeviceGetImageRegistrationMode();
@@ -174,19 +209,9 @@ namespace percipio
       TY_STATUS parseIrStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseColorStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseDepthStream(VideoFrameData* src, VideoFrameData* dst);
-
-      bool isDepthColorSyncSupport();
-      TY_STATUS DeviceEnableDepthColorSync();
-      TY_STATUS DeviceDisableDepthColorSync();
-      bool DeviceGetDepthColorSyncEnabled();
-
-      TY_STATUS getProperty(StreamHandle stream, uint32_t propertyId, void* value);
-
-      TY_STATUS setProperty(StreamHandle stream, uint32_t propertyId, const void* value);
-
-      TY_STATUS DeviceGetProperty(int propertyId, void* data, int* dataSize);
-
-      TY_STATUS DeviceSetProperty(int propertyId, const void* data, int* dataSize);
+      
+      TY_STATUS DeviceGetProperty(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
+      TY_STATUS DeviceSetProperty(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
     
       const std::vector<VideoMode>& getVideoModeList(SensorType type) const;
 
@@ -194,13 +219,9 @@ namespace percipio
 
       VideoMode get_current_video_mode(StreamHandle stream);
 
-      TY_STATUS set_current_video_mode(StreamHandle stream, const VideoMode& videoMode);
-
       TY_STATUS StreamRegisterNewFrameCallback(StreamHandle stream, void* listener, NewFrameCallback cb);
 
       void StreamUnregisterNewFrameCallback(StreamHandle stream);
-
-      const std::string& get_component_desc(TY_COMPONENT_ID comp);
 
       static void* fetch_thread(void* ptr);
 
@@ -208,16 +229,17 @@ namespace percipio
 
       bool HasStream();
 
-      void enable_stream(StreamHandle stream);
-
-      void disable_stream(StreamHandle stream);
+      void StreamEnable(StreamHandle stream);
+      void StreamDisable(StreamHandle stream);
 
       TY_STATUS StartCapture();
       void StopCapture(StreamHandle stream);
 
       float getDepthScaleUnit() { return f_depth_scale_unit; }
+      TY_CAMERA_INTRINSIC getDepthIntr() { return depth_intr; }
+      TY_CAMERA_INTRINSIC getColorIntr() { return color_intr; }
+      TY_CAMERA_DISTORTION getColorDist() { return color_calib.distortion; }
       
-
       SensorType StreamGetSensorInfo(StreamHandle stream);
 
       std::string            m_current_device_sn;
@@ -234,6 +256,10 @@ namespace percipio
       TY_INTERFACE_HANDLE _M_IFACE;
       TY_DEV_HANDLE       _M_DEVICE;
       TY_COMPONENT_ID     m_ids;
+
+      GigEVersion         gige_version = GigeE_2_0;
+
+      boost::shared_ptr<GigEBase> m_gige_dev;
 
       std::vector<VideoMode> leftIRVideoMode;
       std::vector<VideoMode> rightIRVideoMode;
@@ -254,13 +280,12 @@ namespace percipio
       //std::mutex m_mutex;
       pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-      bool b_stream_gvsp_resend = false;
-
       int32_t current_depth_width;
       int32_t current_depth_height;
       
       int32_t current_rgb_width;
       int32_t current_rgb_height;
+
       TY_CAMERA_CALIB_INFO depth_calib;
       TY_CAMERA_CALIB_INFO color_calib;
 
@@ -272,8 +297,8 @@ namespace percipio
       bool depth_distortion = false;
 
       bool depth_stream_spec_enable = false;
-      int depth_stream_spec_size = 150; //default
-      int depth_stream_spec_diff = 64;
+      int  depth_stream_spec_size = 150; //default
+      int  depth_stream_spec_diff = 64;
 
       bool depth_time_domain_enable = false;
       int  depth_time_domain_frame_cnt = 3;
@@ -286,16 +311,12 @@ namespace percipio
 
       ImageRegistrationMode registration_mode = IMAGE_REGISTRATION_OFF;
 
+      TY_STATUS DeviceInit(const bool auto_reconnect);
+
       TY_STATUS StreamStart();
       void StreamStop(StreamHandle stream);
       void StreamStopAll();
 
-      void generate_video_mode(const std::vector<TY_ENUM_ENTRY>& feature_info, std::vector<VideoMode>& videomode);
-#if 0    
-      void onNewFrame();
-
-      void newFrameCallback();
-#endif
       TY_STATUS create_leftIR_stream(StreamHandle& stream);
 
       TY_STATUS create_rightIR_stream(StreamHandle& stream);
@@ -310,15 +331,6 @@ namespace percipio
 
       const SensorType get_stream_type(StreamHandle stream);
 
-      uint32_t get_stream_image_mode(TY_COMPONENT_ID comp, const VideoMode& videoMode);
-
-      uint32_t get_leftir_stream_image_mode(const VideoMode& videoMode);
-
-      uint32_t get_rightir_stream_image_mode(const VideoMode& videoMode);
-
-      uint32_t get_rgb_stream_image_mode(const VideoMode& videoMode);
-
-      uint32_t get_depth_stream_image_mode(const VideoMode& videoMode);
   };
 
   template<class T>
@@ -423,7 +435,6 @@ namespace percipio
 
     void _setInternal(const SensorType type);
 
-    //const OniSensorInfo* m_pInfo;
     SensorType m_type;
 
     Array<VideoMode> m_videoModes;
@@ -527,96 +538,6 @@ namespace percipio
   };
 
   class VideoStream;
-  class CameraSettings
-  {
-public:
-    TY_STATUS setLaserPower(int power);
-    TY_STATUS setAutoExposureEnabled(bool enabled);
-    TY_STATUS setAutoWhiteBalanceEnabled(bool enabled);
-    TY_STATUS setPixelsAnalogGain(int gain);
-    TY_STATUS setPixelsRedGain(int gain);
-    TY_STATUS setPixelsGreenGain(int gain);
-    TY_STATUS setPixelsBlueGain(int gain);
-    TY_STATUS setGain(int gain);
-    TY_STATUS setExposure(int exposure);
-    TY_STATUS setTOFCamDepthChannel(int channel);
-    TY_STATUS setTOFCamDepthQuality(int quality);
-    
-    TY_STATUS setTofAntiSunlightIndex(int index);
-    TY_STATUS setTofAntiInterferenceEnable(bool enabled);
-
-    TY_STATUS setFilterSpeckMaxSize(int size);
-    TY_STATUS setFilterSpecMaxDiff(int diff);
-
-    TY_STATUS setFilterThreshold(int threshold);
-    TY_STATUS setModulationThreshold(int threshold);
-    TY_STATUS setTofHdrRatio(int ratio);
-    TY_STATUS setTofJitterThreshold(int threshold);
-
-    TY_STATUS setDepthScaleValue(float scale);
-
-    TY_STATUS setColorAecROI(double p1_x, double p1_y, double p2_x, double p2_y);
-    TY_STATUS setColorTargetV(int v);
-
-    TY_STATUS setDepthSgbmImageChanNumber(int value);
-    TY_STATUS setDepthSgbmDispNumber(int value);
-    TY_STATUS setDepthSgbmDispOffset(int value);
-    TY_STATUS setDepthSgbmMatchWinHeight(int value);
-    TY_STATUS setDepthSgbmSemiP1(int value);
-    TY_STATUS setDepthSgbmSemiP2(int value);
-    TY_STATUS setDepthSgbmUniqueFactor(int value);
-    TY_STATUS setDepthSgbmUniqueAbsDiff(int value);
-    TY_STATUS setDepthSgbmCostParam(int value);
-    TY_STATUS setDepthSgbmHalfWinSizeEn(int value);
-    TY_STATUS setDepthSgbmMatchWinWidth(int value);
-    TY_STATUS setDepthSgbmMedianFilterEn(int value);
-    TY_STATUS setDepthSgbmLRCCheckEn(int value);
-    TY_STATUS setDepthSgbmLRCMaxDiff(int value);
-    TY_STATUS setDepthSgbmMedianFilterThresh(int value);
-    TY_STATUS setDepthSgbmSemiP1Scale(int value);
-
-    TY_STATUS setDevicePacketSize(int size);
-    TY_STATUS setDevicePacketDelay(int microseconds);
-    TY_STATUS setDeiveTimeSyncType(int type);
-    TY_STATUS setDeviceNTPServerIP(std::string ip);
-
-    //
-    bool getLaserPower(int* power) const;
-    bool getAutoExposureEnabled(bool* enable) const;
-    bool getAutoWhiteBalanceEnabled(bool* enable) const;
-    bool getAnalogGain(int* gain) const;
-    bool getRedGain(int* gain) const;
-    bool getGreenGain(int* gain) const;
-    bool getBlueGain(int* gain) const;
-    bool getExposure(int* exposure) const;
-    bool getGain(int* gain) const;
-    bool getTOFCamDepthChannel(int* channel) const;
-    bool getTOFCamDepthQuality(int* quality) const;
-
-    float getDepthScaleValue();
-
-    bool getTofAntiSunlightIndex(int* index) const;
-    bool getFilterSpeckMaxSize(int* size) const;
-    bool getFilterSpecMaxDiff(int* diff) const;
-
-    bool getFilterThreshold(int* threshold) const;
-    bool getModulationThreshold(int* threshold) const;
-    bool getTofHdrRatio(int* ratio) const;
-    bool getTofJitterThreshold(int* threshold) const;
-    bool getColorAecROI(double* roi) const;
-    bool getColorTargetV(int* v) const;
-
-    bool isValid() const;
-  private:
-    TY_STATUS getProperty(uint32_t propertyId, void* value) const;
-    TY_STATUS setProperty(uint32_t propertyId, const void* value);
-
-    friend class VideoStream;
-    CameraSettings(VideoStream* pStream);
-
-    VideoStream* m_pStream;
-  };
-
   class Device;
   class VideoStream
   {
@@ -647,11 +568,11 @@ public:
           }
       };
 
-      VideoStream() : m_stream(NULL), m_sensorInfo(), m_pCameraSettings(NULL)
+      VideoStream() : m_stream(NULL), m_sensorInfo()
       {
       }
 
-      explicit VideoStream(StreamHandle handle) : m_stream(NULL), m_sensorInfo() , m_pCameraSettings(NULL)
+      explicit VideoStream(StreamHandle handle) : m_stream(NULL), m_sensorInfo()
       {
         _setHandle(handle);
       }
@@ -660,8 +581,6 @@ public:
       {
         destroy();
       }
-
-      CameraSettings* getCameraSettings();
 
       TY_STATUS addNewFrameListener(NewFrameListener* pListener);
 
@@ -678,8 +597,6 @@ public:
       TY_STATUS readFrame(VideoFrameRef* pFrame);
       
       VideoMode getVideoMode() const;
-
-      TY_STATUS setVideoMode(const VideoMode& videoMode);
   
       float getVerticalFieldOfView() const;
 
@@ -696,7 +613,6 @@ public:
     private:
       StreamHandle m_stream;
       SensorInfo   m_sensorInfo;
-      CameraSettings* m_pCameraSettings;
 
       //TY_IMAGE_DATA* m_pFrame;
       VideoFrameData frame;
@@ -721,11 +637,13 @@ public:
 		    return m_deviceInfo;
 	    }
 
+      boost::shared_ptr<PercipioDepthCam> DevicePtr();
+
       bool hasSensor(SensorType sensorType);
 
       bool isValid() const;
 
-      bool ResolutionSetting(SensorType sensorType, int width, int height);
+      bool ResolutionSetting(SensorType sensorType, int width, int height, const std::string& fmt);
 
       TY_STATUS _setHandle(TY_DEV_HANDLE deviceHandle);
 
@@ -752,13 +670,9 @@ public:
       TY_STATUS setImageRegistrationMode(ImageRegistrationMode mode);
       ImageRegistrationMode getImageRegistrationMode() const;
 
-      bool isDepthColorSyncSupport();
-      TY_STATUS setDepthColorSyncEnabled(bool isEnabled);
-      bool getDepthColorSyncEnabled();
+      TY_STATUS PropertyGet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
+      TY_STATUS PropertySet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
 
-      TY_STATUS getProperty(int propertyId, void* data, int* dataSize) const;
-
-      TY_STATUS setProperty(int propertyId, const void* data, int* dataSize);
     private:
       bool m_isOwner;
       DeviceInfo m_deviceInfo;

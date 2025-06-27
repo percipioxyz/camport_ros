@@ -13,44 +13,8 @@
   <arg name="device_reconnection" default="false"/>
   <arg name="rgb_frame_id" />
   <arg name="depth_frame_id" />
-  <arg name="gvsp_resend" default="false" />
   <arg name="color_undistortion" default="true" />
   <arg name="depth_registration" default="true" />
-  <arg name="cmos_sync" default="true" />
-
-  <arg name="tof_channel" />
-  <arg name="tof_depth_quality" />
-  <arg name="tof_filter_threshold" />
-  <arg name="tof_modulation_threshold" />
-  <arg name="tof_jitter_threshold" />
-  <arg name="tof_hdr_ratio" />
-  <arg name="tof_anti_sunlight_index" />
-  <arg name="tof_anti_interference" />
-
-
-  <arg name="sgbm_image_channel_num" />
-  <arg name="sgbm_disparity_num" />
-  <arg name="sgbm_disparity_offset" />
-  <arg name="sgbm_match_window_height" />
-  <arg name="sgbm_semi_global_param_p1" />
-  <arg name="sgbm_semi_global_param_p2" />
-  <arg name="sgbm_unique_factor_param" />
-  <arg name="sgbm_unique_min_absolute_diff" />
-  <arg name="sgbm_cost_param" />
-  <arg name="sgbm_enable_half_window_size" />
-  <arg name="sgbm_match_window_width" />
-  <arg name="sgbm_enable_median_filter" />
-  <arg name="sgbm_enable_lrc_check" />
-  <arg name="sgbm_lrc_max_diff" />
-  <arg name="sgbm_median_filter_thresh" />
-  <arg name="sgbm_semi_global_param_p1_scale" />
-
-  <arg name="depth_value_scale_unit" />
-
-  <arg name="network_transmission_packet_delay" />
-  <arg name="network_transmission_packet_size" />
-  <arg name="device_time_sync_type" />
-  <arg name="device_time_sync_ntp_server_ip" />
 
   <arg name="depth_speckle_filter" />
   <arg name="max_speckle_size" />
@@ -82,49 +46,11 @@
     <param name="rgb_frame_id"   value="$(arg rgb_frame_id)" />
     <param name="depth_frame_id" value="$(arg depth_frame_id)" />
 
-    <param name="gvsp_resend" type="bool" value="$(arg gvsp_resend)" />
     <param name="color_undistortion" type="bool" value="$(arg color_undistortion)" />
     <param name="depth_registration" type="bool" value="$(arg depth_registration)" />
-    <param name="cmos_sync" value="$(arg cmos_sync)" />
-
-    <param name="tof_channel" value="$(arg tof_channel)" />
-    <param name="tof_depth_quality" value="$(arg tof_depth_quality)" />
-    <param name="tof_filter_threshold" value="$(arg tof_filter_threshold)" />
-    <param name="tof_modulation_threshold" value="$(arg tof_modulation_threshold)" />
-    <param name="tof_jitter_threshold" value="$(arg tof_jitter_threshold)" />
-    <param name="tof_hdr_ratio" value="$(arg tof_hdr_ratio)" />
-    <param name="tof_anti_sunlight_index" value="$(arg tof_anti_sunlight_index)" />
-    <param name="tof_anti_interference" value="$(arg tof_anti_interference)" />
-    
-
-    <!--<param name="auto_exposure" value="$(arg auto_exposure)" />-->
-    <!--<param name="auto_white_balance" value="$(arg auto_white_balance)" />-->
 
     <param name="rgb_resolution" type="str" value="$(arg rgb_resolution)" />
     <param name="depth_resolution" type="str" value="$(arg depth_resolution)" />
-
-    <param name="sgbm_image_channel_num"          value="$(arg sgbm_image_channel_num)" />
-    <param name="sgbm_disparity_num"              value="$(arg sgbm_disparity_num)" />
-    <param name="sgbm_disparity_offset"           value="$(arg sgbm_disparity_offset)" />
-    <param name="sgbm_match_window_height"        value="$(arg sgbm_match_window_height)" />
-    <param name="sgbm_semi_global_param_p1"       value="$(arg sgbm_semi_global_param_p1)" />
-    <param name="sgbm_semi_global_param_p2"       value="$(arg sgbm_semi_global_param_p2)" />
-    <param name="sgbm_unique_factor_param"        value="$(arg sgbm_unique_factor_param)" />
-    <param name="sgbm_unique_min_absolute_diff"   value="$(arg sgbm_unique_min_absolute_diff)" />
-    <param name="sgbm_cost_param"                 value="$(arg sgbm_cost_param)" />
-    <param name="sgbm_enable_half_window_size"    value="$(arg sgbm_enable_half_window_size)" />
-    <param name="sgbm_match_window_width"         value="$(arg sgbm_match_window_width)" />
-    <param name="sgbm_enable_median_filter"       value="$(arg sgbm_enable_median_filter)" />
-    <param name="sgbm_enable_lrc_check"           value="$(arg sgbm_enable_lrc_check)" />
-    <param name="sgbm_lrc_max_diff"               value="$(arg sgbm_lrc_max_diff)" />
-    <param name="sgbm_median_filter_thresh"       value="$(arg sgbm_median_filter_thresh)" />
-    <param name="sgbm_semi_global_param_p1_scale" value="$(arg sgbm_semi_global_param_p1_scale)" />
-    <param name="depth_value_scale_unit"          value="$(arg depth_value_scale_unit)" />
-
-    <param name="network_transmission_packet_delay" value="$(arg network_transmission_packet_delay)" />
-    <param name="network_transmission_packet_size"  value="$(arg network_transmission_packet_size)" />
-    <param name="device_time_sync_type"             value="$(arg device_time_sync_type)" />
-    <param name="device_time_sync_ntp_server_ip"    value="$(arg device_time_sync_ntp_server_ip)" />
 
     <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
     <param name="max_speckle_size" value="$(arg max_speckle_size)" />
@@ -151,49 +77,11 @@
     <param name="rgb_frame_id"   value="$(arg rgb_frame_id)" />
     <param name="depth_frame_id" value="$(arg depth_frame_id)" />
 
-    <param name="gvsp_resend" type="bool" value="$(arg gvsp_resend)" />
     <param name="color_undistortion" type="bool" value="$(arg color_undistortion)" />
     <param name="depth_registration" type="bool" value="$(arg depth_registration)" />
-    <param name="cmos_sync" value="$(arg cmos_sync)" />
-
-    <param name="tof_channel" value="$(arg tof_channel)" />
-    <param name="tof_depth_quality" value="$(arg tof_depth_quality)" />
-    <param name="tof_filter_threshold" value="$(arg tof_filter_threshold)" />
-    <param name="tof_modulation_threshold" value="$(arg tof_modulation_threshold)" />
-    <param name="tof_jitter_threshold" value="$(arg tof_jitter_threshold)" />
-    <param name="tof_hdr_ratio" value="$(arg tof_hdr_ratio)" />
-    <param name="tof_anti_sunlight_index" value="$(arg tof_anti_sunlight_index)" />
-    <param name="tof_anti_interference" value="$(arg tof_anti_interference)" />
-    
-
-    <!--<param name="auto_exposure" value="$(arg auto_exposure)" />-->
-    <!--<param name="auto_white_balance" value="$(arg auto_white_balance)" />-->
 
     <param name="rgb_resolution" type="str" value="$(arg rgb_resolution)" />
     <param name="depth_resolution" type="str" value="$(arg depth_resolution)" />
-
-    <param name="sgbm_image_channel_num"          value="$(arg sgbm_image_channel_num)" />
-    <param name="sgbm_disparity_num"              value="$(arg sgbm_disparity_num)" />
-    <param name="sgbm_disparity_offset"           value="$(arg sgbm_disparity_offset)" />
-    <param name="sgbm_match_window_height"        value="$(arg sgbm_match_window_height)" />
-    <param name="sgbm_semi_global_param_p1"       value="$(arg sgbm_semi_global_param_p1)" />
-    <param name="sgbm_semi_global_param_p2"       value="$(arg sgbm_semi_global_param_p2)" />
-    <param name="sgbm_unique_factor_param"        value="$(arg sgbm_unique_factor_param)" />
-    <param name="sgbm_unique_min_absolute_diff"   value="$(arg sgbm_unique_min_absolute_diff)" />
-    <param name="sgbm_cost_param"                 value="$(arg sgbm_cost_param)" />
-    <param name="sgbm_enable_half_window_size"    value="$(arg sgbm_enable_half_window_size)" />
-    <param name="sgbm_match_window_width"         value="$(arg sgbm_match_window_width)" />
-    <param name="sgbm_enable_median_filter"       value="$(arg sgbm_enable_median_filter)" />
-    <param name="sgbm_enable_lrc_check"           value="$(arg sgbm_enable_lrc_check)" />
-    <param name="sgbm_lrc_max_diff"               value="$(arg sgbm_lrc_max_diff)" />
-    <param name="sgbm_median_filter_thresh"       value="$(arg sgbm_median_filter_thresh)" />
-    <param name="sgbm_semi_global_param_p1_scale" value="$(arg sgbm_semi_global_param_p1_scale)" />
-    <param name="depth_value_scale_unit"          value="$(arg depth_value_scale_unit)" />
-
-    <param name="network_transmission_packet_delay" value="$(arg network_transmission_packet_delay)" />
-    <param name="network_transmission_packet_size"  value="$(arg network_transmission_packet_size)" />
-    <param name="device_time_sync_type"             value="$(arg device_time_sync_type)" />
-    <param name="device_time_sync_ntp_server_ip"    value="$(arg device_time_sync_ntp_server_ip)" />
 
     <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
     <param name="max_speckle_size" value="$(arg max_speckle_size)" />

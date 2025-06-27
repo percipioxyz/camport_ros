@@ -124,6 +124,7 @@ typedef enum TY_STATUS_LIST :int32_t
     TY_STATUS_INVALID_DESCRIPTOR= -1022,
     TY_STATUS_INVALID_INTERFACE = -1023,
     TY_STATUS_FIRMWARE_ERROR    = -1024,
+    TY_STATUS_ERROR_XML         = -1025,
 
     /* ret_code from remote device */
     TY_STATUS_DEV_EPERM         = -1,
@@ -194,6 +195,7 @@ typedef uint32_t TY_COMPONENT_ID;///< component unique  id @see TY_DEVICE_COMPON
 ///Feature Format Type definitions
 typedef enum TY_FEATURE_TYPE_LIST :uint32_t
 {
+    TY_FEATURE_CMD              = 0x0000,
     TY_FEATURE_INT              = 0x1000,
     TY_FEATURE_FLOAT            = 0X2000,
     TY_FEATURE_ENUM             = 0x3000,
@@ -244,6 +246,30 @@ typedef enum TY_FEATURE_ID_LIST :uint32_t
 
     TY_ENUM_TRIGGER_POL             = 0x0201 | TY_FEATURE_ENUM,  ///< Trigger POL, see TY_TRIGGER_POL_LIST
     TY_INT_FRAME_PER_TRIGGER        = 0x0202 | TY_FEATURE_INT,  ///< Number of frames captured per trigger
+    
+    //UserSetDefault
+    TY_ENUM_USER_SET_DEFAULT        = 0x0301 | TY_FEATURE_ENUM,     ///Set the configuration set to be used as the default startup set.
+                                                                    ///Write & Read
+
+    //UserSetCurrent
+    TY_ENUM_USER_SET_CURRENT        = 0x0304 | TY_FEATURE_ENUM,     ///Indicates the currently active user configuration profile.
+                                                                    ///Read Only
+    ///UserSetSelector
+    TY_ENUM_USER_SET_SELECTOR       = 0x0302 | TY_FEATURE_ENUM,     ///Selects the configuration set to load, save, or configure. 
+                                                                    ///Write & Read
+
+    //UserSetLoad
+    TY_CMD_USER_SET_LOAD           = 0x0305 | TY_FEATURE_CMD,       ///Stores the selected configuration in the camera's volatile memory and sets it as the temporary active configuration.
+                                                                    ///Write Only
+    
+    //UserSetSave
+    TY_CMD_USER_SET_SAVE           = 0x0303 | TY_FEATURE_CMD,       ///Saves the active configuration set to the chosen user set(set by TY_ENUM_USER_SET_SELECTOR).
+                                                                    ///Write Only
+    
+    //UserSetDescription
+    TY_STRING_USER_SET_DESCRIPTION  = 0x0306 | TY_FEATURE_STRING,   ///Description of the selected User Set content. 
+                                                                    ///Write & Read    
+    
     TY_STRUCT_TRIGGER_PARAM         = 0x0523 | TY_FEATURE_STRUCT,  ///< param of trigger, see TY_TRIGGER_PARAM
     TY_STRUCT_TRIGGER_PARAM_EX      = 0x0525 | TY_FEATURE_STRUCT,  ///< param of trigger, see TY_TRIGGER_PARAM_EX
     TY_STRUCT_TRIGGER_TIMER_LIST    = 0x0526 | TY_FEATURE_STRUCT,  ///< param of trigger mode 20, see TY_TRIGGER_TIMER_LIST
@@ -441,6 +467,76 @@ typedef enum TY_STREAM_ASYNC_MODE_LIST :uint32_t
     TY_STREAM_ASYNC_ALL         = 0xff,
 }TY_STREAM_ASYNC_MODE_LIST;
 typedef uint8_t TY_STREAM_ASYNC_MODE;
+
+
+///pixel format definitions
+typedef enum TYPixFmtList : uint32_t
+{
+  TYPixelFormatMono8 = 0x01080001,
+  TYPixelFormatBayerGBRG8 = 0x0108000A,
+  TYPixelFormatBayerBGGR8 = 0x0108000B,
+  TYPixelFormatBayerGRBG8 = 0x01080008,
+  TYPixelFormatBayerRGGB8 = 0x01080009,
+
+  TYPixelFormatPacketMono10 = 0x010A0046,
+  TYPixelFormatPacketBayerGBRG10 = 0x010A0054,
+  TYPixelFormatPacketBayerBGGR10 = 0x010A0052,
+  TYPixelFormatPacketBayerGRBG10 = 0x010A0056,
+  TYPixelFormatPacketBayerRGGB10 = 0x010A0058,
+  
+  TYPixelFormatPacketMono12 = 0x010C0047,
+  TYPixelFormatPacketBayerGBRG12 = 0x010C0055,
+  TYPixelFormatPacketBayerBGGR12 = 0x010C0053,
+  TYPixelFormatPacketBayerGRBG12 = 0x010C0057,
+  TYPixelFormatPacketBayerRGGB12 = 0x010C0059,
+  
+  TYPixelFormatMono10 = 0x810A0046,
+  TYPixelFormatBayerGBRG10 = 0x810A0054,
+  TYPixelFormatBayerBGGR10 = 0x810A0052,
+  TYPixelFormatBayerGRBG10 = 0x810A0056,
+  TYPixelFormatBayerRGGB10 = 0x810A0058,
+  
+  TYPixelFormatMono12 = 0x810C0047,
+  TYPixelFormatBayerGBRG12 = 0x810C0055,
+  TYPixelFormatBayerBGGR12 = 0x810C0053,
+  TYPixelFormatBayerGRBG12 = 0x810C0057,
+  TYPixelFormatBayerRGGB12 = 0x810C0059,
+  
+  TYPixelFormatMono14 = 0x810E0104,
+  TYPixelFormatBayerGBRG14 = 0x810E0107,
+  TYPixelFormatBayerBGGR14 = 0x810E0108,
+  TYPixelFormatBayerGRBG14 = 0x810E0105,
+  TYPixelFormatBayerRGGB14 = 0x810E0106,
+  
+  TYPixelFormatMono16 = 0x01100007,
+  TYPixelFormatBayerGBRG16 = 0x01100030,
+  TYPixelFormatBayerBGGR16 = 0x01100031,
+  TYPixelFormatBayerGRBG16 = 0x0110002E,
+  TYPixelFormatBayerRGGB16 = 0x0110002F,
+  
+  TYPixelFormatRGB8 = 0x02180014,
+  TYPixelFormatBGR8 = 0x02180015,
+  TYPixelFormatYUV422_8 = 0x02100032,
+  TYPixelFormatYUV422_8_UYVY = 0x0210001F,
+
+  TYPixelFormatYCbCr420_8_YY_CbCr_Planar = 0x020C0113,
+  TYPixelFormatYCbCr420_8_YY_CrCb_Planar = 0x020C0115,
+
+  TYPixelFormatYCbCr420_8_YY_CbCr_Semiplanar = 0x020C0112,
+  TYPixelFormatYCbCr420_8_YY_CrCb_Semiplanar = 0x020C0114,
+  
+  TYPixelFormatCoord3D_C16 = 0x011000B8,
+  TYPixelFormatCoord3D_ABC16 = 0x023000B9,
+  TYPixelFormatCoord3D_ABC32f = 0x026000C0,
+
+  TYPixelFormatJPEG = 0x82180015,
+  TYPixelFormatTofIRFourGroupMono16 = 0x81400016,
+
+  TYPixelFormatInvalid  = 0xFFFFFFFF
+}TYPixFmtList;
+
+typedef uint32_t TYPixFmt;
+
 
 //------------------------------------------------------------------------------
 ///Pixel size type definitions 
@@ -720,7 +816,8 @@ typedef struct TY_DEVICE_NET_INFO
     char    netmask[32];
     char    gateway[32];
     char    broadcast[32];
-    char    reserved[96];
+    char    tlversion[32];
+    char    reserved[64];
 }TY_DEVICE_NET_INFO;
 
 typedef struct TY_DEVICE_USB_INFO
@@ -763,7 +860,8 @@ typedef enum TY_VISIBILITY_TYPE
 {
     BEGINNER = 0,
     EXPERT = 1,
-    GURU = 2
+    GURU = 2,
+    INVLISIBLE = 3
 }TY_VISIBILITY_TYPE;
 
 typedef struct TY_FEATURE_INFO
@@ -1138,7 +1236,7 @@ typedef struct TY_IMAGE_DATA
     void*           buffer;         ///< Pointer to data buffer
     int32_t         width;          ///< Image width in pixels
     int32_t         height;         ///< Image height in pixels
-    TY_PIXEL_FORMAT pixelFormat;    ///< Pixel format, see TY_PIXEL_FORMAT_LIST
+    TYPixFmt        pixelFormat;    ///< Pixel format, see TY_PIXEL_FORMAT_LIST
     int32_t         reserved[9];    ///< Reserved
 }TY_IMAGE_DATA;
 

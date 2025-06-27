@@ -223,7 +223,7 @@ public:
                                 percipio::VideoFrameData* src, 
                                 percipio::VideoFrameData* dst)
     {
-      if(src->getPixelFormat() != TY_PIXEL_FORMAT_DEPTH16) {
+      if(src->getPixelFormat() != TYPixelFormatCoord3D_C16) {
         printf("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
         return-1;
       }
@@ -313,8 +313,8 @@ public:
                                 percipio::VideoFrameData* src, 
                                 percipio::VideoFrameData* dst)
     {
-      if(src->getPixelFormat() != TY_PIXEL_FORMAT_RGB &&
-         src->getPixelFormat() != TY_PIXEL_FORMAT_MONO) {
+      if(src->getPixelFormat() != TYPixelFormatRGB8 &&
+         src->getPixelFormat() != TYPixelFormatMono8) {
         printf("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
         return-1;
       }
@@ -337,17 +337,19 @@ public:
       dst_image.height = dst->getHeight();
       dst_image.pixelFormat = dst->getPixelFormat();
       dst_image.buffer = dst->getData();
+
 #ifdef   IMAGE_DoUndistortion_With_OpenCV
       for(size_t i = 0; i < color_dist_map_list.size(); i++) {
         if(0 == memcmp(color_calib, &color_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
           cv::Mat color, undistory_color;
-          if(src->getPixelFormat() == TY_PIXEL_FORMAT_RGB) {
+          if(src->getPixelFormat() == TYPixelFormatRGB8) {
             color           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_8UC3, src_image.buffer);
             undistory_color = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_8UC3, dst_image.buffer);
           } else {
             color           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_8UC1, src_image.buffer);
             undistory_color = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_8UC1, dst_image.buffer);
           }
+
           cv::remap(color, undistory_color, color_dist_map_list[i].get_map_x(), color_dist_map_list[i].get_map_y(), cv::INTER_LINEAR);
           return TY_STATUS_OK;
         }
@@ -371,7 +373,7 @@ public:
                                               percipio::VideoFrameData* dst,
                                               float f_scale_unit)
     {
-      if(src->getPixelFormat() != TY_PIXEL_FORMAT_DEPTH16) {
+      if(src->getPixelFormat() != TYPixelFormatCoord3D_C16) {
         printf("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
         return-1;
       }
@@ -427,7 +429,7 @@ public:
       dst.setHeight(src.getHeight());
       dst.setFrameIndex(src.getFrameIndex());
       dst.setComponentID(src.getComponentID());
-      dst.setPixelFormat(TY_PIXEL_FORMAT_RGB);
+      dst.setPixelFormat(TYPixelFormatRGB8);
       dst.Resize(3 * src.getWidth() * src.getHeight());
 
       int width = src.getWidth();
@@ -438,65 +440,83 @@ public:
 
       cv::Mat src_mat, dst_mat;
       switch (src.getPixelFormat()) {
-        case TY_PIXEL_FORMAT_YUYV: {
+        case TYPixelFormatYUV422_8: {
           src_mat = cv::Mat(height, width, CV_8UC2, src_buffer);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_YUV2RGB_YUYV);
           break;
         }
-        case TY_PIXEL_FORMAT_YVYU: {
+        case TYPixelFormatYUV422_8_UYVY: {
           src_mat = cv::Mat(height, width, CV_8UC2, src_buffer);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
-          cv::cvtColor(src_mat, dst_mat, cv::COLOR_YUV2RGB_YVYU);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_YUV2RGB_UYVY);
           break;
         }    
-        case TY_PIXEL_FORMAT_JPEG: {
+        case TYPixelFormatJPEG: {
           std::vector<uchar> _v((uchar*)src_buffer, (uchar*)src_buffer + size);
+
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::Mat bgr = cv::imdecode(_v, cv::IMREAD_COLOR);
-          cv::cvtColor(bgr, dst_mat, cv::COLOR_BGR2RGB);
+
+          if(!bgr.empty()) {
+            ROS_WARN("source jpeg decode done1!");
+            //cv::cvtColor(bgr, dst_mat, cv::COLOR_BGR2RGB);
+            //cv::Mat ddd;
+            //cv::cvtColor(bgr, ddd, cv::COLOR_BGR2RGB);
+            cv::imshow("color", bgr);
+            cv::waitKey(1);
+          } else {
+            static int m_index = 0;
+            char file[260];
+            sprintf(file, "/home/jet/workspace/img/ros_%d.jpeg", m_index++);
+            FILE* fp = fopen(file, "wb+");
+            fwrite(src_buffer, 1, size, fp);
+            fclose(fp);
+            ROS_WARN("jpeg decode failed!");
+          }
+          ROS_WARN("source jpeg decode done2  ddd size: %d x %d!", bgr.cols, bgr.rows);
           break;
         }
-        case TY_PIXEL_FORMAT_BAYER8GBRG: {
+        case TYPixelFormatBayerGBRG8: {
           src_mat = cv::Mat(height, width, CV_8U, src_buffer);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGR2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_BAYER8BGGR: {
+        case TYPixelFormatBayerBGGR8: {
           src_mat = cv::Mat(height, width, CV_8U, src_buffer);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerRG2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_BAYER8GRBG: {
+        case TYPixelFormatBayerGRBG8: {
           src_mat = cv::Mat(height, width, CV_8U, src_buffer);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGB2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_BAYER8RGGB: {
+        case TYPixelFormatBayerRGGB8: {
           src_mat = cv::Mat(height, width, CV_8U, src_buffer);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerBG2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_BGR: {
+        case TYPixelFormatBGR8: {
           src_mat = cv::Mat(height, width, CV_8UC3, src_buffer);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BGR2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_RGB: {
+        case TYPixelFormatRGB8: {
           memcpy(dst_buffer, src_buffer, 3*width*height);
         }
-        case TY_PIXEL_FORMAT_MONO: {
+        case TYPixelFormatMono8: {
           src_mat = cv::Mat(height, width, CV_8U, src_buffer);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_GRAY2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_MONO10: {
+        case TYPixelFormatMono10: {
           std::vector<uint16_t> mono10(width * height);
           std::vector<uint8_t> mono8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &mono10[0], width, height);
@@ -508,7 +528,7 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_GRAY2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_BAYER10GBRG: {
+        case TYPixelFormatBayerGBRG10: {
           std::vector<uint16_t> bayer10(width * height);
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &bayer10[0], width, height);
@@ -520,7 +540,7 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGR2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_BAYER10BGGR: {
+        case TYPixelFormatBayerBGGR10: {
           std::vector<uint16_t> bayer10(width * height);
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &bayer10[0], width, height);
@@ -532,7 +552,7 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerRG2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_BAYER10GRBG: {
+        case TYPixelFormatBayerGRBG10: {
           std::vector<uint16_t> bayer10(width * height);
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &bayer10[0], width, height);
@@ -544,7 +564,7 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGB2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_BAYER10RGGB: {
+        case TYPixelFormatBayerRGGB10: {
           std::vector<uint16_t> bayer10(width * height);
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw10((uint8_t*)src_buffer, &bayer10[0], width, height);
@@ -556,7 +576,7 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerBG2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_MONO12: {
+        case TYPixelFormatMono12: {
           std::vector<uint16_t> mono12(width * height);
           std::vector<uint8_t> mono8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &mono12[0], width, height);
@@ -568,7 +588,7 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_GRAY2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_BAYER12GBRG: {
+        case TYPixelFormatBayerGBRG12: {
           std::vector<uint16_t> bayer12(width * height);
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &bayer12[0], width, height);
@@ -580,7 +600,7 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGR2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_BAYER12BGGR: {
+        case TYPixelFormatBayerBGGR12: {
           std::vector<uint16_t> bayer12(width * height);
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &bayer12[0], width, height);
@@ -592,7 +612,7 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerRG2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_BAYER12GRBG: {
+        case TYPixelFormatBayerGRBG12: {
           std::vector<uint16_t> bayer12(width * height);
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &bayer12[0], width, height);
@@ -604,7 +624,7 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGB2RGB);
           break;
         }
-        case TY_PIXEL_FORMAT_CSI_BAYER12RGGB: {
+        case TYPixelFormatBayerRGGB12: {
           std::vector<uint16_t> bayer12(width * height);
           std::vector<uint8_t> bayer8(width * height);
           parseCsiRaw12((uint8_t*)src_buffer, &bayer12[0], width, height);
@@ -616,8 +636,8 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerBG2RGB);
           break;
         }    
-        case TY_PIXEL_FORMAT_MONO16:
-        case TY_PIXEL_FORMAT_TOF_IR_MONO16: {
+        case TYPixelFormatMono16:
+        case TYPixelFormatTofIRFourGroupMono16: {
           uint16_t* ptr = (uint16_t*)src_buffer;
           std::vector<uint8_t> mono8(width * height);
           for(size_t idx = 0; idx < width * height; idx++) {
@@ -628,7 +648,32 @@ public:
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_GRAY2RGB);
           break;
         }
+        case TYPixelFormatYCbCr420_8_YY_CbCr_Semiplanar: {
+          src_mat = cv::Mat(height + height / 2, width, CV_8UC1, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_YUV2RGB_NV12);
+          break;
+        }
+        case TYPixelFormatYCbCr420_8_YY_CrCb_Semiplanar: {
+          src_mat = cv::Mat(height + height / 2, width, CV_8UC1, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_YUV2RGB_NV21);
+          break;
+        }
+        case TYPixelFormatYCbCr420_8_YY_CbCr_Planar: {
+          src_mat = cv::Mat(height + height / 2, width, CV_8UC1, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_YUV2RGB_I420);
+          break;
+        }
+        case TYPixelFormatYCbCr420_8_YY_CrCb_Planar: {
+          src_mat = cv::Mat(height + height / 2, width, CV_8UC1, src_buffer);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_YUV420p2RGB);
+          break;
+        }
         default:
+          ROS_WARN("Source stream pixel format: 0x%08x", src.getPixelFormat());
           break;
       }
 

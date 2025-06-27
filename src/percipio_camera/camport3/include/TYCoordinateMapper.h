@@ -394,7 +394,7 @@ static inline TY_STATUS TYCreateDepthToColorCoordinateLookupTable(
   return TY_STATUS_OK;
 }
 
-inline void TYPixelsOverlapRemove(TY_PIXEL_DESC* lut, uint32_t count, uint32_t imageW, uint32_t imageH)
+static inline void TYPixelsOverlapRemove(TY_PIXEL_DESC* lut, uint32_t count, uint32_t imageW, uint32_t imageH)
 {
   uint16_t* mappedDepth = (uint16_t*)calloc(imageW*imageH, sizeof(uint16_t));
   for(size_t i = 0; i < count; i++) {

@@ -79,8 +79,6 @@ public:
 
   bool isValid() const;
 
-  void setGvspResendEnable(bool enabled);
-
   bool hasIRSensor() const;
   bool hasColorSensor() const;
   bool hasDepthSensor() const;
@@ -127,157 +125,22 @@ public:
   void setImageRegistrationMode(bool enabled);
   percipio::ImageRegistrationMode getImageRegistrationMode() const;
 
-  bool isDeviceRGBDSyncSupported() const;
-  void setDeviceRGBDSynchronization(bool enabled);
-
-  const PercipioVideoMode getIRVideoMode();
-  const PercipioVideoMode getColorVideoMode();
-  const PercipioVideoMode getDepthVideoMode();
-
   const std::vector<PercipioVideoMode>& getSupportedIRVideoModes() const;
   const std::vector<PercipioVideoMode>& getSupportedColorVideoModes() const;
   const std::vector<PercipioVideoMode>& getSupportedDepthVideoModes() const;
-
-  bool isIRVideoModeSupported(const PercipioVideoMode& video_mode) const;
-  bool isColorVideoModeSupported(const PercipioVideoMode& video_mode) const;
-  bool isDepthVideoModeSupported(const PercipioVideoMode& video_mode) const;
-
-  void setIRVideoMode(const PercipioVideoMode& video_mode);
-  void setColorVideoMode(const PercipioVideoMode& video_mode);
-  void setDepthVideoMode(const PercipioVideoMode& video_mode);
 
   void setIRFrameCallback(FrameCallbackFunction callback);
   void setColorFrameCallback(FrameCallbackFunction callback);
   void setDepthFrameCallback(FrameCallbackFunction callback);
   void setPoint3DFrameCallback(FrameCallbackFunction callback);
 
-  float getIRFocalLength (int output_y_resolution) const;
-  float getColorFocalLength (int output_y_resolution) const;
-  float getDepthFocalLength (int output_y_resolution) const;
-  
-  //TODO
-  bool hasLaserPower() const;
-  bool hasAutoExposure() const;
-  bool hasAutoWhiteBalance() const;
-
-  bool hasColorExposureTime() const;
-  bool hasColorAnalogGain() const;
-  bool hasColorRedGain() const;
-  bool hasColorGreenGain() const;
-  bool hasColorBlueGain() const;
-  bool hasColorAecROI() const;
-  bool hasColorAecTargetV() const;
-  
-  bool hasIrExposureTime() const;
-  bool hasIrAnalogGain() const;
-  bool hasIrGain() const;
-
-  bool hasTofDepthChannel() const;
-  bool hasTofDepthQuality() const;
-
-  bool hasTofFilterThreshold() const;
-  bool hasTofModulationThreshold() const;
-  bool hasTofHdrRatio() const;
-  bool hasTofJitterThreshold() const;
-
-  bool hasTofDepthAntiSunlightIndex() const;
-  bool hasDepthFilterSpeckMaxSize() const;
-  bool hasDepthFilterSpecMaxDiff() const;
-  
-  void setLaserPower(int value);
-  void setAutoExposure(bool enable);
-  void setAutoWhiteBalance(bool enable);
-
-  void setColorExposureTime(int value);
-  void setColorAnalogGain(int value);
-  void setColorRedGain(int value);
-  void setColorGreenGain(int value);
-  void setColorBlueGain(int value);
-  void setColorAecROI(double p1_x, double p1_y, double p2_x, double p2_y);
-  void setColorAecTargetV(int v);
-  
-  void setIrExposureTime(int value);
-  void setIrAnalogGain(int value);
-  void setIrGain(int value);
-
-  void setTofDepthChannel(int value);
-  void setTofDepthQuality(int value);
-  void setTofFilterThreshold(int value);
-  void setTofModulationThreshold(int value);
-  void setTofHdrRatio(int value);
-  void setTofJitterThreshold(int value);
-
-  void setTofDepthAntiSunlightIndex(int value);
-  void setTofDepthAntiInterferenceFlag(bool en);
-
-  void setDepthFilterSpeckMaxSize(int value);
-  void setDepthFilterSpecMaxDiff(int value);
-
-  void setDepthScale(float scale);
-  float getDepthScale();
-
-  void setDevicePacketSize(int size);
-  void setDevicePacketDelay(int microseconds);
-  void setDeiveTimeSyncType(int type);
-  void setDeviceNTPServerIP(std::string ip);
-
-
-  void setSgbmImageChanNumber(int value);
-  void setSgbmDispNumber(int value);
-  void setSgbmDispOffset(int value);
-  void setSgbmMatchWinHeight(int value);
-  void setSgbmSemiP1(int value);
-  void setSgbmSemiP2(int value);
-  void setSgbmUniqueFactor(int value);
-  void setSgbmUniqueAbsDiff(int value);
-  void setSgbmCostParam(int value);
-  void setSgbmHalfWinSizeEn(int value);
-  void setSgbmMatchWinWidth(int value);
-  void setSgbmMedianFilterEn(int value);
-  void setSgbmLRCCheckEn(int value);
-  void setSgbmLRCMaxDiff(int value);
-  void setSgbmMedianFilterThresh(int value);
-  void setSgbmSemiP1Scale(int value);
-
-  /////////////////////////////////////////////  
-  bool getLaserPower(int* value) const;
-  bool getAutoExposure() const;
-  bool getAutoWhiteBalance() const;
-
-  bool getColorExposureTime(int* value) const;
-  bool getColorAnalogGain(int* value) const;
-  bool getColorRedGain(int* value) const;
-  bool getColorGreenGain(int* value) const;
-  bool getColorBlueGain(int* value) const;
-  bool getColorAecROI(double* p1_x, double* p1_y, double* p2_x, double* p2_y);
-  bool getColorAecTargetV(int* value) const;
-  
-  bool getIrExposureTime(int* value) const;
-  bool getIrAnalogGain(int* value) const;
-  bool getIrGain(int* value) const;
-
-  bool getTofDepthChannel(int* value) const;
-  bool getTofDepthQuality(int* value) const;
-
-  bool getTofFilterThreshold(int* value) const;
-  bool getTofModulationThreshold(int* value) const;
-  bool getTofHdrRatio(int* value) const;
-  bool getTofJitterThreshold(int* value) const;
-
-  bool getTofDepthAntiSunlightIndex(int* value) const;
-  bool getDepthFilterSpeckMaxSize(int* value) const;
-  bool getDepthFilterSpecMaxDiff(int* value) const;
-
-/*
-  bool getAutoExposure() const;
-  bool getAutoWhiteBalance() const;
-*/
   void setUseDeviceTimer(bool enable);
 
   //PERCIPIO
-  bool getDepthCalibIntristic(void* data, int* size);
-  bool getColorCalibIntristic(void* data, int* size);
-  bool getColorCalibDistortion(void* data, int* size);
+  float getDepthScale();
+  bool getDepthCalibIntristic(void* data, const size_t size);
+  bool getColorCalibIntristic(void* data, const size_t size);
+  bool getColorCalibDistortion(void* data, const size_t size);
 
 protected:
   void shutdown();
@@ -286,11 +149,6 @@ protected:
   boost::shared_ptr<percipio::VideoStream> getColorVideoStream() const;
   boost::shared_ptr<percipio::VideoStream> getDepthVideoStream() const;
   boost::shared_ptr<percipio::VideoStream> getPoint3DVideoStream() const;
-
-  percipio::CameraSettings* getPoint3DCameraSettingsPtr() const;
-  percipio::CameraSettings* getDepthCameraSettingsPtr() const;
-  percipio::CameraSettings* getColorCameraSettingsPtr() const;
-  percipio::CameraSettings* getIRCameraSettingsPtr() const;
 
   boost::shared_ptr<percipio::Device> percipio_device_;
   boost::shared_ptr<percipio::DeviceInfo> device_info_;

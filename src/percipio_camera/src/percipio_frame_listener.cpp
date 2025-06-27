@@ -116,28 +116,28 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
     const percipio::VideoMode video_mode = m_frame.getVideoMode();
     switch (video_mode.getPixelFormat())
     {
-      case TY_PIXEL_FORMAT_DEPTH16:
+      case TYPixelFormatCoord3D_C16:
         image->encoding = sensor_msgs::image_encodings::TYPE_16UC1;
         image->step = sizeof(unsigned char) * 2 * image->width;
         break;
-      case TY_PIXEL_FORMAT_RGB:
+      case TYPixelFormatRGB8:
         image->encoding = sensor_msgs::image_encodings::RGB8;
         image->step = sizeof(unsigned char) * 3 * image->width;
         break;
-      case TY_PIXEL_FORMAT_MONO:
+      case TYPixelFormatMono8:
         image->encoding = sensor_msgs::image_encodings::MONO8;
         image->step = sizeof(unsigned char) * 1 * image->width;
         break;
-      case percipio::PIXEL_FORMAT_GRAY16:
+      case TYPixelFormatMono16:
         image->encoding = sensor_msgs::image_encodings::MONO16;
         image->step = sizeof(unsigned char) * 2 * image->width;
         break;
-      case TY_PIXEL_FORMAT_XYZ48:
+      case TYPixelFormatCoord3D_ABC16:
         image->encoding = sensor_msgs::image_encodings::TYPE_16UC3;
         image->step = sizeof(unsigned short) * 3 * image->width;
         break;
       default:
-        ROS_ERROR("Invalid image encoding");
+        ROS_ERROR("Invalid image encoding.");
         break;
     }
     callback_(image);

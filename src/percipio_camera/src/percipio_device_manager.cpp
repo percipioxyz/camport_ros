@@ -222,15 +222,7 @@ std::string PercipioDeviceManager::getSerial(const std::string& Uri) const
   // we need to open the device to query the serial number
   if (Uri.length() > 0 && percipio_device.open(Uri.c_str()) == TY_STATUS_OK)
   {
-    int serial_len = 100;
-    char serial[serial_len];
-    TY_STATUS rc = percipio_device.getProperty(percipio::TY_DEVICE_PROPERTY_SERIAL_NUMBER, serial, &serial_len);
-    if (rc == TY_STATUS_OK)
-      ret = serial;
-    else
-    {
-      THROW_PERCIPIO_EXCEPTION("Serial number query failed: %s", Uri.c_str());
-    }
+    ret = percipio_device.getDeviceInfo().getUri();
     // close the device again
     percipio_device.close();
   }

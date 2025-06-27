@@ -45,17 +45,13 @@
 
 namespace percipio_wrapper
 {
+
 struct calib_data{
   float intrinsic_data[9];
   float distortion_data[12];
 };
 
-struct calib_data depth_cal, color_cal;
-
-sensor_msgs::CameraInfoPtr info;
-
-sensor_msgs::CameraInfoPtr color_info;
-bool loadedColorCameraInfo = false;
+static struct calib_data depth_cal, color_cal;
 
 PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   nh_(n),
@@ -63,21 +59,8 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   device_manager_(PercipioDeviceManager::getSingelton()),
   config_init_(false),
   depth_registration_(false),
-  gvsp_resend_(false),
-  cmos_sync_(true),
   use_device_time_(false),
-  tof_depth_channel_(0),
-  tof_depth_quality_(4),
-  tof_depth_filter_threshold_(0),
-  tof_depth_modulation_threshold_(640),
-  tof_depth_jitter_threshold_(0),
-  tof_depth_hdr_ratio_(1),
-  tof_depth_anti_sunlight_index_(0),
-  tof_depth_anti_interference_flag_(0),
 
-  data_skip_ir_counter_(0),
-  data_skip_color_counter_(0),
-  data_skip_depth_counter_ (0),
   ir_subscribers_(false),
   color_subscribers_(false),
   point3d_subscribers_(false),
@@ -91,46 +74,6 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   reconfigure_server_.reset(new ReconfigureServer(pnh));
   reconfigure_server_->setCallback(boost::bind(&PercipioDriver::configCb, this, _1, _2));
   
-  if(!device_->hasLaserPower())
-    pnh.deleteParam("laser_power");
-  if(!device_->hasAutoExposure())
-    pnh.deleteParam("auto_exposure");
-  if(!device_->hasAutoWhiteBalance())
-    pnh.deleteParam("auto_white_balance");
-  if(!device_->hasColorExposureTime())
-    pnh.deleteParam("rgb_exposure_time");
-
-  if(!device_->hasColorAecROI()) {
-    pnh.deleteParam("auto_exposure_p1_x");
-    pnh.deleteParam("auto_exposure_p1_y");
-    pnh.deleteParam("auto_exposure_p2_x");
-    pnh.deleteParam("auto_exposure_p2_y");
-  }
-  
-  if(!device_->hasColorAnalogGain())
-    pnh.deleteParam("rgb_analog_gain");
-  if(!device_->hasColorRedGain())
-    pnh.deleteParam("rgb_r_gain");
-  if(!device_->hasColorGreenGain())
-    pnh.deleteParam("rgb_g_gain");
-  if(!device_->hasColorBlueGain())
-    pnh.deleteParam("rgb_b_gain");
-  if(!device_->hasColorAecROI())
-    pnh.deleteParam("rgb_aec_roi");
-  if(!device_->hasColorAecTargetV())
-    pnh.deleteParam("rgb_aec_target_v");
-  if(!device_->hasIrExposureTime())
-    pnh.deleteParam("ir_exposure_time");
-  if(!device_->hasIrAnalogGain())
-    pnh.deleteParam("ir_analog_gain");  
-  if(!device_->hasIrGain())
-    pnh.deleteParam("ir_gain");
-
-  if(!device_->hasDepthFilterSpeckMaxSize())
-    pnh.deleteParam("tof_hw_speckle_size");
-  if(!device_->hasDepthFilterSpecMaxDiff())
-    pnh.deleteParam("tof_hw_speckle_diff");
-
   while (!config_init_)
   {
     ROS_DEBUG("Waiting for dynamic reconfigure configuration.");
@@ -140,7 +83,6 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
 
   advertiseROSTopics();
 }
-
 
 void PercipioDriver::publishStaticTF(const ros::Time &t, const tf2::Vector3 &trans,
   const tf2::Quaternion &q, const std::string &from,
@@ -170,8 +112,7 @@ void PercipioDriver::publishStaticTransforms() {
   tf2::Vector3 zero_trans(0.0, 0.0, 0.0);
   
   std::string stream_name[] = {"depth", "rgb", "ir"};
-
-  for(size_t i = 0; i < 3; i++) {
+  for(size_t i = 0; i < sizeof(stream_name) / sizeof(std::string); i++) {
     auto timestamp = ros::Time::now();//node_->now();
     
     std::string camera_link_frame_id_ = "camera_link"; //camera_name_ + "_link";
@@ -180,7 +121,6 @@ void PercipioDriver::publishStaticTransforms() {
     publishStaticTF(timestamp, trans,      Q,                  camera_link_frame_id_,   frame_id_);
     publishStaticTF(timestamp, zero_trans, quaternion_optical, frame_id_,               optical_frame_id_);
   }
-  //static_tf_broadcaster_ = std::make_shared<tf2_ros::StaticTransformBroadcaster>(node_);
   static_tf_broadcaster_.sendTransform(static_tf_msgs_);
 }
 
@@ -266,219 +206,15 @@ bool PercipioDriver::getSerialCb(percipio_camera::GetSerialRequest& req, percipi
 
 void PercipioDriver::configCb(Config &config, uint32_t level)
 {
-  bool stream_reset = false;
-
-  if((int)level < 0) {
-    if(device_) {
-      device_->getLaserPower(&m_laser_power_);
-      auto_exposure_ = device_->getAutoExposure();
-      auto_white_balance_ = device_->getAutoWhiteBalance();
-      device_->getColorAnalogGain(&m_rgb_analog_gain_);
-      device_->getColorRedGain(&m_rgb_r_gain_);
-      device_->getColorGreenGain(&m_rgb_g_gain_);
-      device_->getColorBlueGain(&m_rgb_b_gain_);
-      device_->getColorExposureTime(&m_rgb_exposure_time_);
-      device_->getColorAecROI(&auto_exposure_p1_x_, &auto_exposure_p1_y_, &auto_exposure_p2_x_, &auto_exposure_p2_y_);
-      device_->getColorAecTargetV(&m_rgb_aec_target_v_);
-
-      device_->getIrExposureTime(&m_ir_exposure_time_);
-      device_->getIrAnalogGain(&m_ir_analog_gain_);
-      device_->getIrGain(&m_ir_gain_);
-
-      device_->getDepthFilterSpeckMaxSize(&m_tof_hw_speckle_size_);
-      device_->getDepthFilterSpecMaxDiff(&m_tof_hw_speckle_diff_);
-
-      depth_speckle_filter_ = device_->getDepthSpecFilterEn();
-      max_speckle_size_ = device_->getDepthSpecFilterSpecSize();
-      max_speckle_diff_ = device_->getDepthSpeckFilterDiff();
-
-      config.depth_speckle_filter = depth_speckle_filter_;
-      config.max_speckle_size = max_speckle_size_;
-      config.max_speckle_diff = max_speckle_diff_;
-
-      depth_time_domain_filter_ = device_->getDepthTimeDomainFilterEn();
-      depth_time_domain_num_ = device_->getDepthTimeDomainFilterNum();
-      config.depth_time_domain_filter = depth_time_domain_filter_;
-      config.depth_time_domain_num = depth_time_domain_num_;
-
-      
-      config.laser_power = m_laser_power_;
-  
-      config.auto_exposure = auto_exposure_;
-      config.auto_white_balance = auto_white_balance_;
-
-      config.auto_exposure_p1_x = auto_exposure_p1_x_;
-      config.auto_exposure_p1_y = auto_exposure_p1_y_;
-      config.auto_exposure_p2_x = auto_exposure_p2_x_;
-      config.auto_exposure_p2_y = auto_exposure_p2_y_;
-  
-      config.rgb_analog_gain = m_rgb_analog_gain_;
-      config.rgb_r_gain = m_rgb_r_gain_;
-      config.rgb_g_gain = m_rgb_g_gain_;
-      config.rgb_b_gain = m_rgb_b_gain_;
-      config.rgb_exposure_time = m_rgb_exposure_time_;
-      config.rgb_aec_target_v = m_rgb_aec_target_v_;
-
-      config.ir_exposure_time = m_ir_exposure_time_;
-      config.ir_analog_gain = m_ir_analog_gain_;
-      config.ir_gain = m_ir_gain_;
-
-      config.tof_hw_speckle_size = m_tof_hw_speckle_size_;
-      config.tof_hw_speckle_diff = m_tof_hw_speckle_diff_;
-    }
-  }
-  else {
-    if(m_laser_power_ != config.laser_power) {
-      m_laser_power_ = config.laser_power;
-      if(device_) device_->setLaserPower(m_laser_power_);
-    }
-  
-    if(auto_exposure_ != config.auto_exposure) {
-      auto_exposure_ = config.auto_exposure;
-      if(device_) device_->setAutoExposure(auto_exposure_);
-    }
-
-    if((auto_exposure_p1_x_ != config.auto_exposure_p1_x) ||
-       (auto_exposure_p1_y_ != config.auto_exposure_p1_y) ||
-       (auto_exposure_p2_x_ != config.auto_exposure_p2_x) ||
-       (auto_exposure_p2_y_ != config.auto_exposure_p2_y)) {
-      auto_exposure_p1_x_ = config.auto_exposure_p1_x;
-      auto_exposure_p1_y_ = config.auto_exposure_p1_y;
-      auto_exposure_p2_x_ = config.auto_exposure_p2_x;
-      auto_exposure_p2_y_ = config.auto_exposure_p2_y;
-
-      ROS_WARN("====ROI : (%f %f) - (%f %f)", auto_exposure_p1_x_, auto_exposure_p1_y_, auto_exposure_p2_x_, auto_exposure_p2_y_);
-      if(device_) device_->setColorAecROI(auto_exposure_p1_x_, auto_exposure_p1_y_, auto_exposure_p2_x_, auto_exposure_p2_y_); 
-    }
-
-    if(auto_white_balance_ != config.auto_white_balance) {
-      auto_white_balance_ = config.auto_white_balance;
-      if(device_) device_->setAutoWhiteBalance(auto_white_balance_);
-    }
-  
-    if(m_rgb_analog_gain_ != config.rgb_analog_gain) {
-      m_rgb_analog_gain_ = config.rgb_analog_gain;
-      if(device_) device_->setColorAnalogGain(m_rgb_analog_gain_);
-    }
-    
-    if(m_rgb_r_gain_ != config.rgb_r_gain) {
-      m_rgb_r_gain_ = config.rgb_r_gain;
-      if(device_) device_->setColorRedGain(m_rgb_r_gain_);
-    }
-    
-    if(m_rgb_g_gain_ != config.rgb_g_gain) {
-      m_rgb_g_gain_ = config.rgb_g_gain;
-      if(device_) device_->setColorGreenGain(m_rgb_g_gain_);
-    }
-    
-    if(m_rgb_b_gain_ != config.rgb_b_gain) {
-      m_rgb_b_gain_ = config.rgb_b_gain;
-      if(device_) device_->setColorBlueGain(m_rgb_b_gain_);
-    }
-    
-    if(m_rgb_exposure_time_ != config.rgb_exposure_time) {
-      m_rgb_exposure_time_ = config.rgb_exposure_time;
-      if(device_) device_->setColorExposureTime(m_rgb_exposure_time_);
-    }
-
-    if(m_rgb_aec_target_v_ != config.rgb_aec_target_v) {
-      m_rgb_aec_target_v_ = config.rgb_aec_target_v;
-      if(device_) device_->setColorAecTargetV(m_rgb_aec_target_v_);
-    }
-
-    if(m_ir_exposure_time_ != config.ir_exposure_time) {
-      m_ir_exposure_time_ = config.ir_exposure_time;
-      if(device_) device_->setIrExposureTime(m_ir_exposure_time_);
-    }
-
-    if(m_ir_analog_gain_ != config.ir_analog_gain) {
-      m_ir_analog_gain_ = config.ir_analog_gain;
-      if(device_) device_->setIrAnalogGain(m_ir_analog_gain_);
-    }
-  
-    if(m_ir_gain_ != config.ir_gain) {
-      m_ir_gain_ = config.ir_gain;
-      if(device_) device_->setIrGain(m_ir_gain_);
-    }
-
-    if(m_tof_hw_speckle_size_ != config.tof_hw_speckle_size) {
-      m_tof_hw_speckle_size_ = config.tof_hw_speckle_size;
-      if(device_) device_->setDepthFilterSpeckMaxSize(m_tof_hw_speckle_size_);
-    }
-
-    if(m_tof_hw_speckle_diff_ != config.tof_hw_speckle_diff) {
-      m_tof_hw_speckle_diff_ = config.tof_hw_speckle_diff;
-      if(device_) device_->setDepthFilterSpecMaxDiff(m_tof_hw_speckle_diff_);
-    }
-
-    if(depth_speckle_filter_ != config.depth_speckle_filter) {
-      depth_speckle_filter_ = config.depth_speckle_filter;
-      if(device_) device_->setDepthSpecFilterEn(depth_speckle_filter_);
-    }
-
-    if(max_speckle_size_ != config.max_speckle_size) {
-      max_speckle_size_ = config.max_speckle_size;
-      if(device_) device_->setDepthSpecFilterSpecSize(max_speckle_size_);
-    }
-
-    if(max_speckle_diff_ != config.max_speckle_diff) {
-      max_speckle_diff_ = config.max_speckle_diff;
-      if(device_) device_->setDepthSpeckFilterDiff(max_speckle_diff_);
-    }
-
-    if(depth_time_domain_filter_ != config.depth_time_domain_filter) {
-      depth_time_domain_filter_ = config.depth_time_domain_filter;
-      if(device_) device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
-    }
-    
-    if(depth_time_domain_num_ != config.depth_time_domain_num) {
-      depth_time_domain_num_ = config.depth_time_domain_num;
-      if(device_) device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
-    }
-  }
-  
-  z_scaling_ = config.z_scaling;
-
-  auto_exposure_ = config.auto_exposure;
-  auto_exposure_p1_x_ = config.auto_exposure_p1_x;
-  auto_exposure_p1_y_ = config.auto_exposure_p1_y;
-  auto_exposure_p2_x_ = config.auto_exposure_p2_x;
-  auto_exposure_p2_y_ = config.auto_exposure_p2_y;
-
-  auto_white_balance_ = config.auto_white_balance;
-
-  data_skip_ = config.data_skip+1;
-
   use_device_time_ = config.use_device_time;
 
   applyConfigToPercipioDevice();
 
   config_init_ = true;
-
-  old_config_ = config;
-}
-
-PercipioVideoMode PercipioDriver::getIRVideoMode()
-{
-  return device_->getIRVideoMode();
-}
-
-PercipioVideoMode PercipioDriver::getColorVideoMode()
-{
-  return device_->getColorVideoMode();
-}
-
-PercipioVideoMode PercipioDriver::getDepthVideoMode()
-{
-  return device_->getDepthVideoMode();
 }
 
 void PercipioDriver::applyConfigToPercipioDevice()
 {
-  data_skip_ir_counter_ = 0;
-  data_skip_color_counter_= 0;
-  data_skip_depth_counter_ = 0;
-
   device_->setUseDeviceTimer(use_device_time_);
 }
 
@@ -559,50 +295,81 @@ void PercipioDriver::irConnectCb()
 
 void PercipioDriver::newIRFrameCallback(sensor_msgs::ImagePtr image)
 {
-  if ((++data_skip_ir_counter_)%data_skip_==0)
+  if (ir_subscribers_)
   {
-    data_skip_ir_counter_ = 0;
-
-    if (ir_subscribers_)
-    {
-      image->header.frame_id = ir_frame_id_;
-      image->header.stamp = image->header.stamp + ir_time_offset_;
-      
-      pub_ir_.publish(image, getDepthCameraInfo(image->width, image->height, image->header.stamp));
-    }
+    image->header.frame_id = ir_frame_id_;
+    image->header.stamp = image->header.stamp;
+    
+    pub_ir_.publish(image, getDepthCameraInfo(image->width, image->height, image->header.stamp));
   }
 }
 
 void PercipioDriver::newColorFrameCallback(sensor_msgs::ImagePtr image)
 {
-  if ((++data_skip_color_counter_)%data_skip_==0)
+  if (color_subscribers_)
   {
-    data_skip_color_counter_ = 0;
-    if (color_subscribers_)
-    {
-      image->header.frame_id = color_frame_id_;
-      image->header.stamp = image->header.stamp + color_time_offset_;
-      pub_color_.publish(image, getColorCameraInfo(image->width, image->height, image->header.stamp, true));
-    }
+    image->header.frame_id = color_frame_id_;
+    image->header.stamp = image->header.stamp;
+    pub_color_.publish(image, getColorCameraInfo(image->width, image->height, image->header.stamp, true));
   }
 }
 
 void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
 {
-  if ((++data_skip_depth_counter_)%data_skip_==0)
+  if (depth_subscribers_)
   {
-    data_skip_depth_counter_ = 0;
-
-    if (depth_subscribers_)
+    sensor_msgs::CameraInfoPtr cam_info;
+    if(percipio::IMAGE_REGISTRATION_DEPTH_TO_COLOR == device_.get()->getImageRegistrationMode())
     {
-      if(std::abs(z_scaling_ - 1.f ) > 0.001)
-      {
-        uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
-        for (unsigned int i = 0; i < image->width * image->height; ++i)
-          if (data[i] != 0)
-            data[i] = static_cast<uint16_t>(data[i]  *  z_scaling_) + 0.5f;
+      image->header.frame_id = color_frame_id_;
+      cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp, false);
+    }
+    else
+    {
+      image->header.frame_id = depth_frame_id_;
+      cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
+    }
+
+    pub_depth_.publish(image, cam_info);
+  }
+}
+
+void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
+{
+  if (point3d_subscribers_)
+  {
+    if(image->encoding == sensor_msgs::image_encodings::TYPE_16UC3)
+    {
+      //TODO
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+
+      float f_scale_unit = device_->getDepthScale();
+      int16_t* data = reinterpret_cast<int16_t*>(&image->data[0]);
+      for(int i = 0; i < image->width * image->height; i++) {
+        if(data[3*i] != 0) {
+          pcl::PointXYZRGB  p;
+          p.x = f_scale_unit * data[3*i] / 1000.f;
+          p.y = f_scale_unit * data[3*i + 1] / 1000.f;
+          p.z = f_scale_unit * data[3*i + 2] / 1000.f;
+          p.r = 255;
+          p.g = 255;
+          p.b = 255;
+          point_cloud->points.push_back(p);
+        }
       }
 
+      point_cloud->width = 1;
+      point_cloud->height = point_cloud->points.size();
+    
+      pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
+      pub_point3d_cloud.header.frame_id = depth_frame_id_;
+      pub_point3d_cloud.header.stamp = image->header.stamp;
+
+      pub_point3d_.publish(pub_point3d_cloud);
+      ros::spinOnce();
+    } 
+    else if(image->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
+    {
       sensor_msgs::CameraInfoPtr cam_info;
       if(percipio::IMAGE_REGISTRATION_DEPTH_TO_COLOR == device_.get()->getImageRegistrationMode())
       {
@@ -615,95 +382,38 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
         cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
       }
 
-      pub_depth_.publish(image, cam_info);
-    }
-  }
-}
+      pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+      float f_scale_unit = device_->getDepthScale();
+      uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
+      float fx = cam_info->K[0]; //fx
+      float fy = cam_info->K[4]; //fy
+      float cx = cam_info->K[2]; //cx
+      float cy = cam_info->K[5]; //cy
 
-void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
-{
-  if ((++data_skip_depth_counter_)%data_skip_==0)
-  {
-    data_skip_depth_counter_ = 0;
-    if (point3d_subscribers_)
-    {
-      if(image->encoding == sensor_msgs::image_encodings::TYPE_16UC3)
-      {
-        //TODO
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-
-        float f_scale_unit = device_->getDepthScale();
-        int16_t* data = reinterpret_cast<int16_t*>(&image->data[0]);
-        for(int i = 0; i < image->width * image->height; i++) {
-          if(data[3*i] != 0) {
-            pcl::PointXYZRGB  p;
-            p.x = f_scale_unit * data[3*i] / 1000.f;
-            p.y = f_scale_unit * data[3*i + 1] / 1000.f;
-            p.z = f_scale_unit * data[3*i + 2] / 1000.f;
-            p.r = 255;
-            p.g = 255;
-            p.b = 255;
-            point_cloud->points.push_back(p);
-          }
+      for(int i = 0; i < image->width * image->height; i++) {
+        int m_pix_x = i % image->width;
+        int m_pix_y = i / image->width;
+        if(data[i] != 0) {
+          pcl::PointXYZRGB  p;
+          p.x = f_scale_unit * (m_pix_x - cx) * data[i] / (1000.f * fx);
+          p.y = f_scale_unit * (m_pix_y - cy) * data[i] / (1000.f * fy);
+          p.z = f_scale_unit * data[i] / 1000.f;
+          p.r = 255;
+          p.g = 255;
+          p.b = 255;
+          point_cloud->points.push_back(p);
         }
-
-        point_cloud->width = 1;
-        point_cloud->height = point_cloud->points.size();
-      
-        pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
-        pub_point3d_cloud.header.frame_id = depth_frame_id_;
-        pub_point3d_cloud.header.stamp = image->header.stamp;
-
-        pub_point3d_.publish(pub_point3d_cloud);
-        ros::spinOnce();
-      } 
-      else if(image->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
-      {
-        sensor_msgs::CameraInfoPtr cam_info;
-        if(percipio::IMAGE_REGISTRATION_DEPTH_TO_COLOR == device_.get()->getImageRegistrationMode())
-        {
-          image->header.frame_id = color_frame_id_;
-          cam_info = getColorCameraInfo(image->width,image->height, image->header.stamp, false);
-        }
-        else
-        {
-          image->header.frame_id = depth_frame_id_;
-          cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
-        }
-
-        pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
-        float f_scale_unit = device_->getDepthScale();
-        uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
-        float fx = cam_info->K[0]; //fx
-        float fy = cam_info->K[4]; //fy
-        float cx = cam_info->K[2]; //cx
-        float cy = cam_info->K[5]; //cy
-
-        for(int i = 0; i < image->width * image->height; i++) {
-          int m_pix_x = i % image->width;
-          int m_pix_y = i / image->width;
-          if(data[i] != 0) {
-            pcl::PointXYZRGB  p;
-            p.x = f_scale_unit * (m_pix_x - cx) * data[i] / (1000.f * fx);
-            p.y = f_scale_unit * (m_pix_y - cy) * data[i] / (1000.f * fy);
-            p.z = f_scale_unit * data[i] / 1000.f;
-            p.r = 255;
-            p.g = 255;
-            p.b = 255;
-            point_cloud->points.push_back(p);
-          }
-        }
-
-        point_cloud->width = 1;
-        point_cloud->height = point_cloud->points.size();
-      
-        pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
-        pub_point3d_cloud.header.frame_id = image->header.frame_id;
-        pub_point3d_cloud.header.stamp = image->header.stamp;
-
-        pub_point3d_.publish(pub_point3d_cloud);
-        ros::spinOnce();
       }
+
+      point_cloud->width = 1;
+      point_cloud->height = point_cloud->points.size();
+    
+      pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
+      pub_point3d_cloud.header.frame_id = image->header.frame_id;
+      pub_point3d_cloud.header.stamp = image->header.stamp;
+
+      pub_point3d_.publish(pub_point3d_cloud);
+      ros::spinOnce();
     }
   }
 }
@@ -746,24 +456,22 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDefaultCameraInfo(int width, int h
 /// @todo Use binning/ROI properly in publishing camera infos
 sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int height, ros::Time time, bool isColor)
 {
-  //boost::lock_guard<boost::mutex> lock(connect_mutex_);
+  sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
   if (device_->getVendor() == "Percipio")
   {
-    info = boost::make_shared<sensor_msgs::CameraInfo>();
-
-    int size = sizeof(color_cal.intrinsic_data);
+    size_t size = sizeof(color_cal.intrinsic_data);
 
     //get intristic from percipio firmware
-    device_->getColorCalibIntristic((void*)color_cal.intrinsic_data, &size);
+    device_->getColorCalibIntristic((void*)color_cal.intrinsic_data, size);
     
     info->width  = width;
     info->height = height;
     
     info->D.resize(12, 0.0);
     //depth stream may need color camera info,but without distortion while map to color coordinate
-    if(isColor) {
+    if(isColor && !color_undistortion_) {
       size = sizeof(color_cal.distortion_data);
-      device_->getColorCalibDistortion((void*)color_cal.distortion_data, &size);
+      device_->getColorCalibDistortion((void*)color_cal.distortion_data, size);
       for(int i = 0; i < 12; i++) {
         info->D[i] = color_cal.distortion_data[i];
       }
@@ -773,8 +481,8 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int hei
     // Simple camera matrix: square pixels (fx = fy), principal point at center
     info->K.assign(0.0);
     info->K[0] = color_cal.intrinsic_data[0];
-    info->K[4] = color_cal.intrinsic_data[4];
     info->K[2] = color_cal.intrinsic_data[2];
+    info->K[4] = color_cal.intrinsic_data[4];
     info->K[5] = color_cal.intrinsic_data[5];
     info->K[8] = 1.0;
 
@@ -793,25 +501,6 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int hei
     // Fill in header
     info->header.stamp  = time;
     info->header.frame_id = color_frame_id_;
-    
-    return info;
-  }
-
-  if (depth_info_manager_->isCalibrated())
-  {
-    info = boost::make_shared<sensor_msgs::CameraInfo>(depth_info_manager_->getCameraInfo());
-    
-    if ( info->width != width )
-    {
-      // Use uncalibrated values
-      ROS_WARN_ONCE("Image resolution doesn't match calibration of the IR camera. Using default parameters.");
-      info = getDefaultCameraInfo(width, height, device_->getIRFocalLength(height));
-    }
-  }
-  else
-  {
-    // If uncalibrated, fill in default values
-    info = getDefaultCameraInfo(width, height, device_->getDepthFocalLength(height));
   }
 
   // Fill in header
@@ -821,18 +510,15 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int hei
   return info;
 }
 
-
 sensor_msgs::CameraInfoPtr PercipioDriver::getDepthCameraInfo(int width, int height, ros::Time time)
 {
-  //boost::lock_guard<boost::mutex> lock(connect_mutex_);
+  sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
   if (device_->getVendor() == "Percipio")
   {
-    info = boost::make_shared<sensor_msgs::CameraInfo>();
-
-    int size = sizeof(depth_cal.intrinsic_data);
+    size_t size = sizeof(depth_cal.intrinsic_data);
     
     //get intristic from percipio firmware
-    device_->getDepthCalibIntristic((void*)&depth_cal.intrinsic_data, &size);
+    device_->getDepthCalibIntristic((void*)&depth_cal.intrinsic_data, size);
     
     info->width  = width;
     info->height = height;
@@ -844,8 +530,8 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDepthCameraInfo(int width, int hei
     // Simple camera matrix: square pixels (fx = fy), principal point at center
     info->K.assign(0.0);
     info->K[0] = depth_cal.intrinsic_data[0];
-    info->K[4] = depth_cal.intrinsic_data[4];
     info->K[2] = depth_cal.intrinsic_data[2];
+    info->K[4] = depth_cal.intrinsic_data[4];
     info->K[5] = depth_cal.intrinsic_data[5];
     info->K[8] = 1.0;
 
@@ -864,30 +550,7 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDepthCameraInfo(int width, int hei
     // Fill in header
     info->header.stamp  = time;
     info->header.frame_id = depth_frame_id_;
-    
-    return info;
   }
-
-  if (depth_info_manager_->isCalibrated())
-  {
-    info = boost::make_shared<sensor_msgs::CameraInfo>(depth_info_manager_->getCameraInfo());
-    
-    if ( info->width != width )
-    {
-      // Use uncalibrated values
-      ROS_WARN_ONCE("Image resolution doesn't match calibration of the IR camera. Using default parameters.");
-      info = getDefaultCameraInfo(width, height, device_->getIRFocalLength(height));
-    }
-  }
-  else
-  {
-    // If uncalibrated, fill in default values
-    info = getDefaultCameraInfo(width, height, device_->getDepthFocalLength(height));
-  }
-
-  // Fill in header
-  info->header.stamp  = time;
-  info->header.frame_id = depth_frame_id_;
 
   return info;
 }
@@ -904,12 +567,6 @@ void PercipioDriver::readConfigFromParameterServer()
   {
     ROS_WARN ("~reconnection flag is not set! Using default.");
     reconnection_flag_ = false;
-  }
-
-  if(!pnh_.getParam("gvsp_resend", gvsp_resend_))
-  {
-    ROS_WARN ("~gvsp resend is not set! Using default.");
-    gvsp_resend_ = false;
   }
 
   if (!pnh_.getParam("rgb_resolution", rgb_resolution_))
@@ -935,79 +592,6 @@ void PercipioDriver::readConfigFromParameterServer()
     ROS_WARN ("~depth_registration is not set! Using default.");
     depth_registration_ = false;
   }
-
-  if (!pnh_.getParam("cmos_sync", cmos_sync_))
-  {
-    ROS_WARN ("~cmos_sync is not set! Using default.");
-    cmos_sync_ = true;
-  }
-
-  if (!pnh_.getParam("tof_channel", tof_depth_channel_))
-  {
-    tof_depth_channel_ = PARAMTER_DEFAULT;
-  }
-
-  if (!pnh_.getParam("tof_depth_quality", tof_depth_quality_))
-  {
-    tof_depth_quality_ = PARAMTER_DEFAULT;
-  }
-
-  if (!pnh_.getParam("tof_filter_threshold", tof_depth_filter_threshold_))
-  {
-    tof_depth_filter_threshold_ = PARAMTER_DEFAULT;
-  }
-
-  if (!pnh_.getParam("tof_modulation_threshold", tof_depth_modulation_threshold_))
-  {
-    tof_depth_modulation_threshold_ = PARAMTER_DEFAULT;
-  }
-
-  if (!pnh_.getParam("tof_jitter_threshold", tof_depth_jitter_threshold_))
-  {
-    tof_depth_jitter_threshold_ = PARAMTER_DEFAULT;
-  }
-
-  if (!pnh_.getParam("tof_hdr_ratio", tof_depth_hdr_ratio_))
-  {
-    tof_depth_hdr_ratio_ = PARAMTER_DEFAULT;
-  }
-
-  if (!pnh_.getParam("tof_anti_sunlight_index", tof_depth_anti_sunlight_index_))
-  {
-    tof_depth_anti_sunlight_index_ = PARAMTER_DEFAULT;
-  }
-
-  if (!pnh_.getParam("tof_anti_interference", tof_depth_anti_interference_flag_))
-  {
-    tof_depth_anti_interference_flag_ = PARAMTER_DEFAULT;
-  }
-
-  //SGBM paramters
-  {
-    pnh_.getParam("sgbm_image_channel_num",             sgbm_image_channel_num_);
-    pnh_.getParam("sgbm_disparity_num",                 sgbm_disparity_num_);
-    pnh_.getParam("sgbm_disparity_offset",              sgbm_disparity_offset_);
-    pnh_.getParam("sgbm_match_window_height",           sgbm_match_window_height_);
-    pnh_.getParam("sgbm_semi_global_param_p1",          sgbm_semi_global_param_p1_);
-    pnh_.getParam("sgbm_semi_global_param_p2",          sgbm_semi_global_param_p2_);
-    pnh_.getParam("sgbm_unique_factor_param",           sgbm_unique_factor_param_);
-    pnh_.getParam("sgbm_unique_min_absolute_diff",      sgbm_unique_min_absolute_diff_);
-    pnh_.getParam("sgbm_cost_param",                    sgbm_cost_param_);
-    pnh_.getParam("sgbm_enable_half_window_size",       sgbm_enable_half_window_size_);
-    pnh_.getParam("sgbm_match_window_width",            sgbm_match_window_width_);
-    pnh_.getParam("sgbm_enable_median_filter",          sgbm_enable_median_filter_);
-    pnh_.getParam("sgbm_enable_lrc_check",              sgbm_enable_lrc_check_);
-    pnh_.getParam("sgbm_lrc_max_diff",                  sgbm_lrc_max_diff_);
-    pnh_.getParam("sgbm_median_filter_thresh",          sgbm_median_filter_thresh_);
-    pnh_.getParam("sgbm_semi_global_param_p1_scale",    sgbm_semi_global_param_p1_scale_);
-
-    pnh_.getParam("depth_value_scale_unit",             depth_value_scale_unit_);
-  }
-
-  pnh_.getParam("network_transmission_packet_delay",          m_net_stream_packet_delay_);
-  pnh_.getParam("network_transmission_packet_size",           m_net_stream_packet_size_);
-  pnh_.getParam("device_time_sync_type",                      m_device_time_sync_type_);
-  pnh_.getParam("device_time_sync_ntp_server_ip",             std_ntp_server_ip);
 
   pnh_.getParam("depth_speckle_filter",             depth_speckle_filter_);
   pnh_.getParam("max_speckle_size",                 max_speckle_size_);
@@ -1146,99 +730,15 @@ void PercipioDriver::initDevice()
       
       device_ = device_manager_->getDevice(device_URI, reconnection_flag_);
 
-      device_->setGvspResendEnable(gvsp_resend_);
-
       device_->setColorResolution(rgb_width, rgb_height);
       device_->setDepthResolutuon(depth_width, depth_height);
 
+      //do rgb undistortion
       device_->setColorUndistortion(color_undistortion_);
 
+      //Enabling the alignment function requires concurrent support for color and depth stream output.
       if(device_->isImageRegistrationModeSupported()) {
         device_->setImageRegistrationMode(depth_registration_);
-      }
-
-      if(device_->isDeviceRGBDSyncSupported()) {
-        device_->setDeviceRGBDSynchronization(cmos_sync_);
-      }
-
-      if(tof_depth_channel_!= PARAMTER_DEFAULT)
-        device_->setTofDepthChannel(tof_depth_channel_);
-      if(tof_depth_quality_ != PARAMTER_DEFAULT)
-        device_->setTofDepthQuality(tof_depth_quality_);
-      if(tof_depth_filter_threshold_ != PARAMTER_DEFAULT) {
-        device_->setTofFilterThreshold(tof_depth_filter_threshold_);
-      }
-      if(tof_depth_modulation_threshold_ != PARAMTER_DEFAULT) {
-        device_->setTofModulationThreshold(tof_depth_modulation_threshold_);
-      }
-      if(tof_depth_jitter_threshold_ != PARAMTER_DEFAULT) {
-        device_->setTofJitterThreshold(tof_depth_jitter_threshold_);
-      }
-      if(tof_depth_hdr_ratio_ != PARAMTER_DEFAULT) {
-        device_->setTofHdrRatio(tof_depth_hdr_ratio_);
-      }
-      if(tof_depth_anti_sunlight_index_ != PARAMTER_DEFAULT) {
-        device_->setTofDepthAntiSunlightIndex(tof_depth_anti_sunlight_index_);
-      }
-
-      if(tof_depth_anti_interference_flag_ != PARAMTER_DEFAULT) {
-        device_->setTofDepthAntiInterferenceFlag(static_cast<bool>(tof_depth_anti_interference_flag_));
-      }
-
-      if(!isnan(depth_value_scale_unit_)) {
-        device_->setDepthScale(depth_value_scale_unit_);
-      }
-
-      if(m_net_stream_packet_size_ != PARAMTER_DEFAULT) {
-        device_->setDevicePacketSize(m_net_stream_packet_size_);
-      }
-
-      if(m_net_stream_packet_delay_ != PARAMTER_DEFAULT) {
-        device_->setDevicePacketDelay(m_net_stream_packet_delay_);
-      }
-
-      if(m_device_time_sync_type_ != PARAMTER_DEFAULT) {
-        device_->setDeiveTimeSyncType(m_device_time_sync_type_);
-      }
-
-      if(std_ntp_server_ip.length()) {
-        device_->setDeviceNTPServerIP(std_ntp_server_ip);
-      }
-
-      //SGBM paramters init
-      {
-        if(sgbm_image_channel_num_!= PARAMTER_DEFAULT)
-          device_->setSgbmImageChanNumber(sgbm_image_channel_num_);
-        if(sgbm_disparity_num_!= PARAMTER_DEFAULT)
-          device_->setSgbmDispNumber(sgbm_disparity_num_);
-        if(sgbm_disparity_offset_!= PARAMTER_DEFAULT)
-          device_->setSgbmDispOffset(sgbm_disparity_offset_);
-        if(sgbm_match_window_height_!= PARAMTER_DEFAULT)
-          device_->setSgbmMatchWinHeight(sgbm_match_window_height_);
-        if(sgbm_semi_global_param_p1_!= PARAMTER_DEFAULT)
-          device_->setSgbmSemiP1(sgbm_semi_global_param_p1_);
-        if(sgbm_semi_global_param_p2_!= PARAMTER_DEFAULT)
-          device_->setSgbmSemiP2(sgbm_semi_global_param_p2_);
-        if(sgbm_unique_factor_param_!= PARAMTER_DEFAULT)
-          device_->setSgbmUniqueFactor(sgbm_unique_factor_param_);
-        if(sgbm_unique_min_absolute_diff_!= PARAMTER_DEFAULT)
-          device_->setSgbmUniqueAbsDiff(sgbm_unique_min_absolute_diff_);
-        if(sgbm_cost_param_!= PARAMTER_DEFAULT)
-          device_->setSgbmCostParam(sgbm_cost_param_);
-        if(sgbm_enable_half_window_size_!= PARAMTER_DEFAULT)
-          device_->setSgbmHalfWinSizeEn(sgbm_enable_half_window_size_);
-        if(sgbm_match_window_width_!= PARAMTER_DEFAULT)
-          device_->setSgbmMatchWinWidth(sgbm_match_window_width_);
-        if(sgbm_enable_median_filter_!= PARAMTER_DEFAULT)
-          device_->setSgbmMedianFilterEn(sgbm_enable_median_filter_);
-        if(sgbm_enable_lrc_check_!= PARAMTER_DEFAULT)
-          device_->setSgbmLRCCheckEn(sgbm_enable_lrc_check_);
-        if(sgbm_lrc_max_diff_!= PARAMTER_DEFAULT)
-          device_->setSgbmLRCMaxDiff(sgbm_lrc_max_diff_);
-        if(sgbm_median_filter_thresh_!= PARAMTER_DEFAULT)
-          device_->setSgbmMedianFilterThresh(sgbm_median_filter_thresh_);
-        if(sgbm_semi_global_param_p1_scale_!= PARAMTER_DEFAULT)
-          device_->setSgbmSemiP1Scale(sgbm_semi_global_param_p1_scale_);
       }
 
       device_->setDepthSpecFilterEn(depth_speckle_filter_);
@@ -1247,6 +747,7 @@ void PercipioDriver::initDevice()
 
       device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
       device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
+      
     }
     catch (const PercipioException& exception)
     {

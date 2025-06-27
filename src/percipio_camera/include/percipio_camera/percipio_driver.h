@@ -111,10 +111,6 @@ private:
 
   sensor_msgs::ImageConstPtr rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, float scale);
 
-  PercipioVideoMode getIRVideoMode();
-  PercipioVideoMode getColorVideoMode();
-  PercipioVideoMode getDepthVideoMode();
-
   ros::NodeHandle& nh_;
   ros::NodeHandle& pnh_;
 
@@ -127,13 +123,9 @@ private:
 
   bool reconnection_flag_;
 
-  bool gvsp_resend_;
-
   bool color_undistortion_;
 
   bool depth_registration_;
-
-  bool cmos_sync_;
 
   /** \brief get_serial server*/
   ros::ServiceServer get_serial_server;
@@ -163,32 +155,6 @@ private:
 
   std::string color_info_url_, depth_info_url_, ir_info_url_;
 
-  // dynamic reconfigure config
-  int m_laser_power_;
-  
-  bool auto_exposure_;
-  double auto_exposure_p1_x_;
-  double auto_exposure_p1_y_;
-  double auto_exposure_p2_x_;
-  double auto_exposure_p2_y_;
-
-  bool auto_white_balance_;
-  
-  int m_rgb_exposure_time_;
-  int m_rgb_analog_gain_;
-  int m_rgb_r_gain_;
-  int m_rgb_g_gain_;
-  int m_rgb_b_gain_;
-
-  int m_rgb_aec_target_v_;
-  
-  int m_ir_exposure_time_;
-  int m_ir_analog_gain_;
-  int m_ir_gain_;
-
-  int m_tof_hw_speckle_size_;
-  int m_tof_hw_speckle_diff_;
-
   //
   bool depth_speckle_filter_;
   int max_speckle_size_;
@@ -197,67 +163,17 @@ private:
   bool depth_time_domain_filter_;
   int  depth_time_domain_num_;
 
-  double depth_ir_offset_x_;
-  double depth_ir_offset_y_;
-  float z_scaling_;
-
-  #define PARAMTER_DEFAULT   (0xFFFFFFFF)
-  int tof_depth_channel_;
-  int tof_depth_quality_;
-  int tof_depth_filter_threshold_;
-  int tof_depth_modulation_threshold_;
-  int tof_depth_jitter_threshold_;
-  int tof_depth_hdr_ratio_;
-  int tof_depth_anti_sunlight_index_;
-  int tof_depth_anti_interference_flag_;
-
-  int sgbm_image_channel_num_  = PARAMTER_DEFAULT;
-  int sgbm_disparity_num_  = PARAMTER_DEFAULT;
-  int sgbm_disparity_offset_  = PARAMTER_DEFAULT;
-  int sgbm_match_window_height_  = PARAMTER_DEFAULT;
-  int sgbm_semi_global_param_p1_  = PARAMTER_DEFAULT;
-  int sgbm_semi_global_param_p2_  = PARAMTER_DEFAULT;
-  int sgbm_unique_factor_param_  = PARAMTER_DEFAULT;
-  int sgbm_unique_min_absolute_diff_  = PARAMTER_DEFAULT;
-  int sgbm_cost_param_  = PARAMTER_DEFAULT;
-  int sgbm_enable_half_window_size_  = PARAMTER_DEFAULT;
-  int sgbm_match_window_width_  = PARAMTER_DEFAULT;
-  int sgbm_enable_median_filter_  = PARAMTER_DEFAULT;
-  int sgbm_enable_lrc_check_  = PARAMTER_DEFAULT;
-  int sgbm_lrc_max_diff_  = PARAMTER_DEFAULT;
-  int sgbm_median_filter_thresh_  = PARAMTER_DEFAULT;
-  int sgbm_semi_global_param_p1_scale_  = PARAMTER_DEFAULT;
-
-  float depth_value_scale_unit_ = NAN;
-
-  int m_net_stream_packet_size_ = PARAMTER_DEFAULT;
-  int m_net_stream_packet_delay_ = PARAMTER_DEFAULT;
-  int m_device_time_sync_type_ = PARAMTER_DEFAULT;
-  std::string std_ntp_server_ip = "";
-  
-  ros::Duration ir_time_offset_;
-  ros::Duration color_time_offset_;
-  ros::Duration depth_time_offset_;
-
   void publishStaticTF(const ros::Time &t, const tf2::Vector3 &trans,
     const tf2::Quaternion &q, const std::string &from,
     const std::string &to);
   void publishStaticTransforms();
 
-  int data_skip_;
-
   bool use_device_time_;
-
-  int data_skip_ir_counter_;
-  int data_skip_color_counter_;
-  int data_skip_depth_counter_;
 
   bool ir_subscribers_;
   bool color_subscribers_;
   bool point3d_subscribers_;
   bool depth_subscribers_;
-
-  Config old_config_;
 };
 
 }

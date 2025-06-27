@@ -1,3 +1,3 @@
-#define TY_LIB_VERSION_MAJOR       3
-#define TY_LIB_VERSION_MINOR       6
-#define TY_LIB_VERSION_PATCH       75
+#define TY_LIB_VERSION_MAJOR       4
+#define TY_LIB_VERSION_MINOR       0
+#define TY_LIB_VERSION_PATCH       21

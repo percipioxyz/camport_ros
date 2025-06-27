@@ -3,8 +3,9 @@ import rospy
 import message_filters
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import Image, CameraInfo
-from cv_bridge import CvBridge, CvBridgeError
 import cv2
+from cv_bridge import CvBridge, CvBridgeError
+
 
 class ImageConverter:
     def __init__(self):

@@ -9,7 +9,6 @@
 
 #include "TYApi.h"
 #include "TYCoordinateMapper.h"
-#include "TyIsp.h"
 
 /// @brief Image processing acceleration switch
 /// @param  [in] en          Enable image process acceleration switch

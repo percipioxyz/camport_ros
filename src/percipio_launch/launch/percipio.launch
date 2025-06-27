@@ -20,53 +20,14 @@
   <arg name="device_reconnection" default="false" />
 
   <!-- Driver parameters -->
-  <arg name="gvsp_resend" default="false" />
-
   <arg name="rgb_resolution" default="640x480" />
   <arg name="depth_resolution" default="640x480" />
-
-  <arg name="cmos_sync"     default="true" />
   
   <!-- Software depth registration -->
   <arg name="depth_registration" default="true" />
 
   <!-- Software color undistortion -->
-  <arg name="color_undistortion" default="false" />
-
-  <!-- Only support Percipio TOF camera   -->
-  <arg name="tof_channel"              default="" />
-  <arg name="tof_depth_quality"        default="" />
-  <arg name="tof_filter_threshold"     default="" />
-  <arg name="tof_modulation_threshold" default="" />
-  <arg name="tof_jitter_threshold"     default="" />
-  <arg name="tof_hdr_ratio"            default="" />
-  <arg name="tof_anti_sunlight_index"  default="" />
-  <arg name="tof_anti_interference"    default="" />
-
-  <!--SGBM parameters -->
-  <arg name="sgbm_image_channel_num"            default="" />
-  <arg name="sgbm_disparity_num"                default=""  />
-  <arg name="sgbm_disparity_offset"             default=""  />
-  <arg name="sgbm_match_window_height"          default=""  />
-  <arg name="sgbm_semi_global_param_p1"         default=""  />
-  <arg name="sgbm_semi_global_param_p2"         default=""  />
-  <arg name="sgbm_unique_factor_param"          default=""  />
-  <arg name="sgbm_unique_min_absolute_diff"     default=""  />
-  <arg name="sgbm_cost_param"                   default=""  />
-  <arg name="sgbm_enable_half_window_size"      default=""  />
-  <arg name="sgbm_match_window_width"           default=""  />
-  <arg name="sgbm_enable_median_filter"         default=""  />
-  <arg name="sgbm_enable_lrc_check"             default=""  />
-  <arg name="sgbm_lrc_max_diff"                 default=""  />
-  <arg name="sgbm_median_filter_thresh"         default=""  />
-  <arg name="sgbm_semi_global_param_p1_scale"   default=""  />
-  <arg name="depth_value_scale_unit"            default=""  />
-
-  <!-- only net cam device support -->
-  <arg name="network_transmission_packet_delay"    default=""  />
-  <arg name="network_transmission_packet_size"     default=""  />
-  <arg name="device_time_sync_type"                default=""  />
-  <arg name="device_time_sync_ntp_server_ip"       default=""  />
+  <arg name="color_undistortion" default="true" />
 
   <!-- Speckle filtering enable/disable switch-->
   <arg name="depth_speckle_filter"              default="false" />
@@ -143,47 +104,9 @@
       <arg name="ir"                              value="$(arg ir)" />
       <arg name="depth"                           value="$(arg depth)" />
       <arg name="respawn"                         value="$(arg respawn)" />
-      <arg name="gvsp_resend"                     value="$(arg gvsp_resend)" />
 
       <arg name="color_undistortion"              value="$(arg color_undistortion)" />
-      
       <arg name="depth_registration"              value="$(arg depth_registration)" />
-
-      <arg name="cmos_sync"                       value="$(arg cmos_sync)" />
-      
-      <arg name="tof_channel"                     value="$(arg tof_channel)" />
-      <arg name="tof_depth_quality"               value="$(arg tof_depth_quality)" />
-      
-      <arg name="tof_filter_threshold"            value="$(arg tof_filter_threshold)" />
-      <arg name="tof_modulation_threshold"        value="$(arg tof_modulation_threshold)" />
-      <arg name="tof_jitter_threshold"            value="$(arg tof_jitter_threshold)" />
-      <arg name="tof_hdr_ratio"                   value="$(arg tof_hdr_ratio)" />
-      <arg name="tof_anti_sunlight_index"         value="$(arg tof_anti_sunlight_index)" /> 
-      <arg name="tof_anti_interference"           value="$(arg tof_anti_interference)" /> 
-
-      <arg name="sgbm_image_channel_num"            value="$(arg sgbm_image_channel_num)" />
-      <arg name="sgbm_disparity_num"                value="$(arg sgbm_disparity_num)" />
-      <arg name="sgbm_disparity_offset"             value="$(arg sgbm_disparity_offset)" />
-      <arg name="sgbm_match_window_height"          value="$(arg sgbm_match_window_height)" />
-      <arg name="sgbm_semi_global_param_p1"         value="$(arg sgbm_semi_global_param_p1)" />
-      <arg name="sgbm_semi_global_param_p2"         value="$(arg sgbm_semi_global_param_p2)" />
-      <arg name="sgbm_unique_factor_param"          value="$(arg sgbm_unique_factor_param)" />
-      <arg name="sgbm_unique_min_absolute_diff"     value="$(arg sgbm_unique_min_absolute_diff)" />
-      <arg name="sgbm_cost_param"                   value="$(arg sgbm_cost_param)" />
-      <arg name="sgbm_enable_half_window_size"      value="$(arg sgbm_enable_half_window_size)" />
-      <arg name="sgbm_match_window_width"           value="$(arg sgbm_match_window_width)" />
-      <arg name="sgbm_enable_median_filter"         value="$(arg sgbm_enable_median_filter)" />
-      <arg name="sgbm_enable_lrc_check"             value="$(arg sgbm_enable_lrc_check)" />
-      <arg name="sgbm_lrc_max_diff"                 value="$(arg sgbm_lrc_max_diff)" />
-      <arg name="sgbm_median_filter_thresh"         value="$(arg sgbm_median_filter_thresh)" />
-      <arg name="sgbm_semi_global_param_p1_scale"   value="$(arg sgbm_semi_global_param_p1_scale)" />
-
-      <arg name="depth_value_scale_unit"            value="$(arg depth_value_scale_unit)" />
-
-      <arg name="network_transmission_packet_delay"    value="$(arg network_transmission_packet_delay)" />
-      <arg name="network_transmission_packet_size"     value="$(arg network_transmission_packet_size)" />
-      <arg name="device_time_sync_type"                value="$(arg device_time_sync_type)" />
-      <arg name="device_time_sync_ntp_server_ip"       value="$(arg device_time_sync_ntp_server_ip)" />
 
       <arg name="depth_speckle_filter"              value="$(arg depth_speckle_filter)" />
       <arg name="max_speckle_size"                  value="$(arg max_speckle_size)" />
