@@ -26,7 +26,6 @@ namespace percipio
     {SENSOR_DEPTH, "Depth"},
   };
 
-
   void NewFrameCallbackManager::register_callback(void* listener, NewFrameCallback callback)
   {
     frame_listener = listener;
@@ -628,20 +627,7 @@ namespace percipio
   TY_STATUS PercipioDepthCam::StreamRegisterNewFrameCallback(StreamHandle stream, void* listener, NewFrameCallback cb)//, void* listener)
   {
     pthread_mutex_lock(&m_mutex);
-    if(leftIRStream.get() == stream) {
-      leftIRStream.get()->register_callback(listener, cb);
-    } else if(rightIRStream.get() == stream) {
-      rightIRStream.get()->register_callback(listener, cb);
-    } else if(ColorStream.get() == stream) {
-      ColorStream.get()->register_callback(listener, cb);
-    } else if(DepthStream.get() == stream) {
-      DepthStream.get()->register_callback(listener, cb);
-    } else if(Point3DStream.get() == stream) {
-      Point3DStream.get()->register_callback(listener, cb);
-    } else {
-      pthread_mutex_unlock(&m_mutex);
-      return TY_STATUS_INVALID_PARAMETER;
-    }
+    if(stream) static_cast<NewFrameCallbackManager*>(stream)->register_callback(listener, cb);
     pthread_mutex_unlock(&m_mutex);
     return TY_STATUS_OK;
   }
@@ -649,17 +635,7 @@ namespace percipio
   void PercipioDepthCam::StreamUnregisterNewFrameCallback(StreamHandle stream)
   {
     pthread_mutex_lock(&m_mutex);
-    if(leftIRStream.get() == stream) {
-      leftIRStream.get()->unregister_callback();
-    } else if(rightIRStream.get() == stream) {
-      rightIRStream.get()->unregister_callback();
-    } else if(ColorStream.get() == stream) {
-      ColorStream.get()->unregister_callback();
-    } else if(DepthStream.get() == stream) {
-      DepthStream.get()->unregister_callback();
-    } else if(Point3DStream.get() == stream) {
-      Point3DStream.get()->unregister_callback();
-    }
+    if(stream) static_cast<NewFrameCallbackManager*>(stream)->unregister_callback();
     pthread_mutex_unlock(&m_mutex);
   }
 
@@ -735,7 +711,7 @@ namespace percipio
         for (int i = 0; i < frame.validCount; i++){
           if (frame.image[i].status != TY_STATUS_OK) continue;
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
-            if(cam->DepthStream.get() && cam->DepthStream->cb) {
+            if(cam->DepthStream && cam->DepthStream->cb) {
               if(cam->depth_stream_spec_enable) {
                 DepthSpkFilterPara param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff};
                 TYDepthSpeckleFilter(frame.image[i], param);
@@ -752,22 +728,22 @@ namespace percipio
                 cam->DepthStream->cb(cam->DepthStream.get(), cam->DepthStream->frame_listener, &frame.image[i]);
               }
             }
-            if(cam->Point3DStream.get() && cam->Point3DStream->cb) {
+            if(cam->Point3DStream && cam->Point3DStream->cb) {
               cam->Point3DStream->cb(cam->Point3DStream.get(), cam->Point3DStream->frame_listener, &frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_RGB_CAM){
-            if(cam->ColorStream.get() && cam->ColorStream->cb) {
+            if(cam->ColorStream && cam->ColorStream->cb) {
               cam->ColorStream->cb(cam->ColorStream.get(), cam->ColorStream->frame_listener, &frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_LEFT){ 
-            if(cam->leftIRStream.get() && cam->leftIRStream->cb) {
+            if(cam->leftIRStream && cam->leftIRStream->cb) {
               cam->leftIRStream->cb(cam->leftIRStream.get(), cam->leftIRStream->frame_listener, &frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_RIGHT){ 
-            if(cam->rightIRStream.get() && cam->rightIRStream->cb) {
+            if(cam->rightIRStream && cam->rightIRStream->cb) {
               cam->leftIRStream->cb(cam->rightIRStream.get(), cam->leftIRStream->frame_listener, &frame.image[i]);
             }
           }
@@ -837,7 +813,7 @@ namespace percipio
 
     //VideoStream
     std::string component_list;
-    if(leftIRStream.get() && leftIRStream.get()->isInvalid()) {
+    if(leftIRStream && leftIRStream->isInvalid()) {
       ROS_INFO("Enable Left-IR stream!");
       rc = m_gige_dev->EnableLeftIRStream(true);
       if(!rc) component_list += "leftIR ";
@@ -846,7 +822,7 @@ namespace percipio
       rc = m_gige_dev->EnableLeftIRStream(false);
     }
 
-    if(rightIRStream.get() && rightIRStream.get()->isInvalid()){
+    if(rightIRStream && rightIRStream->isInvalid()){
       ROS_INFO("Enable Right-IR stream!");
       rc = m_gige_dev->EnableRightIRStream(true);
       if(!rc) component_list += "rightIR ";
@@ -855,7 +831,7 @@ namespace percipio
       rc = m_gige_dev->EnableRightIRStream(false);
     }
 
-    if(ColorStream.get() && ColorStream.get()->isInvalid()) {
+    if(ColorStream && ColorStream->isInvalid()) {
       auto it = m_gige_dev->current_video_mode.find(SENSOR_COLOR);
       if (it != m_gige_dev->current_video_mode.end()) {
         current_rgb_width = it->second.getResolutionX();
@@ -886,9 +862,9 @@ namespace percipio
 
     bool b_support_depth = false;
     bool b_support_point3d = false;
-    if(DepthStream.get() && DepthStream.get()->isInvalid())
+    if(DepthStream && DepthStream->isInvalid())
       b_support_depth = true;
-    if(Point3DStream.get() && Point3DStream.get()->isInvalid())
+    if(Point3DStream && Point3DStream->isInvalid())
       b_support_point3d = true;
     
     if( b_support_depth || b_support_point3d ) {
@@ -1002,41 +978,36 @@ namespace percipio
 
   TY_STATUS PercipioDepthCam::create_leftIR_stream(StreamHandle& stream)
   {
-    if(leftIRStream.get() == NULL)
-      leftIRStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = leftIRStream.get();
+    if(!leftIRStream) leftIRStream = boost::make_shared<NewFrameCallbackManager>();
+    stream = static_cast<StreamHandle>(leftIRStream.get());
     return TY_STATUS_OK;
   }
 
   TY_STATUS PercipioDepthCam::create_rightIR_stream(StreamHandle& stream)
   {
-    if(rightIRStream.get() == NULL)
-      rightIRStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = rightIRStream.get();
+    if(!rightIRStream) rightIRStream = boost::make_shared<NewFrameCallbackManager>();
+    stream = static_cast<StreamHandle>(rightIRStream.get());
     return TY_STATUS_OK;
   }
   
   TY_STATUS PercipioDepthCam::create_color_stream(StreamHandle& stream)
   {
-    if(ColorStream.get() == NULL)
-      ColorStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = ColorStream.get();
+    if(!ColorStream) ColorStream = boost::make_shared<NewFrameCallbackManager>();
+    stream = static_cast<StreamHandle>(ColorStream.get());
     return TY_STATUS_OK;
   }
 
   TY_STATUS PercipioDepthCam::create_depth_stream(StreamHandle& stream)
   {
-    if(DepthStream.get() == NULL) 
-      DepthStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = DepthStream.get();
+    if(!DepthStream) DepthStream = boost::make_shared<NewFrameCallbackManager>();
+    stream = static_cast<StreamHandle>(DepthStream.get());
     return TY_STATUS_OK;
   }
 
   TY_STATUS PercipioDepthCam::create_point3d_stream(StreamHandle& stream)
   {
-    if(Point3DStream.get() == NULL)
-      Point3DStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = Point3DStream.get();
+    if(!Point3DStream) Point3DStream = boost::make_shared<NewFrameCallbackManager>();
+    stream = static_cast<StreamHandle>(Point3DStream.get());
     return TY_STATUS_OK;
   }
 
@@ -1646,12 +1617,10 @@ namespace percipio
 
   TY_STATUS Percipio::initialize()
   {
-    if(g_Context.get()) 
-      g_Context.reset();
+    if(g_Context) g_Context.reset();
 
     g_Context = boost::make_shared<PercipioDepthCam>();
     return g_Context->initialize();
-
   } 
 
   void Percipio::enumerateDevices(Array<DeviceInfo>* deviceInfoList)
