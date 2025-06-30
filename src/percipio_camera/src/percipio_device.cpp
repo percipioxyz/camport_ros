@@ -1,34 +1,3 @@
-/*
- * Copyright (c) 2013, Willow Garage, Inc.
- * All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the Willow Garage, Inc. nor the names of its
- *       contributors may be used to endorse or promote products derived from
- *       this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
- * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE
- * LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
- * CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
- * SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
- * INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
- * CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
- * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
- * POSSIBILITY OF SUCH DAMAGE.
- *
- *      Author: Julius Kammerl (jkammerl@willowgarage.com)
- */
-
 #include "TYApi.h"
 
 #include <boost/lexical_cast.hpp>
@@ -107,13 +76,13 @@ PercipioDevice::~PercipioDevice()
 {
   stopAllStreams();
 
-  if (ir_video_stream_.get() != 0)
+  if (ir_video_stream_)
     ir_video_stream_->removeNewFrameListener(ir_frame_listener.get());
-  if(color_video_stream_.get() != 0)
+  if(color_video_stream_)
     color_video_stream_->removeNewFrameListener(color_frame_listener.get());
-  if(depth_video_stream_.get() != 0)
+  if(depth_video_stream_)
     depth_video_stream_->removeNewFrameListener(depth_frame_listener.get());
-  if(point3d_video_stream_.get() != 0)
+  if(point3d_video_stream_)
     point3d_video_stream_->removeNewFrameListener(point3d_frame_listener.get());
   shutdown();
 
@@ -158,7 +127,7 @@ const std::string PercipioDevice::getStringID() const
 
 bool PercipioDevice::isValid() const
 {
-  return (percipio_device_.get() != 0) && percipio_device_->isValid();
+  return percipio_device_ && percipio_device_->isValid();
 }
 
 bool PercipioDevice::hasIRSensor() const
@@ -265,7 +234,7 @@ void PercipioDevice::stopAllStreams()
 
 void PercipioDevice::stopIRStream()
 {
-  if (ir_video_stream_.get() != 0)
+  if (ir_video_stream_)
   {
     ir_video_started_ = false;
     ir_video_stream_->stop();
@@ -275,7 +244,7 @@ void PercipioDevice::stopIRStream()
 
 void PercipioDevice::stopColorStream()
 {
-  if (color_video_stream_.get() != 0)
+  if (color_video_stream_)
   {
     color_video_started_ = false;
     color_video_stream_->stop();
@@ -285,7 +254,7 @@ void PercipioDevice::stopColorStream()
 
 void PercipioDevice::stopDepthStream()
 {
-  if (depth_video_stream_.get() != 0)
+  if (depth_video_stream_)
   {
     depth_video_started_ = false;
     depth_video_stream_->stop();
@@ -295,7 +264,7 @@ void PercipioDevice::stopDepthStream()
 
 void PercipioDevice::stopPoint3DStream()
 {
-  if(point3d_video_stream_.get() != 0)
+  if(point3d_video_stream_)
   {
     point3d_video_started_ = false;
     point3d_video_stream_->stop();
@@ -305,13 +274,13 @@ void PercipioDevice::stopPoint3DStream()
 
 void PercipioDevice::shutdown()
 {
-  if (ir_video_stream_.get() != 0)
+  if (ir_video_stream_)
     ir_video_stream_->destroy();
 
-  if (color_video_stream_.get() != 0)
+  if (color_video_stream_)
     color_video_stream_->destroy();
 
-  if (depth_video_stream_.get() != 0)
+  if (depth_video_stream_)
     depth_video_stream_->destroy();
 
 }
@@ -501,7 +470,7 @@ void PercipioDevice::setPoint3DFrameCallback(FrameCallbackFunction callback)
 
 boost::shared_ptr<percipio::VideoStream> PercipioDevice::getIRVideoStream() const
 {
-  if (ir_video_stream_.get() == NULL)
+  if(!ir_video_stream_)
   {
     if (hasIRSensor())
     {
@@ -517,7 +486,7 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getIRVideoStream() cons
 
 boost::shared_ptr<percipio::VideoStream> PercipioDevice::getColorVideoStream() const
 {
-  if (color_video_stream_.get() == NULL)
+  if(!color_video_stream_)
   {
     if (hasColorSensor())
     {
@@ -533,7 +502,7 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getColorVideoStream() c
 
 boost::shared_ptr<percipio::VideoStream> PercipioDevice::getDepthVideoStream() const
 {
-  if (depth_video_stream_.get() == NULL)
+  if(!depth_video_stream_)
   {
     if (hasDepthSensor())
     {
@@ -548,7 +517,7 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getDepthVideoStream() c
 
 boost::shared_ptr<percipio::VideoStream> PercipioDevice::getPoint3DVideoStream() const
 {
-  if(point3d_video_stream_.get() == NULL)
+  if(!point3d_video_stream_)
   {
     if (hasPoint3DSensor())
     {

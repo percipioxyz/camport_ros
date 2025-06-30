@@ -111,11 +111,6 @@ add_executable(list_devices
 )
 target_link_libraries(list_devices percipio_wrapper)
 
-#if (UNIX AND NOT APPLE)
-#  add_executable(usb_reset src/usb_reset.c)
-#  set(ADDITIONAL_EXECUTABLES "usb_reset")
-#endif()
-
 install(TARGETS percipio_wrapper percipio_camera_nodelet percipio_camera_node list_devices percipio_driver_lib ${ADDITIONAL_EXECUTABLES}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}

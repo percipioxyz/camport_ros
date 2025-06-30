@@ -12,9 +12,7 @@
 #include "percipio_camera/gige_2_1.h"
 
 #include "percipio_camera/DepthStreamProc.h"
-
 #include "percipio_camera/percipio_depth_algorithm.h"
-
 
 #define MAX_STORAGE_SIZE    (10*1024*1024)
 namespace percipio
