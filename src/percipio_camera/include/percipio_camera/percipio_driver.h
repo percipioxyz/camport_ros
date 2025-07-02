@@ -94,6 +94,8 @@ private:
   std::string device_id_;
   std::string rgb_resolution_;
   std::string depth_resolution_;
+  std::string rgb_format_;
+  std::string depth_format_;
 
   bool reconnection_flag_;
 

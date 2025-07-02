@@ -539,10 +539,21 @@ void PercipioDriver::readConfigFromParameterServer()
     rgb_resolution_ = "640x480";
   }
 
+  if (!pnh_.getParam("rgb_format", rgb_format_))
+  {
+    ROS_WARN ("~rgb_format is not set! Try using default.");
+    rgb_format_ = "";
+  }
+
   if (!pnh_.getParam("depth_resolution", depth_resolution_))
   {
     ROS_WARN ("~depth_resolution is not set! Try using default.");
     depth_resolution_ = "640x480";
+  }
+
+  if (!pnh_.getParam("depth_format", depth_format_))
+  {
+    depth_format_ = "";
   }
 
   if (!pnh_.getParam("color_undistortion", color_undistortion_))
@@ -687,16 +698,17 @@ void PercipioDriver::initDevice()
         continue;
       }
 
-      int rgb_width, rgb_height;
-      int depth_width, depth_height;
-      resolveDeviceResolution(rgb_resolution_, rgb_width, rgb_height);
-      resolveDeviceResolution(depth_resolution_, depth_width, depth_height);
-      
       device_ = device_manager_->getDevice(device_URI, reconnection_flag_);
 
-      device_->setColorResolution(rgb_width, rgb_height);
-      device_->setDepthResolutuon(depth_width, depth_height);
+      int rgb_width, rgb_height;
+      int depth_width, depth_height;
+      if(resolveDeviceResolution(rgb_resolution_, rgb_width, rgb_height)) {
+        device_->setColorResolution(rgb_width, rgb_height, rgb_format_);
+      }
 
+      if(resolveDeviceResolution(depth_resolution_, depth_width, depth_height)) {
+        device_->setDepthResolutuon(depth_width, depth_height, depth_format_);
+      }
       //do rgb undistortion
       device_->setColorUndistortion(color_undistortion_);
 
@@ -711,7 +723,6 @@ void PercipioDriver::initDevice()
 
       device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
       device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
-      
     }
     catch (const PercipioException& exception)
     {
@@ -724,7 +735,6 @@ void PercipioDriver::initDevice()
       else
       {
         ROS_ERROR("Could not retrieve device. Reason: %s", exception.what());
-        exit(-1);
       }
     }
   }

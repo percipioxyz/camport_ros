@@ -28,6 +28,9 @@
   <arg name="rgb_resolution" default="640x480" />
   <arg name="depth_resolution" default="640x480" />
 
+  <arg name="rgb_format" default="" />
+  <arg name="depth_format" default="" />
+
   <arg name="respawn" default="false" />
 
   <!-- Remapping arguments -->
@@ -51,6 +54,9 @@
 
     <param name="rgb_resolution" type="str" value="$(arg rgb_resolution)" />
     <param name="depth_resolution" type="str" value="$(arg depth_resolution)" />
+
+    <param name="rgb_format" type="str" value="$(arg rgb_format)" />
+    <param name="depth_format" type="str" value="$(arg depth_format)" />
 
     <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
     <param name="max_speckle_size" value="$(arg max_speckle_size)" />
@@ -82,6 +88,9 @@
 
     <param name="rgb_resolution" type="str" value="$(arg rgb_resolution)" />
     <param name="depth_resolution" type="str" value="$(arg depth_resolution)" />
+
+    <param name="rgb_format" type="str" value="$(arg rgb_format)" />
+    <param name="depth_format" type="str" value="$(arg depth_format)" />
 
     <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
     <param name="max_speckle_size" value="$(arg max_speckle_size)" />

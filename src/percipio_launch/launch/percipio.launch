@@ -22,6 +22,12 @@
   <!-- Driver parameters -->
   <arg name="rgb_resolution" default="640x480" />
   <arg name="depth_resolution" default="640x480" />
+
+  <!-- rgb pixel format: mono / bayer / bgr / yuv / jpeg-->
+  <arg name="rgb_format" default="" />
+
+  <!-- depth format: depth16 / xyz48 -->
+  <arg name="depth_format" default="" />
   
   <!-- Software depth registration -->
   <arg name="depth_registration" default="true" />
@@ -119,7 +125,10 @@
       <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->
       <arg name="rgb_resolution"                  value="$(arg rgb_resolution)" />
       <arg name="depth_resolution"                value="$(arg depth_resolution)" />
-      
+
+      <arg name="rgb_format"                      value="$(arg rgb_format)" />
+      <arg name="depth_format"                    value="$(arg depth_format)" />
+
     </include>
 
   </group> <!-- camera -->

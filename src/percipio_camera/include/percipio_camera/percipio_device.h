@@ -53,8 +53,8 @@ public:
   bool hasDepthSensor() const;
   bool hasPoint3DSensor() const;
 
-  bool setColorResolution(int w, int h);
-  bool setDepthResolutuon(int w, int h);
+  bool setColorResolution(int w, int h, const std::string& format);
+  bool setDepthResolutuon(int w, int h, const std::string& format);
   
   void startIRStream();
   void startColorStream();

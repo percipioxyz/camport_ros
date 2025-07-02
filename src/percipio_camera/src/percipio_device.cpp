@@ -149,23 +149,21 @@ bool PercipioDevice::hasPoint3DSensor() const
   return percipio_device_->hasSensor(percipio::SENSOR_POINT3D);
 }
 
-bool PercipioDevice::setColorResolution(int w, int h)
+bool PercipioDevice::setColorResolution(int w, int h, const std::string& format)
 {
   if(percipio_device_->hasSensor(percipio::SENSOR_COLOR))
   {
-    std::string fmt = "";
-    return percipio_device_->ResolutionSetting(percipio::SENSOR_COLOR, w, h, fmt);
+    return percipio_device_->ResolutionSetting(percipio::SENSOR_COLOR, w, h, format);
   }
   else
     return false;
 }
 
-bool PercipioDevice::setDepthResolutuon(int w, int h)
+bool PercipioDevice::setDepthResolutuon(int w, int h, const std::string& format)
 {
   if(percipio_device_->hasSensor(percipio::SENSOR_DEPTH))
   {
-    std::string fmt = "";
-    return percipio_device_->ResolutionSetting(percipio::SENSOR_DEPTH, w, h, fmt);
+    return percipio_device_->ResolutionSetting(percipio::SENSOR_DEPTH, w, h, format);
   }
   else
     return false;
