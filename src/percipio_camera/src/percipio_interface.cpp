@@ -36,7 +36,7 @@ namespace percipio
     cb = NULL;
   }
   
-  bool NewFrameCallbackManager::isInvalid()
+  bool NewFrameCallbackManager::isValid()
   {
     if(frame_listener && cb && is_enable) return true;
     return false;
@@ -52,7 +52,7 @@ namespace percipio
     return TY_STATUS_OK;
   }
 
-  PercipioDepthCam::PercipioDepthCam() : _M_IFACE(0), _M_DEVICE(0), m_ids(0)
+  PercipioDepthCam::PercipioDepthCam() : _M_IFACE(0), _M_DEVICE(0), mIDS(0)
   {
     frameBuffer[0] = NULL;
     frameBuffer[1] = NULL;
@@ -141,20 +141,20 @@ namespace percipio
 
     m_current_device_sn = info.id;
 
-    TYGetComponentIDs(_M_DEVICE, &m_ids);
-    if(m_ids & TY_COMPONENT_IR_CAM_LEFT) {
+    TYGetComponentIDs(_M_DEVICE, &mIDS);
+    if(mIDS & TY_COMPONENT_IR_CAM_LEFT) {
       leftIRVideoMode = m_gige_dev->getLeftIRVideoModeList();
     }
 
-    if(m_ids & TY_COMPONENT_IR_CAM_RIGHT) {
+    if(mIDS & TY_COMPONENT_IR_CAM_RIGHT) {
       rightIRVideoMode = m_gige_dev->getRightIRVideoModeList();
     }
 
-    if(m_ids & TY_COMPONENT_RGB_CAM) {
+    if(mIDS & TY_COMPONENT_RGB_CAM) {
       RGBVideoMode = m_gige_dev->getColorVideoModeList();
       m_gige_dev->getColorCalibData(color_calib);
     }
-    if(m_ids & TY_COMPONENT_DEPTH_CAM) {
+    if(mIDS & TY_COMPONENT_DEPTH_CAM) {
       DepthVideoMode = m_gige_dev->getDepthVideoModeList();
       m_gige_dev->getDepthCalibData(depth_calib);
     }
@@ -325,7 +325,7 @@ namespace percipio
 
   const uint32_t&  PercipioDepthCam::get_components() const 
   {
-    return m_ids;
+    return mIDS;
   }
 
   bool PercipioDepthCam::DeviceSetColorUndistortionEnable(bool enable)
@@ -399,10 +399,15 @@ namespace percipio
 
   bool PercipioDepthCam::DeviceIsImageRegistrationModeSupported() const
   {
-    if((m_ids & TY_COMPONENT_DEPTH_CAM) &&(m_ids &  TY_COMPONENT_RGB_CAM))
-      return true;
-    else
+    if(!(mIDS & TY_COMPONENT_RGB_CAM)) {
       return false;
+    }
+
+    if(!(mIDS & TY_COMPONENT_DEPTH_CAM)) {
+      return false;
+    }
+
+    return true;
   }
   
   TY_STATUS PercipioDepthCam::DeviceSetImageRegistrationMode(ImageRegistrationMode mode)
@@ -704,12 +709,17 @@ namespace percipio
       rc = TYFetchFrame(handle, &frame, 2000);
       if(rc == TY_STATUS_OK) {
         float fps = get_fps();
-        if(fps > 0) 
-          ROS_INFO("fps: %.2f", fps);
+        if(fps > 0) ROS_INFO("fps: %.2f", fps);
         for (int i = 0; i < frame.validCount; i++){
           if (frame.image[i].status != TY_STATUS_OK) continue;
+
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
-            if(cam->DepthStream && cam->DepthStream->cb) {
+            if(cam->DepthStream->isValid()) {
+              
+              cv::Mat depth = cv::Mat(frame.image[i].height, frame.image[i].width, CV_16U, frame.image[i].buffer).clone();
+              cv::Mat mask = (depth == 0xFFFF);
+              depth.setTo(0, mask);
+
               if(cam->depth_stream_spec_enable) {
                 DepthSpkFilterPara param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff};
                 TYDepthSpeckleFilter(frame.image[i], param);
@@ -726,22 +736,23 @@ namespace percipio
                 cam->DepthStream->cb(cam->DepthStream.get(), cam->DepthStream->frame_listener, &frame.image[i]);
               }
             }
-            if(cam->Point3DStream && cam->Point3DStream->cb) {
+            
+            if(cam->Point3DStream->isValid()) {
               cam->Point3DStream->cb(cam->Point3DStream.get(), cam->Point3DStream->frame_listener, &frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_RGB_CAM){
-            if(cam->ColorStream && cam->ColorStream->cb) {
+            if(cam->ColorStream->isValid()) {
               cam->ColorStream->cb(cam->ColorStream.get(), cam->ColorStream->frame_listener, &frame.image[i]);
             }
           }
-          else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_LEFT){ 
-            if(cam->leftIRStream && cam->leftIRStream->cb) {
+          else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_LEFT){
+            if(cam->leftIRStream->isValid()) {
               cam->leftIRStream->cb(cam->leftIRStream.get(), cam->leftIRStream->frame_listener, &frame.image[i]);
             }
           }
-          else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_RIGHT){ 
-            if(cam->rightIRStream && cam->rightIRStream->cb) {
+          else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_RIGHT){
+            if(cam->rightIRStream->isValid()) {
               cam->leftIRStream->cb(cam->rightIRStream.get(), cam->leftIRStream->frame_listener, &frame.image[i]);
             }
           }
@@ -756,19 +767,19 @@ namespace percipio
 
   bool PercipioDepthCam::HasStream()
   {
-    if(leftIRStream && leftIRStream->isInvalid())
+    if(leftIRStream && leftIRStream->isValid())
       return true;
 
-    if(rightIRStream && rightIRStream->isInvalid())
+    if(rightIRStream && rightIRStream->isValid())
       return true;
 
-    if(ColorStream && ColorStream->isInvalid())
+    if(ColorStream && ColorStream->isValid())
       return true;
 
-    if(DepthStream && DepthStream->isInvalid())
+    if(DepthStream && DepthStream->isValid())
       return true;
     
-    if(Point3DStream && Point3DStream->isInvalid())
+    if(Point3DStream && Point3DStream->isValid())
       return true;
 
     return false;
@@ -807,98 +818,113 @@ namespace percipio
       return TY_STATUS_ERROR;
     }
 
-    m_gige_dev->PreSetting();
-
-    //VideoStream
-    std::string component_list;
-    if(leftIRStream && leftIRStream->isInvalid()) {
-      ROS_INFO("Enable Left-IR stream!");
-      rc = m_gige_dev->EnableLeftIRStream(true);
-      if(!rc) component_list += "leftIR ";
-    } else {
-      ROS_INFO("Disable Left-IR stream!");
-      rc = m_gige_dev->EnableLeftIRStream(false);
-    }
-
-    if(rightIRStream && rightIRStream->isInvalid()){
-      ROS_INFO("Enable Right-IR stream!");
-      rc = m_gige_dev->EnableRightIRStream(true);
-      if(!rc) component_list += "rightIR ";
-    } else {
-      ROS_INFO("Disable Right-IR stream!");
-      rc = m_gige_dev->EnableRightIRStream(false);
-    }
-
-    if(ColorStream && ColorStream->isInvalid()) {
-      auto it = m_gige_dev->current_video_mode.find(SENSOR_COLOR);
-      if (it != m_gige_dev->current_video_mode.end()) {
-        current_rgb_width = it->second.getResolutionX();
-        current_rgb_height = it->second.getResolutionY();
-        ROS_INFO("Current color image size : %d x %d.", current_rgb_width, current_rgb_height);
-      } else {
-        ROS_WARN("Got current color image size failed!");
-      }
-
-      ROS_INFO("Enable color stream!");
-      rc = m_gige_dev->EnableColorStream(true);
-      if(!rc) component_list += "color ";
-
-      b_stream_with_color = true;
-
-#ifdef IMAGE_DoUndistortion_With_OpenCV
-      //add depth distortion map
-      ImgProc::addColorDistortionMap(color_calib, current_rgb_width, current_rgb_height);
-#endif
-    } else {
-      ROS_INFO("Disable color stream!");
-      rc = m_gige_dev->EnableColorStream(false);
-
-      current_rgb_width = 0;
-      current_rgb_height = 0;
-      b_stream_with_color = false;
-    }
-
     bool b_support_depth = false;
     bool b_support_point3d = false;
-    if(DepthStream && DepthStream->isInvalid())
-      b_support_depth = true;
-    if(Point3DStream && Point3DStream->isInvalid())
-      b_support_point3d = true;
-    
-    if( b_support_depth || b_support_point3d ) {
-      auto it = m_gige_dev->current_video_mode.find(SENSOR_DEPTH);
-      if (it != m_gige_dev->current_video_mode.end()) {
-        current_depth_width = it->second.getResolutionX();
-        current_depth_height = it->second.getResolutionY();
-        ROS_INFO("Current depth image size : %d x %d.", current_depth_width, current_depth_height);
+
+    m_gige_dev->PreSetting();
+
+    std::string component_list;
+    if(mIDS & TY_COMPONENT_IR_CAM_LEFT) {
+      if(leftIRStream && leftIRStream->isValid()) {
+        ROS_INFO("Enable Left-IR stream!");
+        rc = m_gige_dev->EnableLeftIRStream(true);
+        if(!rc) component_list += "leftIR ";
       } else {
-        ROS_WARN("Got current depth image size failed!");
+        ROS_INFO("Disable Left-IR stream!");
+        rc = m_gige_dev->EnableLeftIRStream(false);
       }
+    }
 
-      depth_distortion = m_gige_dev->need_depth_undistortion;
+    if(mIDS & TY_COMPONENT_IR_CAM_RIGHT) {
+      if(rightIRStream && rightIRStream->isValid()){
+        ROS_INFO("Enable Right-IR stream!");
+        rc = m_gige_dev->EnableRightIRStream(true);
+        if(!rc) component_list += "rightIR ";
+      } else {
+        ROS_INFO("Disable Right-IR stream!");
+        rc = m_gige_dev->EnableRightIRStream(false);
+      }
+    }
 
-      ROS_INFO("Enable depth stream!");
-      rc = m_gige_dev->EnableDepthStream(true);
-      if(!rc) component_list += "depth ";
+    if(mIDS & TY_COMPONENT_RGB_CAM) {
+      if(ColorStream && ColorStream->isValid()) {
+        auto it = m_gige_dev->current_video_mode.find(SENSOR_COLOR);
+        if (it != m_gige_dev->current_video_mode.end()) {
+          current_rgb_width = it->second.getResolutionX();
+          current_rgb_height = it->second.getResolutionY();
+          ROS_INFO("Current color image size : %d x %d.", current_rgb_width, current_rgb_height);
+        } else {
+          ROS_WARN("Got current color image size failed!");
+        }
+
+        ROS_INFO("Enable color stream!");
+        rc = m_gige_dev->EnableColorStream(true);
+        if(!rc) component_list += "color ";
+
+        m_gige_dev->getColorIntrinsic(color_intr);
+
+        b_stream_with_color = true;
 
 #ifdef IMAGE_DoUndistortion_With_OpenCV
-      if(depth_distortion) {
         //add depth distortion map
-        ImgProc::addDepthDistortionMap(depth_calib, current_depth_width, current_depth_height);
-      }
+        ImgProc::addColorDistortionMap(color_calib, current_rgb_width, current_rgb_height);
 #endif
-    } else {
-      ROS_INFO("Disable depth stream!");
-      rc = m_gige_dev->EnableDepthStream(false);
+      } else {
+        ROS_INFO("Disable color stream!");
+        rc = m_gige_dev->EnableColorStream(false);
 
-      current_depth_width = 0;
-      current_depth_height = 0;
+        current_rgb_width = 0;
+        current_rgb_height = 0;
+        b_stream_with_color = false;
+      }
+    }
+
+    if(mIDS & TY_COMPONENT_DEPTH_CAM) {
+      if(DepthStream && DepthStream->isValid())
+        b_support_depth = true;
+      if(Point3DStream && Point3DStream->isValid())
+        b_support_point3d = true;
+    
+      if( b_support_depth || b_support_point3d ) {
+        auto it = m_gige_dev->current_video_mode.find(SENSOR_DEPTH);
+        if (it != m_gige_dev->current_video_mode.end()) {
+          current_depth_width = it->second.getResolutionX();
+          current_depth_height = it->second.getResolutionY();
+          ROS_INFO("Current depth image size : %d x %d.", current_depth_width, current_depth_height);
+        } else {
+          ROS_WARN("Got current depth image size failed!");
+        }
+
+        depth_distortion = m_gige_dev->need_depth_undistortion;
+
+        ROS_INFO("Enable depth stream!");
+        rc = m_gige_dev->EnableDepthStream(true);
+        if(!rc) component_list += "depth ";
+
+        m_gige_dev->getDepthIntrinsic(depth_intr);
+
+        TYGetFloat(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale_unit);
+        ROS_INFO("depth stream scale unit : %f", f_depth_scale_unit);
+
+#ifdef IMAGE_DoUndistortion_With_OpenCV
+        if(depth_distortion) {
+          //add depth distortion map
+          ImgProc::addDepthDistortionMap(depth_calib, current_depth_width, current_depth_height);
+        }
+#endif
+      } else {
+        ROS_INFO("Disable depth stream!");
+        rc = m_gige_dev->EnableDepthStream(false);
+
+        current_depth_width = 0;
+        current_depth_height = 0;
+      }
     }
 
     ROS_INFO("Device components enabled: %s.", component_list.c_str());
-
-    m_gige_dev->getColorIntrinsic(depth_intr);
-    m_gige_dev->getDepthIntrinsic(color_intr);
+    ROS_INFO("Color undistortion flag: %d", color_undistortion);
+    ROS_INFO("Depth undistortion flag: %d", depth_distortion);
+    ROS_INFO("RGBD alignment flag:     %d", DeviceGetImageRegistrationMode());
 
     uint32_t frameSize;
     TYGetFrameBufferSize(_M_DEVICE, &frameSize);
@@ -909,16 +935,6 @@ namespace percipio
 
     TYEnqueueBuffer(_M_DEVICE, frameBuffer[0], frameSize);
     TYEnqueueBuffer(_M_DEVICE, frameBuffer[1], frameSize);
-
-    //color_undistortion rgb undistortion flag
-    //depth_distortion   depth do undistortion flag
-    //DeviceGetImageRegistrationMode()
-    ROS_INFO("color stream do undistortion flag: %d", color_undistortion);
-    ROS_INFO("depth stream do undistortion flag: %d", depth_distortion);
-    ROS_INFO("depth stream do registration flag: %d", DeviceGetImageRegistrationMode());
-
-    TYGetFloat(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale_unit);
-    ROS_INFO("depth stream scale unit : %f", f_depth_scale_unit);
 
     rc = TYStartCapture(_M_DEVICE);
     if(rc != TY_STATUS_OK) {
@@ -1048,10 +1064,10 @@ namespace percipio
 
   TY_STATUS VideoStream::addNewFrameListener(NewFrameListener* pListener)
   {
-    if (!isValid())
-    {
+    if (!isValid()) 
       return TY_STATUS_ERROR;
-    }
+
+    pListener->VideoStreamInit(this);
     return g_Context->StreamRegisterNewFrameCallback(m_stream, static_cast<void*>(pListener), pListener->callback);
   }
 
@@ -1062,6 +1078,7 @@ namespace percipio
       return;
     }
     g_Context->StreamUnregisterNewFrameCallback(m_stream);
+    pListener->VideoStreamDeinit();
   }
 
   TY_STATUS VideoStream::start()
@@ -1274,7 +1291,7 @@ namespace percipio
     pthread_mutex_unlock(&_mutex);
   }
   
-  VideoFrameData::~VideoFrameData() 
+  VideoFrameData::~VideoFrameData()
   {
     pthread_mutex_lock(&_mutex);
     if(m_isOwner) {
@@ -1319,7 +1336,7 @@ namespace percipio
     }
   }
 
-  void  VideoFrameData::setData(TY_IMAGE_DATA* data)
+  void VideoFrameData::setData(TY_IMAGE_DATA* data)
   {
     pthread_mutex_lock(&_mutex);
     timestamp = data->timestamp;

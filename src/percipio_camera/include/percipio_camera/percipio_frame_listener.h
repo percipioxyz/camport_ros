@@ -20,12 +20,11 @@ class PercipioFrameListener : public percipio::VideoStream::NewFrameListener
 public:
   PercipioFrameListener();
 
-  virtual ~PercipioFrameListener()
-  { };
+  virtual ~PercipioFrameListener(){ }
 
-  void onNewFrame(percipio::VideoStream& stream);
+  virtual void onNewFrame(percipio::VideoStream& stream);
 
-  void setCallback(FrameCallbackFunction& callback)
+  void setCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
   {
     callback_ = callback;
   }
@@ -35,12 +34,14 @@ public:
 private:
   percipio::VideoFrameRef m_frame;
 
-  FrameCallbackFunction callback_;
+  boost::shared_ptr<FrameCallbackFunction> callback_;
 
   bool user_device_timer_;
   boost::shared_ptr<PercipioTimerFilter> timer_filter_;
 
   double prev_time_stamp_;
+
+  const std::string stream_desc;
 };
 
 }

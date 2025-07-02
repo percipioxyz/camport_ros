@@ -86,6 +86,11 @@ private:
   boost::shared_ptr<PercipioDeviceManager> device_manager_;
   boost::shared_ptr<PercipioDevice> device_;
 
+  boost::shared_ptr<FrameCallbackFunction> color_frame_callback;
+  boost::shared_ptr<FrameCallbackFunction> depth_frame_callback;
+  boost::shared_ptr<FrameCallbackFunction> p3d_frame_callback;
+  boost::shared_ptr<FrameCallbackFunction> ir_frame_callback;
+  
   std::string device_id_;
   std::string rgb_resolution_;
   std::string depth_resolution_;

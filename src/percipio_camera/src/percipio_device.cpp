@@ -54,7 +54,6 @@ PercipioDevice::PercipioDevice(const std::string& device_URI, const bool auto_re
   point3d_frame_listener = boost::make_shared<PercipioFrameListener>();
 
   //m_sensorInfo._setInternal(g_Context.get()->StreamGetSensorInfo(m_stream));
-  
   boost::shared_ptr<percipio::VideoStream> ir_stream = getIRVideoStream();
   if (ir_stream)
     ir_stream->addNewFrameListener(ir_frame_listener.get());
@@ -448,22 +447,22 @@ void PercipioDevice::setUseDeviceTimer(bool enable)
     point3d_frame_listener->setUseDeviceTimer(enable);
 }
 
-void PercipioDevice::setIRFrameCallback(FrameCallbackFunction callback)
+void PercipioDevice::setIRFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
 {
   ir_frame_listener->setCallback(callback);
 }
 
-void PercipioDevice::setColorFrameCallback(FrameCallbackFunction callback)
+void PercipioDevice::setColorFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
 {
   color_frame_listener->setCallback(callback);
 }
 
-void PercipioDevice::setDepthFrameCallback(FrameCallbackFunction callback)
+void PercipioDevice::setDepthFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
 {
   depth_frame_listener->setCallback(callback);
 }
 
-void PercipioDevice::setPoint3DFrameCallback(FrameCallbackFunction callback)
+void PercipioDevice::setPoint3DFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
 {
   point3d_frame_listener->setCallback(callback);
 }
@@ -474,7 +473,7 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getIRVideoStream() cons
   {
     if (hasIRSensor())
     {
-      ir_video_stream_ = boost::make_shared<percipio::VideoStream>();
+      ir_video_stream_ = boost::make_shared<percipio::VideoStream>("IR");
       const TY_STATUS rc = ir_video_stream_->create(*percipio_device_, percipio::SENSOR_IR_LEFT);
       if (rc != TY_STATUS_OK)
         THROW_PERCIPIO_EXCEPTION("Couldn't create IR video stream: \n%s\n", percipio::Percipio::getExtendedError(rc));
@@ -490,7 +489,7 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getColorVideoStream() c
   {
     if (hasColorSensor())
     {
-      color_video_stream_ = boost::make_shared<percipio::VideoStream>();
+      color_video_stream_ = boost::make_shared<percipio::VideoStream>("Color");
 
       const TY_STATUS rc = color_video_stream_->create(*percipio_device_, percipio::SENSOR_COLOR);
       if (rc != TY_STATUS_OK)
@@ -506,7 +505,7 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getDepthVideoStream() c
   {
     if (hasDepthSensor())
     {
-      depth_video_stream_ = boost::make_shared<percipio::VideoStream>();
+      depth_video_stream_ = boost::make_shared<percipio::VideoStream>("Depth");
       const TY_STATUS rc = depth_video_stream_->create(*percipio_device_, percipio::SENSOR_DEPTH);
       if (rc != TY_STATUS_OK)
         THROW_PERCIPIO_EXCEPTION("Couldn't create depth video stream: \n%s\n", percipio::Percipio::getExtendedError(rc));
@@ -521,7 +520,7 @@ boost::shared_ptr<percipio::VideoStream> PercipioDevice::getPoint3DVideoStream()
   {
     if (hasPoint3DSensor())
     {
-      point3d_video_stream_ = boost::make_shared<percipio::VideoStream>();
+      point3d_video_stream_ = boost::make_shared<percipio::VideoStream>("Point3D");
       const TY_STATUS rc = point3d_video_stream_->create(*percipio_device_, percipio::SENSOR_POINT3D);
       if (rc != TY_STATUS_OK)
         THROW_PERCIPIO_EXCEPTION("Couldn't create point3d video stream: \n%s\n", percipio::Percipio::getExtendedError(rc));

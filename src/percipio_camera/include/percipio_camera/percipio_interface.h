@@ -80,7 +80,7 @@ namespace percipio
 
       void register_callback(void* listener, NewFrameCallback func);
       void unregister_callback();
-      bool isInvalid();
+      bool isValid();
       void enableCallback(bool en);
 
       void* frame_listener;
@@ -255,7 +255,7 @@ namespace percipio
     private:
       TY_INTERFACE_HANDLE _M_IFACE;
       TY_DEV_HANDLE       _M_DEVICE;
-      TY_COMPONENT_ID     m_ids;
+      TY_COMPONENT_ID     mIDS;
 
       GigEVersion         gige_version = GigeE_2_0;
 
@@ -537,7 +537,6 @@ namespace percipio
       VideoFrameData* m_pFrame; 
   };
 
-  class VideoStream;
   class Device;
   class VideoStream
   {
@@ -555,27 +554,40 @@ namespace percipio
 
           virtual void onNewFrame(VideoStream&) = 0;
 
+          void parseImageData(TY_IMAGE_DATA* frame)
+          {
+            std::unique_lock<std::mutex> lock(_mutex);
+            if(ptrVideoStream) {
+              ptrVideoStream->parseImageData(frame);
+              onNewFrame(*ptrVideoStream);
+            }
+          }
+
+          void VideoStreamInit(VideoStream* video) { 
+            std::unique_lock<std::mutex> lock(_mutex);
+            ptrVideoStream = video;
+          }
+          void VideoStreamDeinit() {
+            std::unique_lock<std::mutex> lock(_mutex);
+            ptrVideoStream = nullptr;
+          }
+
         private:
           friend class VideoStream;
+          std::mutex _mutex;
+          VideoStream* ptrVideoStream;
           static void callback(StreamHandle streamHandle, void* pCookie,  TY_IMAGE_DATA* frame)
-          {      
+          {
             NewFrameListener* pListener = (NewFrameListener*)pCookie;
-            VideoStream stream;
-            stream._setHandle(streamHandle);
-            stream.parseImageData(frame);
-            pListener->onNewFrame(stream);
-            stream._setHandle(NULL);
+            pListener->parseImageData(frame);
           }
       };
 
-      VideoStream() : m_stream(NULL), m_sensorInfo()
+      VideoStream(const std::string& name) : stream_desc(name), m_stream(NULL), m_sensorInfo()
       {
       }
 
-      explicit VideoStream(StreamHandle handle) : m_stream(NULL), m_sensorInfo()
-      {
-        _setHandle(handle);
-      }
+      const std::string& desc() { return stream_desc;}
 
       ~VideoStream()
       {
@@ -611,6 +623,8 @@ namespace percipio
       const StreamHandle& _getHandle() const;
 
     private:
+      const std::string stream_desc;
+
       StreamHandle m_stream;
       SensorInfo   m_sensorInfo;
 
@@ -751,7 +765,6 @@ namespace percipio
       static void enumerateDevices(Array<DeviceInfo>* deviceInfoList);
 
       static const char* getExtendedError(TY_STATUS status);
-
   };
 }
 

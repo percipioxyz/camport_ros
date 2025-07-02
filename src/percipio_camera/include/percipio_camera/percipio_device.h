@@ -98,10 +98,10 @@ public:
   const std::vector<PercipioVideoMode>& getSupportedColorVideoModes() const;
   const std::vector<PercipioVideoMode>& getSupportedDepthVideoModes() const;
 
-  void setIRFrameCallback(FrameCallbackFunction callback);
-  void setColorFrameCallback(FrameCallbackFunction callback);
-  void setDepthFrameCallback(FrameCallbackFunction callback);
-  void setPoint3DFrameCallback(FrameCallbackFunction callback);
+  void setIRFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
+  void setColorFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
+  void setDepthFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
+  void setPoint3DFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
 
   void setUseDeviceTimer(bool enable);
 

@@ -122,9 +122,9 @@ void PercipioDriver::advertiseROSTopics()
     image_transport::SubscriberStatusCallback itssc = boost::bind(&PercipioDriver::colorConnectCb, this);
     ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::colorConnectCb, this);
     pub_color_ = color_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
+  } else {
+    ROS_WARN("The device lacks an RGB component and does not support RGBD alignment mode!\n");
   }
-  else
-    ROS_WARN("Device do not has color sensor.\n");
 
   if (device_->hasIRSensor())
   {
@@ -143,16 +143,6 @@ void PercipioDriver::advertiseROSTopics()
     pub_point3d_ = nh_.advertise<sensor_msgs::PointCloud2>("PointCloud2", 1, rssc2, rssc2);
   }
 
-  ////////// CAMERA INFO MANAGER
-
-  // Pixel offset between depth and IR images.
-  // By default assume offset of (5,4) from 9x7 correlation window.
-  // NOTE: These are now (temporarily?) dynamically reconfigurable, to allow tweaking.
-  //param_nh.param("depth_ir_offset_x", depth_ir_offset_x_, 5.0);
-  //param_nh.param("depth_ir_offset_y", depth_ir_offset_y_, 4.0);
-
-  // The camera names are set to [rgb|depth]_[serial#], e.g. depth_B00367707227042B.
-  // camera_info_manager substitutes this for ${NAME} in the URL.
   std::string serial_number = device_->getStringID();
   std::string color_name, depth_name, ir_name;//, ;
 
@@ -194,7 +184,8 @@ void PercipioDriver::colorConnectCb()
   color_subscribers_ = pub_color_.getNumSubscribers() > 0;
   if (color_subscribers_ && !device_->isColorStreamStarted())
   { 
-    device_->setColorFrameCallback(boost::bind(&PercipioDriver::newColorFrameCallback, this, _1));
+    color_frame_callback = boost::make_shared<FrameCallbackFunction>(boost::bind(&PercipioDriver::newColorFrameCallback, this, _1));
+    device_->setColorFrameCallback(color_frame_callback);
 
     ROS_INFO("Starting color stream.");
     device_->startColorStream();
@@ -213,7 +204,8 @@ void PercipioDriver::depthConnectCb()
   bool need_depth = depth_subscribers_;
   if (need_depth && !device_->isDepthStreamStarted())
   {
-    device_->setDepthFrameCallback(boost::bind(&PercipioDriver::newDepthFrameCallback, this, _1));
+    depth_frame_callback = boost::make_shared<FrameCallbackFunction>(boost::bind(&PercipioDriver::newDepthFrameCallback, this, _1));
+    device_->setDepthFrameCallback(depth_frame_callback);
 
     ROS_INFO("Starting depth stream.");
     device_->startDepthStream();
@@ -232,7 +224,8 @@ void PercipioDriver::cloud3DConnectCb()
   bool need_p3d = point3d_subscribers_;
   if (need_p3d && !device_->isPoint3DStreamStarted())
   {
-    device_->setPoint3DFrameCallback(boost::bind(&PercipioDriver::newPoint3DFrameCallback, this, _1));
+    p3d_frame_callback = boost::make_shared<FrameCallbackFunction>(boost::bind(&PercipioDriver::newPoint3DFrameCallback, this, _1));
+    device_->setPoint3DFrameCallback(p3d_frame_callback);
 
     ROS_INFO("Starting point3d stream.");
     device_->startPoint3DStream();
@@ -251,7 +244,8 @@ void PercipioDriver::irConnectCb()
 
   if (ir_subscribers_ && !device_->isIRStreamStarted())
   {
-    device_->setIRFrameCallback(boost::bind(&PercipioDriver::newIRFrameCallback, this, _1));
+    ir_frame_callback = boost::make_shared<FrameCallbackFunction>(boost::bind(&PercipioDriver::newIRFrameCallback, this, _1));
+    device_->setIRFrameCallback(ir_frame_callback);
 
     ROS_INFO("Starting IR stream.");
     device_->startIRStream();
