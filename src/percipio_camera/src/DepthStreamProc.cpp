@@ -118,7 +118,7 @@ static bool check_input_buff_valid(const TY_IMAGE_DATA& input, const TY_IMAGE_DA
     if (input.height != dst.height){
         return false;
     }
-    if (input.pixelFormat != TY_PIXEL_FORMAT_DEPTH16){
+    if (input.pixelFormat != TYPixelFormatCoord3D_C16){
         return false;
     }
     return true;
@@ -204,7 +204,7 @@ int TYDepthEnhenceFilter(const std::vector<TY_IMAGE_DATA>& depth_images, TY_IMAG
     
     if ((!output.buffer) ||
         (output.width*output.height == 0) ||
-        (output.pixelFormat != TY_PIXEL_FORMAT_DEPTH16) ||
+        (output.pixelFormat != TYPixelFormatCoord3D_C16) ||
         (output.size < output.width*output.height*(int)sizeof(uint16_t)) ||
         (output.size == 0)){
         return TY_STATUS_OUT_OF_MEMORY;
