@@ -1,14 +1,12 @@
 <?xml version="1.0"?>
 <package>
   <name>percipio_camera</name>
-  <version>0.2.6</version>
-  <description>Drivers for the Asus Xtion and Primesense Devices. For using a kinect
-  with ROS, try the <a href="http://wiki.ros.org/freenect_stack">freenect stack</a> 
-  </description>
-  <author email="jkammerl@todo.todo">Julius Kammerl</author>
+  <version>1.0.0</version>
+  <description>Launch files to start the percipio_camera drivers.</description>
+  <author email="jet_zou@todo.todo">Jet Zou</author>
   <license>BSD</license>
 
-  <maintainer email="mferguson@fetchrobotics.com">Michael Ferguson</maintainer>
+  <maintainer email="jet_zou@percipio.xyz">Jet Zou</maintainer>
 
   <buildtool_depend>catkin</buildtool_depend>
 
@@ -17,6 +15,7 @@
   <build_depend>nodelet</build_depend>
   <build_depend>sensor_msgs</build_depend>
   <build_depend>roscpp</build_depend>
+  <build_depend>cv_bridge</build_depend>
   <build_depend>dynamic_reconfigure</build_depend>
   <build_depend>image_transport</build_depend>
   <build_depend>message_generation</build_depend>
@@ -27,6 +26,7 @@
   <run_depend>dynamic_reconfigure</run_depend>
   <run_depend>sensor_msgs</run_depend>
   <run_depend>roscpp</run_depend>
+  <run_depend>cv_bridge</run_depend>
   <run_depend>image_transport</run_depend>
   <run_depend>message_runtime</run_depend>
 

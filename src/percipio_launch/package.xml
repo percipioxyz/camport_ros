@@ -1,14 +1,13 @@
 <package>
   <name>percipio_launch</name>
-  <version>0.2.2</version>
+  <version>1.0.0</version>
   <description>
-    Launch files to start the percipio_camera drivers using rgbd_launch.
+    Launch files to start the percipio_camera drivers.
   </description>
-  <maintainer email="developers@unboundedrobotics.com">Michael Ferguson</maintainer>
+  <maintainer email="jet_zou@percipio.xyz">Jet Zou</maintainer>
   <license>BSD</license>
 
-  <author email="kammerl@willowgarage.com">Julius Kammerl</author>
-  <author email="developers@unboundedrobotics.com">Michael Ferguson</author>
+  <author email="jet_zou@percipio.xyz">Jet Zou</author>
 
   <buildtool_depend>catkin</buildtool_depend>
 
