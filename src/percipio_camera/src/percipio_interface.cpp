@@ -188,7 +188,8 @@ namespace percipio
   {
     TY_DEV_HANDLE deviceHandle;
     std::vector<TY_DEVICE_BASE_INFO> selected;
-    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, sn, "", 10, selected);
+    std::string SN = std::string(sn);
+    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, SN, "", 1, selected);
     if(!selected.size())
       return TY_STATUS_ERROR;
 
@@ -207,6 +208,9 @@ namespace percipio
     if(rc != TY_STATUS_OK)
       return rc;
 
+    
+    ROS_INFO("Device %s is open!", selectedDev.id);
+
     _M_DEVICE = deviceHandle;
 
     return DeviceInit();
@@ -216,7 +220,8 @@ namespace percipio
   {
     TY_DEV_HANDLE deviceHandle;
     std::vector<TY_DEVICE_BASE_INFO> selected;
-    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", ip, 10, selected);
+    std::string IP = std::string(ip);
+    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", IP, 1, selected);
     if(!selected.size())
       return TY_STATUS_ERROR;
     
@@ -1422,7 +1427,7 @@ namespace percipio
 
     g_Context->b_auto_reconnect = auto_reconnect;
 
-    bool isIP = IPv4_verify(uri);   
+    bool isIP = IPv4_verify(uri);
     if(isIP)
       rc = g_Context->openWithIP(uri);
     else
