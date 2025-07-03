@@ -149,6 +149,29 @@ public:
         return 0;
     }
 
+    static inline int decodePacketRaw10(unsigned char* src, unsigned char* dst, int width, int height)
+    {
+        if(width & 0x3) {
+            return -1;
+        }
+
+        int raw10_line_size = 5 * width / 4;
+        //    byte0  -        byte1    -      byte2     -     byte3      -  byte4
+        // | A7 - A0 | B5 - B0 A9 - A8 | C3 -C0 B9 - B6 | D1 - D0 C9 -C4 | D9 -D2|
+        for(size_t i = 0; i < raw10_line_size * height; i+=5)
+        {
+            //high 8bit
+            dst[0] = (src[1] << 6) | (src[0] >> 2);
+            dst[1] = (src[2] << 4) | (src[1] >> 4);
+            dst[2] = (src[3] << 2) | (src[2] >> 6);
+            dst[3] = src[4];
+
+            src+=5;
+            dst+=4;
+        }
+        return 0;
+    }
+
     static inline int decodeCsiRaw12(uint8_t* src, uint16_t* dst, int width, int height)
     {
         if(width & 0x1) {
@@ -167,6 +190,13 @@ public:
     static inline int parseCsiRaw10(uint8_t* src, uint16_t* dst, int width, int height)
     {
         decodeCsiRaw10(src, dst, width, height);
+        return 0;
+    }
+
+    static inline int parsePacketRaw10(unsigned char* src, cv::Mat &dst, int width, int height)
+    {
+        dst = cv::Mat(height, width, CV_8U);
+        decodePacketRaw10(src, dst.data, width, height);
         return 0;
     }
 
@@ -553,6 +583,41 @@ public:
             bayer8[idx] = static_cast<uint8_t>(bayer10[idx] >> 2);
           }
           src_mat = cv::Mat(height, width, CV_8U, &bayer8[0]);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerBG2RGB);
+          break;
+        }
+        case TYPixelFormatPacketMono10:
+        {
+          parsePacketRaw10((uchar*)src_buffer, src_mat, width, height);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_GRAY2BGR);
+          break;
+        }
+        case TYPixelFormatPacketBayerGBRG10:
+        {
+          parsePacketRaw10((uchar*)src_buffer, src_mat, width, height);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGR2RGB);
+          break;
+        }
+        case TYPixelFormatPacketBayerBGGR10:
+        {
+          parsePacketRaw10((uchar*)src_buffer, src_mat, width, height);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerRG2RGB);
+          break;
+        }
+        case TYPixelFormatPacketBayerGRBG10:
+        {
+          parsePacketRaw10((uchar*)src_buffer, src_mat, width, height);
+          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
+          cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerGB2RGB);
+          break;
+        }
+        case TYPixelFormatPacketBayerRGGB10:
+        {
+          parsePacketRaw10((uchar*)src_buffer, src_mat, width, height);
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::cvtColor(src_mat, dst_mat, cv::COLOR_BayerBG2RGB);
           break;
