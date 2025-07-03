@@ -93,7 +93,7 @@ namespace percipio
   typedef void (*DeviceInfoCallback)(const DeviceInfo* pInfo, void* pCookie);
   typedef void (*DeviceStateCallback)(const DeviceInfo* pInfo, DeviceState deviceState, void* pCookie);
 
-  typedef boost::function<void(void)> DeviceCfgCallbackFunction;
+  typedef boost::function<void(void)> initDeviceCallbackFunction;
   typedef struct
   {
     DeviceInfoCallback    deviceConnected;
@@ -166,8 +166,8 @@ namespace percipio
       TY_STATUS openWithSN(const char* sn);
       TY_STATUS openWithIP(const char* ip);
 
-      boost::shared_ptr<DeviceCfgCallbackFunction> DevCfg;
-      void setDevCfgCallback(boost::shared_ptr<DeviceCfgCallbackFunction>& callback);
+      boost::shared_ptr<initDeviceCallbackFunction> ptrFuncDeviceInit;
+      void setDeviceInitCallback(boost::shared_ptr<initDeviceCallbackFunction>& callback);
 
       const DeviceInfo& get_current_device_info();
 

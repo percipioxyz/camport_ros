@@ -38,7 +38,7 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
 {
   readConfigFromParameterServer();
 
-  initDevice();
+  setupDevice();
 
   // Initialize dynamic reconfigure
   reconfigure_server_.reset(new ReconfigureServer(pnh));
@@ -685,7 +685,7 @@ bool PercipioDriver::resolveDeviceResolution(const std::string& resolution_, int
   return false;
 }
 
-void PercipioDriver::cfgDevice()
+void PercipioDriver::initDevice()
 {
   int rgb_width, rgb_height;
   int depth_width, depth_height;
@@ -712,7 +712,7 @@ void PercipioDriver::cfgDevice()
   device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
 }
 
-void PercipioDriver::initDevice()
+void PercipioDriver::setupDevice()
 {
   while (ros::ok() && !device_)
   {
@@ -727,10 +727,10 @@ void PercipioDriver::initDevice()
 
       device_ = device_manager_->getDevice(device_URI, reconnection_flag_);
 
-      cfgDevice();
+      initDevice();
 
-      auto cb = boost::make_shared<percipio::DeviceCfgCallbackFunction>(boost::bind(&PercipioDriver::cfgDevice, this));
-      device_->setDeviceCfgInitCallback(cb);
+      auto cb = boost::make_shared<percipio::initDeviceCallbackFunction>(boost::bind(&PercipioDriver::initDevice, this));
+      device_->setDeviceInitCallback(cb);
     }
     catch (const PercipioException& exception)
     {

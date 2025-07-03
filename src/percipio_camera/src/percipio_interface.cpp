@@ -243,9 +243,9 @@ namespace percipio
     return DeviceInit();
   }
 
-  void PercipioDepthCam::setDevCfgCallback(boost::shared_ptr<DeviceCfgCallbackFunction>& callback)
+  void PercipioDepthCam::setDeviceInitCallback(boost::shared_ptr<initDeviceCallbackFunction>& callback)
   {
-    DevCfg = callback;
+    ptrFuncDeviceInit = callback;
   }
 
   const DeviceInfo& PercipioDepthCam::get_current_device_info()
@@ -699,7 +699,7 @@ namespace percipio
         MSLEEP(1000);
       }
       
-      if(cam->DevCfg) (*(cam->DevCfg))();
+      if(cam->ptrFuncDeviceInit) (*(cam->ptrFuncDeviceInit))();
 
       PercipioDepthCam::isOffline = false;
       if(cam->HasStream()) {
@@ -1431,9 +1431,6 @@ namespace percipio
       return rc;
 
     DeviceGetInfo();
-
-    if(g_Context->DevCfg)
-      (*(g_Context->DevCfg))();
 
     return TY_STATUS_OK;
   }

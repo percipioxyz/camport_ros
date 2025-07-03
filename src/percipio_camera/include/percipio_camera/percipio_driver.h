@@ -63,8 +63,8 @@ private:
   // resolves non-URI device IDs to URIs, e.g. '#1' is resolved to the URI of the first device
   std::string resolveDeviceURI(const std::string& device_id);
   bool resolveDeviceResolution(const std::string& resolution_, int& width, int& height);
+  void setupDevice();
   void initDevice();
-  void cfgDevice();
 
   void advertiseROSTopics();
 
