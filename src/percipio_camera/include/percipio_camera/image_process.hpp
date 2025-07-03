@@ -454,27 +454,8 @@ public:
         }    
         case TYPixelFormatJPEG: {
           std::vector<uchar> _v((uchar*)src_buffer, (uchar*)src_buffer + size);
-
           dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::Mat bgr = cv::imdecode(_v, cv::IMREAD_COLOR);
-
-          if(!bgr.empty()) {
-            ROS_WARN("source jpeg decode done1!");
-            //cv::cvtColor(bgr, dst_mat, cv::COLOR_BGR2RGB);
-            //cv::Mat ddd;
-            //cv::cvtColor(bgr, ddd, cv::COLOR_BGR2RGB);
-            cv::imshow("color", bgr);
-            cv::waitKey(1);
-          } else {
-            static int m_index = 0;
-            char file[260];
-            sprintf(file, "/home/jet/workspace/img/ros_%d.jpeg", m_index++);
-            FILE* fp = fopen(file, "wb+");
-            fwrite(src_buffer, 1, size, fp);
-            fclose(fp);
-            ROS_WARN("jpeg decode failed!");
-          }
-          ROS_WARN("source jpeg decode done2  ddd size: %d x %d!", bgr.cols, bgr.rows);
           break;
         }
         case TYPixelFormatBayerGBRG8: {

@@ -685,6 +685,33 @@ bool PercipioDriver::resolveDeviceResolution(const std::string& resolution_, int
   return false;
 }
 
+void PercipioDriver::cfgDevice()
+{
+  int rgb_width, rgb_height;
+  int depth_width, depth_height;
+  if(resolveDeviceResolution(rgb_resolution_, rgb_width, rgb_height)) {
+    device_->setColorResolution(rgb_width, rgb_height, rgb_format_);
+  }
+
+  if(resolveDeviceResolution(depth_resolution_, depth_width, depth_height)) {
+    device_->setDepthResolutuon(depth_width, depth_height, depth_format_);
+  }
+  //do rgb undistortion
+  device_->setColorUndistortion(color_undistortion_);
+
+  //Enabling the alignment function requires concurrent support for color and depth stream output.
+  if(device_->isImageRegistrationModeSupported()) {
+    device_->setImageRegistrationMode(depth_registration_);
+  }
+
+  device_->setDepthSpecFilterEn(depth_speckle_filter_);
+  device_->setDepthSpecFilterSpecSize(max_speckle_size_);
+  device_->setDepthSpeckFilterDiff(max_speckle_diff_);
+
+  device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
+  device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
+}
+
 void PercipioDriver::initDevice()
 {
   while (ros::ok() && !device_)
@@ -700,29 +727,10 @@ void PercipioDriver::initDevice()
 
       device_ = device_manager_->getDevice(device_URI, reconnection_flag_);
 
-      int rgb_width, rgb_height;
-      int depth_width, depth_height;
-      if(resolveDeviceResolution(rgb_resolution_, rgb_width, rgb_height)) {
-        device_->setColorResolution(rgb_width, rgb_height, rgb_format_);
-      }
+      cfgDevice();
 
-      if(resolveDeviceResolution(depth_resolution_, depth_width, depth_height)) {
-        device_->setDepthResolutuon(depth_width, depth_height, depth_format_);
-      }
-      //do rgb undistortion
-      device_->setColorUndistortion(color_undistortion_);
-
-      //Enabling the alignment function requires concurrent support for color and depth stream output.
-      if(device_->isImageRegistrationModeSupported()) {
-        device_->setImageRegistrationMode(depth_registration_);
-      }
-
-      device_->setDepthSpecFilterEn(depth_speckle_filter_);
-      device_->setDepthSpecFilterSpecSize(max_speckle_size_);
-      device_->setDepthSpeckFilterDiff(max_speckle_diff_);
-
-      device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
-      device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
+      auto cb = boost::make_shared<percipio::DeviceCfgCallbackFunction>(boost::bind(&PercipioDriver::cfgDevice, this));
+      device_->setDeviceCfgInitCallback(cb);
     }
     catch (const PercipioException& exception)
     {

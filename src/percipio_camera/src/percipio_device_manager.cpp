@@ -83,8 +83,8 @@ public:
     else
       ROS_WARN("Device \"%s\" disconnected\n", pInfo->getUri());
 
-    const PercipioDeviceInfo device_info_wrapped = percipio_convert(pInfo);
-    device_set_.erase(device_info_wrapped);
+    //const PercipioDeviceInfo device_info_wrapped = percipio_convert(pInfo);
+    //device_set_.erase(device_info_wrapped);
 
     //kill node
     //system("rosnode kill /camera/driver");

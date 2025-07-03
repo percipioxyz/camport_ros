@@ -465,6 +465,11 @@ void PercipioDevice::setPoint3DFrameCallback(boost::shared_ptr<FrameCallbackFunc
   point3d_frame_listener->setCallback(callback);
 }
 
+void PercipioDevice::setDeviceCfgInitCallback(boost::shared_ptr<percipio::DeviceCfgCallbackFunction>& callback)
+{
+  percipio_device_->DevicePtr()->setDevCfgCallback(callback);
+}
+
 boost::shared_ptr<percipio::VideoStream> PercipioDevice::getIRVideoStream() const
 {
   if(!ir_video_stream_)

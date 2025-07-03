@@ -16,6 +16,7 @@
 #include <boost/shared_ptr.hpp>
 #include <boost/make_shared.hpp>
 #include <boost/thread/mutex.hpp>
+#include <boost/function.hpp>
 
 #include "TYApi.h"
 #include "TYParameter.h"
@@ -91,6 +92,8 @@ namespace percipio
   typedef void* CallbackHandle;
   typedef void (*DeviceInfoCallback)(const DeviceInfo* pInfo, void* pCookie);
   typedef void (*DeviceStateCallback)(const DeviceInfo* pInfo, DeviceState deviceState, void* pCookie);
+
+  typedef boost::function<void(void)> DeviceCfgCallbackFunction;
   typedef struct
   {
     DeviceInfoCallback    deviceConnected;
@@ -138,7 +141,7 @@ namespace percipio
     virtual TY_STATUS EnableLeftIRStream(const bool en) = 0;
     virtual TY_STATUS EnableRightIRStream(const bool en) = 0;
     
-    const TY_DEV_HANDLE hDevice;
+    TY_DEV_HANDLE hDevice;
 
     bool need_depth_undistortion;
 
@@ -160,8 +163,11 @@ namespace percipio
       TY_STATUS initialize();
       void GetDeviceList(DeviceInfo** device_info_ptr, int* cnt);
 
-      TY_STATUS openWithSN(const char* sn, const bool auto_reconnect = false);
-      TY_STATUS openWithIP(const char* ip, const bool auto_reconnect = false);
+      TY_STATUS openWithSN(const char* sn);
+      TY_STATUS openWithIP(const char* ip);
+
+      boost::shared_ptr<DeviceCfgCallbackFunction> DevCfg;
+      void setDevCfgCallback(boost::shared_ptr<DeviceCfgCallbackFunction>& callback);
 
       const DeviceInfo& get_current_device_info();
 
@@ -244,6 +250,7 @@ namespace percipio
 
       std::string            m_current_device_sn;
       static bool            isOffline;
+      bool                   b_auto_reconnect;
       bool                   isRuning;
       const TY_DEV_HANDLE getCurrentDeviceHandle() const;
       
@@ -311,7 +318,7 @@ namespace percipio
 
       ImageRegistrationMode registration_mode = IMAGE_REGISTRATION_OFF;
 
-      TY_STATUS DeviceInit(const bool auto_reconnect);
+      TY_STATUS DeviceInit();
 
       TY_STATUS StreamStart();
       void StreamStop(StreamHandle stream);

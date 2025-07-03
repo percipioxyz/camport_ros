@@ -117,7 +117,7 @@ namespace percipio
       *(*device_info_ptr + i) = device_list[i];
   }
 
-  TY_STATUS PercipioDepthCam::DeviceInit(const bool auto_reconnect)
+  TY_STATUS PercipioDepthCam::DeviceInit()
   {
     TY_DEVICE_BASE_INFO info;
     TYGetDeviceInfo(_M_DEVICE, &info);
@@ -130,13 +130,17 @@ namespace percipio
         }
     }
 
-    switch(gige_version) {
-      case GigeE_2_1:
-        m_gige_dev = boost::make_shared<GigE_2_1>(_M_DEVICE);
-        break;
-      default:
-        m_gige_dev = boost::make_shared<GigE_2_0>(_M_DEVICE);
-        break;
+    if(!m_gige_dev) {
+      switch(gige_version) {
+        case GigeE_2_1:
+          m_gige_dev = boost::make_shared<GigE_2_1>(_M_DEVICE);
+          break;
+        default:
+          m_gige_dev = boost::make_shared<GigE_2_0>(_M_DEVICE);
+          break;
+      }
+    } else {
+      m_gige_dev->hDevice = _M_DEVICE;
     }
 
     m_current_device_sn = info.id;
@@ -169,7 +173,7 @@ namespace percipio
 
     TYRegisterEventCallback(_M_DEVICE, eventCallback, this);
 
-    if(!auto_reconnect) 
+    if(!b_auto_reconnect) 
       return TY_STATUS_OK;
     
     if(!b_device_opened) {
@@ -180,7 +184,7 @@ namespace percipio
     return TY_STATUS_OK;
   }
 
-  TY_STATUS PercipioDepthCam::openWithSN(const char* sn, const bool auto_reconnect)
+  TY_STATUS PercipioDepthCam::openWithSN(const char* sn)
   {
     TY_DEV_HANDLE deviceHandle;
     std::vector<TY_DEVICE_BASE_INFO> selected;
@@ -205,10 +209,10 @@ namespace percipio
 
     _M_DEVICE = deviceHandle;
 
-    return DeviceInit(auto_reconnect);
+    return DeviceInit();
   }
   
-  TY_STATUS PercipioDepthCam::openWithIP(const char* ip, const bool auto_reconnect)
+  TY_STATUS PercipioDepthCam::openWithIP(const char* ip)
   {
     TY_DEV_HANDLE deviceHandle;
     std::vector<TY_DEVICE_BASE_INFO> selected;
@@ -236,7 +240,12 @@ namespace percipio
 
     _M_DEVICE = deviceHandle;
 
-    return DeviceInit(auto_reconnect);
+    return DeviceInit();
+  }
+
+  void PercipioDepthCam::setDevCfgCallback(boost::shared_ptr<DeviceCfgCallbackFunction>& callback)
+  {
+    DevCfg = callback;
   }
 
   const DeviceInfo& PercipioDepthCam::get_current_device_info()
@@ -689,7 +698,9 @@ namespace percipio
         ROS_INFO("camera: %s  failed, retry!", cam->m_current_device_sn.c_str());
         MSLEEP(1000);
       }
-        
+      
+      if(cam->DevCfg) (*(cam->DevCfg))();
+
       PercipioDepthCam::isOffline = false;
       if(cam->HasStream()) {
         cam->StreamStart();
@@ -950,8 +961,10 @@ namespace percipio
 
   void PercipioDepthCam::StreamStopAll()
   {
-    isRuning = false;
-    pthread_join(frame_fetch_thread, NULL);
+    if(isRuning) {
+      isRuning = false;
+      pthread_join(frame_fetch_thread, NULL);
+    }
     TYStopCapture(_M_DEVICE);
     TYClearBufferQueue(_M_DEVICE);
     delete []frameBuffer[0];
@@ -966,8 +979,11 @@ namespace percipio
     if(comp == 0)
       return;
 
-    isRuning = false;
-    pthread_join(frame_fetch_thread, NULL);
+    if(isRuning) {
+      isRuning = false;
+      pthread_join(frame_fetch_thread, NULL);
+    }
+    
     TYStopCapture(_M_DEVICE);
     TYClearBufferQueue(_M_DEVICE);
     delete []frameBuffer[0];
@@ -1404,15 +1420,20 @@ namespace percipio
       }
     }
 
+    g_Context->b_auto_reconnect = auto_reconnect;
+
     bool isIP = IPv4_verify(uri);   
     if(isIP)
-      rc = g_Context->openWithIP(uri, auto_reconnect);
+      rc = g_Context->openWithIP(uri);
     else
-      rc = g_Context->openWithSN(uri, auto_reconnect);
+      rc = g_Context->openWithSN(uri);
     if(rc != TY_STATUS_OK)
       return rc;
 
     DeviceGetInfo();
+
+    if(g_Context->DevCfg)
+      (*(g_Context->DevCfg))();
 
     return TY_STATUS_OK;
   }

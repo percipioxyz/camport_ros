@@ -64,6 +64,7 @@ private:
   std::string resolveDeviceURI(const std::string& device_id);
   bool resolveDeviceResolution(const std::string& resolution_, int& width, int& height);
   void initDevice();
+  void cfgDevice();
 
   void advertiseROSTopics();
 
