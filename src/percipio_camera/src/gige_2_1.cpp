@@ -355,7 +355,7 @@ TY_STATUS GigE_2_1::SetImageMode(SensorType sensorType, int width, int height, c
     }
   }
 
-  ROS_WARN("Incorrect image mode:(%s) targte size: %d x %d - format(%s), using default value.", SensorDesc[sensorType].c_str(), width, height, fmt.c_str());
+  ROS_WARN("Incorrect image mode:(%s) target size: %d x %d - format(%s), using default value.", SensorDesc[sensorType].c_str(), width, height, fmt.c_str());
 
   int32_t default_fmt = 0;
   ret = TYEnumGetValue(hDevice, "PixelFormat", &default_fmt);

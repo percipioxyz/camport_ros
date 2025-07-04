@@ -255,7 +255,7 @@ TY_STATUS GigE_2_0::SetImageMode(const SensorType sensorType, const int width, c
     }
   }
 
-  ROS_WARN("Incorrect image mode : 0x%08x targte size: %d x %d - format(%s), using default value.", component, width, height, fmt.c_str());
+  ROS_WARN("Incorrect image mode : 0x%08x target size: %d x %d - format(%s), using default value.", component, width, height, fmt.c_str());
 
   uint32_t image_mode;
   ret = TYGetEnum(hDevice, component, TY_ENUM_IMAGE_MODE, &image_mode);

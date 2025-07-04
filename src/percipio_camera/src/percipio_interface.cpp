@@ -243,6 +243,8 @@ namespace percipio
     if(rc != TY_STATUS_OK)
       return rc;
 
+    ROS_INFO("Device %s is open!", selectedDev.netInfo.ip);
+
     _M_DEVICE = deviceHandle;
 
     return DeviceInit();
@@ -921,7 +923,7 @@ namespace percipio
         m_gige_dev->getDepthIntrinsic(depth_intr);
 
         TYGetFloat(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale_unit);
-        ROS_INFO("depth stream scale unit : %f", f_depth_scale_unit);
+        ROS_INFO("Depth stream scale unit : %f", f_depth_scale_unit);
 
 #ifdef IMAGE_DoUndistortion_With_OpenCV
         if(depth_distortion) {
