@@ -27,8 +27,6 @@
 
 #define MAX_DEPTH 0x10000 
 
-#define IMAGE_DoUndistortion_With_OpenCV
-
 static void BGRToRGB(const void* bgrFrame, int width, int height, void* rgbFrame)
 {
   uint8_t* pBGR = (uint8_t*)bgrFrame;
@@ -227,49 +225,6 @@ public:
         return 0;
     }
 
- #ifdef   IMAGE_DoUndistortion_With_OpenCV
-    static std::vector<distortion_data> depth_dist_map_list;
-    static bool addDepthDistortionMap(TY_CAMERA_CALIB_INFO& depth_calib, int width, int height)
-    {
-      bool has = false;
-      for(size_t i = 0; i < depth_dist_map_list.size(); i++) {
-        if((0 == memcmp(&depth_calib, static_cast<const void*>(&depth_dist_map_list[i].get_calib_data()), sizeof(TY_CAMERA_CALIB_INFO))) &&
-          (width == depth_dist_map_list[i].get_map_width()) &&
-          (height == depth_dist_map_list[i].get_map_height()))
-        {
-          has = true;
-          break;
-        }
-      }
-
-      if(!has) {
-        cv::Mat mapX, mapY;
-        std::vector<float> f_intrinsic;
-        f_intrinsic.resize(9);
-        f_intrinsic[0] = depth_calib.intrinsic.data[0] * width / depth_calib.intrinsicWidth;
-        f_intrinsic[1] = 0;
-        f_intrinsic[2] = depth_calib.intrinsic.data[2] * width / depth_calib.intrinsicWidth;
-
-        f_intrinsic[3] = 0;
-        f_intrinsic[4] = depth_calib.intrinsic.data[4] * height / depth_calib.intrinsicHeight;
-        f_intrinsic[5] = depth_calib.intrinsic.data[5] * height / depth_calib.intrinsicHeight;
-        
-        f_intrinsic[6] = 0;
-        f_intrinsic[7] = 0;
-        f_intrinsic[8] = 1;
-
-        cv::Mat intrinsic = cv::Mat(cv::Size(3,3), CV_32F, &f_intrinsic[0]);
-        cv::Mat distCoeffs = cv::Mat(cv::Size(1, 12), CV_32F, depth_calib.distortion.data);
-        cv::initUndistortRectifyMap(intrinsic, distCoeffs, cv::Mat(), intrinsic, cv::Size(width, height), CV_32FC1, mapX, mapY);
-
-        distortion_data temp = distortion_data(depth_calib, mapX, mapY);
-        depth_dist_map_list.push_back(temp);
-        return true;
-      }
-
-      return false;
-    }
-#endif
     static int doDepthUndistortion(const TY_CAMERA_CALIB_INFO* depth_calib,
                                 percipio::VideoFrameData* src, 
                                 percipio::VideoFrameData* dst)
@@ -297,72 +252,14 @@ public:
       dst_image.height = dst->getHeight();
       dst_image.pixelFormat = dst->getPixelFormat();
       dst_image.buffer = dst->getData();
-#ifdef   IMAGE_DoUndistortion_With_OpenCV
-      for(size_t i = 0; i < depth_dist_map_list.size(); i++) {
-        if((0 == memcmp(depth_calib, static_cast<const void*>(&depth_dist_map_list[i].get_calib_data()), sizeof(TY_CAMERA_CALIB_INFO))) &&
-          (depth_dist_map_list[i].get_map_width() == src_image.width) &&
-          (depth_dist_map_list[i].get_map_height() == src_image.height)) {
-          cv::Mat depth           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_16U, src_image.buffer);
-          cv::Mat undistory_depth = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_16U, dst_image.buffer);
 
-          cv::Mat map_x = cv::Mat(src_image.width, src_image.height, CV_32F, depth_dist_map_list[i].dataX());
-          cv::Mat map_Y = cv::Mat(src_image.width, src_image.height, CV_32F, depth_dist_map_list[i].dataY());
-          cv::remap(depth, undistory_depth, map_x, map_Y, cv::INTER_NEAREST);
-          return TY_STATUS_OK;
-        }
-      }
-      ROS_WARN("doDepthUndistortion fail!");
-      return TY_STATUS_ERROR;
-#else
       TY_STATUS err = TYUndistortImage(depth_calib, &src_image, nullptr, &dst_image);
       if(err) {
         ROS_WARN("TYUndistortImage fail!");
       }
       return err;
-#endif
     }
 
-#ifdef   IMAGE_DoUndistortion_With_OpenCV
-    static std::vector<distortion_data> color_dist_map_list;
-    static bool addColorDistortionMap(TY_CAMERA_CALIB_INFO& color_calib, int width, int height)
-    {
-      bool has = false;
-      for(size_t i = 0; i < color_dist_map_list.size(); i++) {
-        if(0 == memcmp(&color_calib, &color_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
-          has = true;
-          break;
-        }
-      }
-
-      if(!has) {
-        cv::Mat mapX, mapY;
-        std::vector<float> f_intrinsic;
-        f_intrinsic.resize(9);
-        f_intrinsic[0] = color_calib.intrinsic.data[0] * width / color_calib.intrinsicWidth;
-        f_intrinsic[1] = 0;
-        f_intrinsic[2] = color_calib.intrinsic.data[2] * width / color_calib.intrinsicWidth;
-
-        f_intrinsic[3] = 0;
-        f_intrinsic[4] = color_calib.intrinsic.data[4] * height / color_calib.intrinsicHeight;
-        f_intrinsic[5] = color_calib.intrinsic.data[5] * height / color_calib.intrinsicHeight;
-        
-        f_intrinsic[6] = 0;
-        f_intrinsic[7] = 0;
-        f_intrinsic[8] = 1;
-
-        cv::Mat intrinsic = cv::Mat(cv::Size(3,3), CV_32F, &f_intrinsic[0]);
-        cv::Mat distCoeffs = cv::Mat(cv::Size(1, 12), CV_32F, color_calib.distortion.data);
-
-        cv::initUndistortRectifyMap(intrinsic, distCoeffs, cv::Mat(), intrinsic, cv::Size(width, height), CV_32FC1, mapX, mapY);
-
-        distortion_data temp = distortion_data(color_calib, mapX, mapY);
-        color_dist_map_list.push_back(temp);
-        return true;
-      }
-
-      return false;
-    }
-#endif
     static int doRGBUndistortion(const TY_CAMERA_CALIB_INFO* color_calib, 
                                 percipio::VideoFrameData* src, 
                                 percipio::VideoFrameData* dst)
@@ -392,33 +289,11 @@ public:
       dst_image.pixelFormat = dst->getPixelFormat();
       dst_image.buffer = dst->getData();
 
-#ifdef   IMAGE_DoUndistortion_With_OpenCV
-      for(size_t i = 0; i < color_dist_map_list.size(); i++) {
-        if(0 == memcmp(color_calib, &color_dist_map_list[i], sizeof(TY_CAMERA_CALIB_INFO))) {
-          cv::Mat color, undistory_color;
-          if(src->getPixelFormat() == TYPixelFormatRGB8) {
-            color           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_8UC3, src_image.buffer);
-            undistory_color = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_8UC3, dst_image.buffer);
-          } else {
-            color           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_8UC1, src_image.buffer);
-            undistory_color = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_8UC1, dst_image.buffer);
-          }
-
-          cv::Mat map_x = cv::Mat(color.size(), CV_32F, color_dist_map_list[i].dataX());
-          cv::Mat map_Y = cv::Mat(color.size(), CV_32F, color_dist_map_list[i].dataY());
-          cv::remap(color, undistory_color, map_x, map_Y, cv::INTER_LINEAR);
-          return TY_STATUS_OK;
-        }
-      }
-      ROS_WARN("doRGBUndistortion fail!");
-      return TY_STATUS_ERROR;
-#else
       TY_STATUS err = TYUndistortImage(color_calib, &src_image, nullptr, &dst_image);
       if(err) {
         ROS_WARN("TYUndistortImage fail!");
       }
       return err;
-#endif
     }
 
     static int MapDepthImageToColorCoordinate(const TY_CAMERA_CALIB_INFO* depth_calib, 
@@ -511,9 +386,9 @@ public:
         case TYPixelFormatJPEG: {
           std::vector<uchar> _v((uchar*)src_buffer, (uchar*)src_buffer + size);
           cv::Mat bgr = cv::imdecode(_v, cv::IMREAD_COLOR);
-          
-          if(!bgr.empty() && (width == bgr.cols) && (height == bgr.rows)){
-            memcpy(dst_buffer, bgr.data, 3 * width * height);
+          cv::cvtColor(bgr, dst_mat, cv::COLOR_BGR2RGB);
+          if(!dst_mat.empty() && (width == dst_mat.cols) && (height == dst_mat.rows)){
+            memcpy(dst_buffer, dst_mat.data, 3 * width * height);
           } else {
             ROS_WARN("JPEG decode error!");
           }
@@ -758,8 +633,3 @@ public:
     }
 
 };
-
-#ifdef IMAGE_DoUndistortion_With_OpenCV
-std::vector<distortion_data> ImgProc::depth_dist_map_list;
-std::vector<distortion_data> ImgProc::color_dist_map_list;
-#endif
