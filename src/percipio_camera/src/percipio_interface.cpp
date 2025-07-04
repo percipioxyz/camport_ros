@@ -731,10 +731,11 @@ namespace percipio
 
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
             if(cam->DepthStream->isValid()) {
-              
-              cv::Mat depth = cv::Mat(frame.image[i].height, frame.image[i].width, CV_16U, frame.image[i].buffer).clone();
-              cv::Mat mask = (depth == 0xFFFF);
-              depth.setTo(0, mask);
+              uint16_t* ptrDepth = static_cast<uint16_t*>(frame.image[i].buffer);
+              int32_t PixsCnt = frame.image[i].width * frame.image[i].height;
+              for(int32_t i = 0; i < PixsCnt; i++) {
+                if(ptrDepth[i] == 0xFFFF) ptrDepth[i] = 0;
+              }
 
               if(cam->depth_stream_spec_enable) {
                 DepthSpkFilterPara param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff};

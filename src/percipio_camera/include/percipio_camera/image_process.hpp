@@ -55,42 +55,62 @@ class distortion_data {
 
     const int get_map_width() const;
     const int get_map_height() const;
-    const cv::Mat& get_map_x() const;
-    const cv::Mat& get_map_y() const;
+
+    const std::vector<float>& get_map_x() const;
+    const std::vector<float>& get_map_y() const;
+
+    void* dataX() { return map_x.data(); }
+    void* dataY() { return map_y.data(); }
+    
     const TY_CAMERA_CALIB_INFO& get_calib_data() const;
 
   private:
     TY_CAMERA_CALIB_INFO calib_data;
     int map_size_width;
     int map_size_height;
-    cv::Mat map_x;
-    cv::Mat map_y;
+    std::vector<float> map_x;
+    std::vector<float> map_y;
 };
 
 distortion_data::distortion_data(const TY_CAMERA_CALIB_INFO& calib, const cv::Mat& x, const cv::Mat& y)
 {
-  if((map_x.cols != map_y.cols) || 
-     (map_x.rows != map_y.rows))
+  if(x.size() != y.size())
   {
     ROS_ERROR("Invalid distortion map");
     return;
   }
 
   calib_data = calib;
-  map_x = x.clone();
-  map_y = y.clone();
-  map_size_width = map_x.cols;
-  map_size_height = map_x.rows;
+
+  if (x.depth() != CV_32F || y.depth() != CV_32F) {
+    throw std::runtime_error("Only floating-point matrices supported");
+  }
+  
+  const int x_channels = x.channels();
+  const size_t x_totalElements = x.total() * x_channels;
+
+  const int y_channels = y.channels();
+  const size_t y_totalElements = y.total() * y_channels;
+    
+    // 创建目标vector并直接复制内存
+  map_x.resize(x_totalElements);
+  memcpy(map_x.data(), x.data, x_totalElements * sizeof(float));
+
+  map_y.resize(y_totalElements);
+  memcpy(map_y.data(), y.data, y_totalElements * sizeof(float));
+  
+  map_size_width = x.cols;
+  map_size_height = x.rows;
 }
 
 distortion_data::distortion_data(const distortion_data& data)
 {
   calib_data = data.get_calib_data();
-  map_x = data.get_map_x().clone();
-  map_y = data.get_map_y().clone();
+  map_x = data.get_map_x();
+  map_y = data.get_map_y();
 
-  map_size_width = map_x.cols;
-  map_size_height = map_x.rows;
+  map_size_width = data.map_size_width;
+  map_size_height = data.map_size_height;
 }
 
 distortion_data::~distortion_data()
@@ -103,12 +123,12 @@ const TY_CAMERA_CALIB_INFO& distortion_data::get_calib_data() const
   return calib_data;
 }
 
-const cv::Mat& distortion_data::get_map_x() const
+const std::vector<float>& distortion_data::get_map_x() const
 {
   return map_x;
 }
 
-const cv::Mat& distortion_data::get_map_y() const
+const std::vector<float>& distortion_data::get_map_y() const
 {
   return map_y;
 }
@@ -284,7 +304,10 @@ public:
           (depth_dist_map_list[i].get_map_height() == src_image.height)) {
           cv::Mat depth           = cv::Mat(cv::Size(src_image.width, src_image.height), CV_16U, src_image.buffer);
           cv::Mat undistory_depth = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_16U, dst_image.buffer);
-          cv::remap(depth, undistory_depth, depth_dist_map_list[i].get_map_x(), depth_dist_map_list[i].get_map_y(), cv::INTER_NEAREST);
+
+          cv::Mat map_x = cv::Mat(src_image.width, src_image.height, CV_32F, depth_dist_map_list[i].dataX());
+          cv::Mat map_Y = cv::Mat(src_image.width, src_image.height, CV_32F, depth_dist_map_list[i].dataY());
+          cv::remap(depth, undistory_depth, map_x, map_Y, cv::INTER_NEAREST);
           return TY_STATUS_OK;
         }
       }
@@ -381,7 +404,9 @@ public:
             undistory_color = cv::Mat(cv::Size(dst_image.width, dst_image.height), CV_8UC1, dst_image.buffer);
           }
 
-          cv::remap(color, undistory_color, color_dist_map_list[i].get_map_x(), color_dist_map_list[i].get_map_y(), cv::INTER_LINEAR);
+          cv::Mat map_x = cv::Mat(color.size(), CV_32F, color_dist_map_list[i].dataX());
+          cv::Mat map_Y = cv::Mat(color.size(), CV_32F, color_dist_map_list[i].dataY());
+          cv::remap(color, undistory_color, map_x, map_Y, cv::INTER_LINEAR);
           return TY_STATUS_OK;
         }
       }
