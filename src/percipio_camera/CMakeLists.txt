@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(percipio_camera)
 
-find_package(catkin REQUIRED camera_info_manager std_msgs tf2 tf2_eigen tf2_msgs tf2_ros dynamic_reconfigure image_transport  nodelet sensor_msgs roscpp message_generation)
+find_package(catkin REQUIRED camera_info_manager std_msgs tf2 tf2_eigen tf2_msgs tf2_ros cv_bridge pcl_conversions pcl_ros dynamic_reconfigure image_transport  nodelet sensor_msgs roscpp message_generation)
 
 find_package(Boost REQUIRED COMPONENTS system thread)
 
@@ -63,7 +63,7 @@ endif()
 
 set(TYCAM ${CMAKE_CURRENT_SOURCE_DIR}/camport3/lib/linux/lib_${ARCH}/libtycam.so)
 
-target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TYCAM})
+target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${TYCAM})
 
 #add_executable(test_wrapper test/test_wrapper.cpp )
 #target_link_libraries(test_wrapper percipio_wrapper ${Boost_LIBRARIES} ${TYCAM})
@@ -72,38 +72,38 @@ add_library(percipio_driver_lib
    src/percipio_driver.cpp
 )
 
-find_package(OpenCV REQUIRED)
+find_package(OpenCV REQUIRED PATHS ${catkin_INCLUDE_DIRS})
 if (NOT OpenCV_FOUND)
     message(FATAL_ERROR "OpenCV library not found")
 else()
     message(STATUS "OpenCV version: ${OpenCV_VERSION}")
     include_directories(${OpenCV_INCLUDE_DIRS})
-    target_link_libraries(percipio_wrapper ${OpenCV_LIBS})
-    target_link_libraries(percipio_driver_lib ${OpenCV_LIBS})
+    target_link_libraries(percipio_wrapper ${OpenCV_LIBRARIES})
+    target_link_libraries(percipio_driver_lib ${OpenCV_LIBRARIES})
 endif()
 
 find_package(PCL REQUIRED)
 if (NOT PCL_FOUND)
-    message(FATAL_ERROR "OpenCV library not found")
+    message(FATAL_ERROR "PCL library not found")
 else()
-  include_directories(${PCL_INCLUDE_DIRS})
-  target_link_libraries(percipio_wrapper ${PCL_LIBRARIES})
-  target_link_libraries(percipio_driver_lib ${PCL_LIBRARIES})
+    include_directories(${PCL_INCLUDE_DIRS})
+    target_link_libraries(percipio_wrapper ${PCL_LIBRARIES})
+    target_link_libraries(percipio_driver_lib ${PCL_LIBRARIES})
 endif()
 
-target_link_libraries(percipio_driver_lib percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} )
+target_link_libraries(percipio_driver_lib percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} )
 add_dependencies(percipio_driver_lib ${PROJECT_NAME}_gencfg)
 
 add_library(percipio_camera_nodelet
    ros/percipio_camera_nodelet.cpp
 )
-target_link_libraries(percipio_camera_nodelet percipio_driver_lib ${catkin_LIBRARIES} ${Boost_LIBRARIES} )
+target_link_libraries(percipio_camera_nodelet percipio_driver_lib ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} )
 add_dependencies(percipio_camera_nodelet ${PROJECT_NAME}_gencfg)
 
 add_executable(percipio_camera_node
    ros/percipio_camera_node.cpp
 )
-target_link_libraries(percipio_camera_node percipio_driver_lib ${catkin_LIBRARIES} ${Boost_LIBRARIES} )
+target_link_libraries(percipio_camera_node percipio_driver_lib ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} )
 add_dependencies(percipio_camera_node ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 
 add_executable(list_devices

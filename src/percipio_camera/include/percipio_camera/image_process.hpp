@@ -6,6 +6,7 @@
  * @LastEditTime: 2024-05-30 15:01:39
  */
 
+#include <ros/ros.h>
 #include <iostream>
 #include <sstream>
 #include <fstream>
@@ -484,8 +485,13 @@ public:
         }    
         case TYPixelFormatJPEG: {
           std::vector<uchar> _v((uchar*)src_buffer, (uchar*)src_buffer + size);
-          dst_mat = cv::Mat(height, width, CV_8UC3, dst_buffer);
           cv::Mat bgr = cv::imdecode(_v, cv::IMREAD_COLOR);
+          
+          if(!bgr.empty() && (width == bgr.cols) && (height == bgr.rows)){
+            memcpy(dst_buffer, bgr.data, 3 * width * height);
+          } else {
+            ROS_WARN("JPEG decode error!");
+          }
           break;
         }
         case TYPixelFormatBayerGBRG8: {
