@@ -46,6 +46,9 @@
   <arg name="depth_time_domain_filter"          default="false" />
   <!-- Time-domain filtering frame count：2 - 10 -->
   <arg name="depth_time_domain_num"             default="3" />
+
+  <!--  Use internal timer of device -->
+  <arg name="use_device_time"                   default="true" />
   
   <!--<arg name="auto_exposure"                   default="true" /> -->
   <!--<arg name="auto_white_balance"              default="true" /> -->
@@ -120,7 +123,9 @@
 
       <arg name="depth_time_domain_filter"          value="$(arg depth_time_domain_filter)" />
       <arg name="depth_time_domain_num"             value="$(arg depth_time_domain_num)" />
-      
+
+      <arg name="use_device_time"                   value="$(arg use_device_time)" />
+
       <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->
       <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->
       <arg name="rgb_resolution"                  value="$(arg rgb_resolution)" />

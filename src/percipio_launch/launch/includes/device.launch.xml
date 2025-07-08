@@ -23,6 +23,8 @@
   <arg name="depth_time_domain_filter" />
   <arg name="depth_time_domain_num" />
 
+  <arg name="use_device_time" />
+
   <!--<arg name="auto_exposure" default="true" /> -->
   <!--<arg name="auto_white_balance" default="true" />-->
   <arg name="rgb_resolution" default="640x480" />
@@ -65,6 +67,8 @@
     <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
     <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />
 
+    <param name="use_device_time" value="$(arg use_device_time)" />
+
     <remap from="ir" to="$(arg ir)" />
     <remap from="rgb" to="$(arg rgb)" />
     <remap from="depth" to="$(arg depth)" />
@@ -99,6 +103,8 @@
     <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
     <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />
 
+    <param name="use_device_time" value="$(arg use_device_time)" />
+    
     <remap from="ir" to="$(arg ir)" />
     <remap from="rgb" to="$(arg rgb)" />
     <remap from="depth" to="$(arg depth)" />

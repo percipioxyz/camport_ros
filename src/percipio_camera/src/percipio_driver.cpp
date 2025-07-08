@@ -166,9 +166,31 @@ bool PercipioDriver::getSerialCb(percipio_camera::GetSerialRequest& req, percipi
 
 void PercipioDriver::configCb(Config &config, uint32_t level)
 {
-  use_device_time_ = config.use_device_time;
+  if((int)level < 0) {
+    config.depth_speckle_filter = depth_speckle_filter_;
+    config.max_speckle_size = max_speckle_size_;
+    config.max_speckle_diff = max_speckle_diff_;
 
-  applyConfigToPercipioDevice();
+    config.depth_time_domain_filter = depth_time_domain_filter_;
+    config.depth_time_domain_num = depth_time_domain_num_;
+
+  } else {
+    depth_speckle_filter_ = config.depth_speckle_filter;
+    max_speckle_size_ = config.max_speckle_size;
+    max_speckle_diff_ = config.max_speckle_diff;
+
+    depth_time_domain_filter_ = config.depth_time_domain_filter;
+    depth_time_domain_num_ = config.depth_time_domain_num;
+
+    if(device_) {
+      device_->setDepthSpecFilterEn(depth_speckle_filter_);
+      device_->setDepthSpecFilterSpecSize(max_speckle_size_);
+      device_->setDepthSpeckFilterDiff(max_speckle_diff_);
+
+      device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
+      device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
+    }
+  }
 
   config_init_ = true;
 }
@@ -575,6 +597,8 @@ void PercipioDriver::readConfigFromParameterServer()
   pnh_.getParam("depth_time_domain_filter",         depth_time_domain_filter_);
   pnh_.getParam("depth_time_domain_num",            depth_time_domain_num_);
 
+  pnh_.getParam("use_device_time",                  use_device_time);
+
   // Camera TF frames
   pnh_.param("ir_frame_id", ir_frame_id_, std::string("/percipio_ir_optical_frame"));
   pnh_.param("rgb_frame_id", color_frame_id_, std::string("/percipio_rgb_optical_frame"));
@@ -710,6 +734,8 @@ void PercipioDriver::initDevice()
 
   device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
   device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
+
+  device_->setUseDeviceTimer(use_device_time_);
 }
 
 void PercipioDriver::setupDevice()
