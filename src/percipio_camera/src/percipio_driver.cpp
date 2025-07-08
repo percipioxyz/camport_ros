@@ -597,7 +597,7 @@ void PercipioDriver::readConfigFromParameterServer()
   pnh_.getParam("depth_time_domain_filter",         depth_time_domain_filter_);
   pnh_.getParam("depth_time_domain_num",            depth_time_domain_num_);
 
-  pnh_.getParam("use_device_time",                  use_device_time);
+  pnh_.getParam("use_device_time",                  use_device_time_);
 
   // Camera TF frames
   pnh_.param("ir_frame_id", ir_frame_id_, std::string("/percipio_ir_optical_frame"));
