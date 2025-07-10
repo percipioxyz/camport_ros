@@ -322,34 +322,75 @@ public:
         dst->Resize(2 * src->getWidth() * src->getHeight());
       }
 
-      TY_IMAGE_DATA src_image, dst_image;
-      src_image.width  = src->getWidth();
-      src_image.height = src->getHeight();
-      src_image.pixelFormat = src->getPixelFormat();
-      src_image.buffer = src->getData();
-
-      dst_image.width  = dst->getWidth();
-      dst_image.height = dst->getHeight();
-      dst_image.pixelFormat = dst->getPixelFormat();
-      dst_image.buffer = dst->getData();
-
-      return  TYMapDepthImageToColorCoordinate(
+      std::vector<uint16_t> mapped_depth(src->getWidth() * src->getHeight());
+      TY_STATUS ret = TYMapDepthImageToColorCoordinate(
                   depth_calib,
-                  src_image.width, src_image.height, (const uint16_t*)src_image.buffer,
+                  src->getWidth(), src->getHeight(), (const uint16_t*)src->getData(),
                   color_calib,
-                  dst_image.width, dst_image.height, (uint16_t* )dst_image.buffer, 
+                  src->getWidth(), src->getHeight(), (uint16_t* )&mapped_depth[0],
                   f_scale_unit);
+      if(ret) return ret;
+
+      cv::Mat src_mat = cv::Mat(cv::Size(src->getWidth(), src->getHeight()), CV_16U, &mapped_depth[0]);
+      cv::Mat dst_mat = cv::Mat(cv::Size(dst->getWidth(), dst->getHeight()), CV_16U, dst->getData());
+      cv::resize(src_mat, dst_mat, dst_mat.size(), 0, 0, cv::INTER_NEAREST);
+      return 0;
     }
 
     static int MapXYZ48ToColorCoordinate(const TY_CAMERA_CALIB_INFO* depth_calib, 
                                               const TY_CAMERA_CALIB_INFO* color_calib, 
                                               int target_width,
                                               int target_height,
-                                              percipio::VideoFrameData* src, 
+                                              percipio::VideoFrameData* src,
                                               percipio::VideoFrameData* dst,
                                               float f_scale_unit)
     {
-      //TODO
+      if(src->getPixelFormat() != TYPixelFormatCoord3D_ABC16) {
+        printf("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
+        return-1;
+      }
+
+      uint32_t points_cnt = src->getWidth() * src->getHeight();
+      int16_t* xyz48 = static_cast<int16_t*>(src->getData());
+
+      std::vector<TY_VECT_3F> p3d(points_cnt);
+      for(int i = 0; i < points_cnt; i++) {
+        if(xyz48[3 * i + 2]) {
+          p3d[i].x = static_cast<float>(xyz48[3 * i + 0]);
+          p3d[i].y = static_cast<float>(xyz48[3 * i + 1]);
+          p3d[i].z = static_cast<float>(xyz48[3 * i + 2]);
+        } else {
+          p3d[i].x = std::numeric_limits<float>::quiet_NaN();
+          p3d[i].y = std::numeric_limits<float>::quiet_NaN();
+          p3d[i].z = std::numeric_limits<float>::quiet_NaN();
+        }        
+      }
+
+      TY_CAMERA_EXTRINSIC extri_inv;
+      TYInvertExtrinsic(&color_calib->extrinsic, &extri_inv);
+      TYMapPoint3dToPoint3d(&extri_inv, &p3d[0], points_cnt, &p3d[0]);
+      
+      dst->setTimestamp(src->getTimestamp());
+      dst->setFrameIndex(src->getFrameIndex());
+      dst->setPixelFormat(TYPixelFormatCoord3D_C16);
+      if((target_width != 0) && (target_height != 0)) {
+        dst->setWidth(target_width);
+        dst->setHeight(target_height);
+        dst->Resize(2 * target_width * target_height);
+      } else {
+        dst->setWidth(src->getWidth());
+        dst->setHeight(src->getHeight());
+        dst->Resize(2 * src->getWidth() * src->getHeight());
+      }
+      
+      std::vector<uint16_t> mapped_depth(src->getWidth() * src->getHeight());
+      TY_STATUS ret = TYMapPoint3dToDepthImage(color_calib, &p3d[0], points_cnt, src->getWidth(), src->getHeight(), (uint16_t*)&mapped_depth[0]);
+      if(ret) return ret;
+
+      cv::Mat src_mat = cv::Mat(cv::Size(src->getWidth(), src->getHeight()), CV_16U, &mapped_depth[0]);
+      cv::Mat dst_mat = cv::Mat(cv::Size(dst->getWidth(), dst->getHeight()), CV_16U, dst->getData());
+      cv::resize(src_mat, dst_mat, dst_mat.size(), 0, 0, cv::INTER_NEAREST);
+      return 0;
     }
 
     static int cvtColor(percipio::VideoFrameData& src, percipio::VideoFrameData& dst)

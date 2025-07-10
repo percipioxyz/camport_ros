@@ -92,7 +92,7 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       image->step = sizeof(unsigned char) * 2 * image->width;
       break;
     case TYPixelFormatCoord3D_ABC16:
-      image->encoding = sensor_msgs::image_encodings::TYPE_16UC3;
+      image->encoding = sensor_msgs::image_encodings::TYPE_16SC3;
       image->step = sizeof(unsigned short) * 3 * image->width;
       break;
     default:

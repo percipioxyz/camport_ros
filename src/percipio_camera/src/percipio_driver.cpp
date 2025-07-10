@@ -324,7 +324,7 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
 {
   if (point3d_subscribers_)
   {
-    if(image->encoding == sensor_msgs::image_encodings::TYPE_16UC3)
+    if(image->encoding == sensor_msgs::image_encodings::TYPE_16SC3)
     {
       //TODO
       pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);

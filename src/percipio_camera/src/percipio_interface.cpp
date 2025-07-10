@@ -1198,6 +1198,7 @@ namespace percipio
 
   void  VideoStream::parseImageData(TY_IMAGE_DATA* img)
   {
+    TY_STATUS ret;
     VideoFrameData vframe, tframe;
     SensorType type;
     vframe.setData(img);
@@ -1209,22 +1210,28 @@ namespace percipio
           g_Context->parseDepthStream(&vframe, &tframe);
           ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
           if(mode == IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
-            g_Context->MapDepthFrameToColorCoordinate(&tframe, &frame);
+            VideoFrameData  tempFrame;
+            ret = g_Context->MapDepthFrameToColorCoordinate(&tframe, &tempFrame);//&frame);
+            if(ret == TY_STATUS_OK) {
+              frame.clone(tempFrame);
+            }
           } else {
             frame.clone(tframe);
           }
         } else if(img->pixelFormat == TYPixelFormatCoord3D_ABC16) {
-#if 0
           ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
           if(mode == IMAGE_REGISTRATION_DEPTH_TO_COLOR) {
-            g_Context->MapXYZ48FrameToColorCoordinate(&vframe, &frame);
+            VideoFrameData  tempFrame;
+            ret = g_Context->MapXYZ48FrameToColorCoordinate(&vframe, &tempFrame);
+            if(ret == TY_STATUS_OK) {
+              ROS_WARN("XYZ48 MapXYZ48FrameToColorCoordinate OK!!");
+              frame.clone(tempFrame);
+            } else {
+              ROS_WARN("XYZ48 MapXYZ48FrameToColorCoordinate ERR : %d", ret);
+            }
           } else {
             frame.clone(vframe);
           }
-#else
-          //xyz48 fmt do not support rgbd registration
-          frame.clone(vframe);
-#endif
         }
         break;
       case TY_COMPONENT_RGB_CAM:
