@@ -327,19 +327,16 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
     if(image->encoding == sensor_msgs::image_encodings::TYPE_16SC3)
     {
       //TODO
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+      pcl::PointCloud<pcl::PointXYZ>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
 
       float f_scale_unit = device_->getDepthScale();
       int16_t* data = reinterpret_cast<int16_t*>(&image->data[0]);
       for(int i = 0; i < image->width * image->height; i++) {
         if(data[3*i] != 0) {
-          pcl::PointXYZRGB  p;
+          pcl::PointXYZ  p;
           p.x = f_scale_unit * data[3*i] / 1000.f;
           p.y = f_scale_unit * data[3*i + 1] / 1000.f;
           p.z = f_scale_unit * data[3*i + 2] / 1000.f;
-          p.r = 255;
-          p.g = 255;
-          p.b = 255;
           point_cloud->points.push_back(p);
         }
       }
@@ -368,7 +365,7 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
         cam_info = getDepthCameraInfo(image->width,image->height, image->header.stamp);
       }
 
-      pcl::PointCloud<pcl::PointXYZRGB>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZRGB>);
+      pcl::PointCloud<pcl::PointXYZ>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
       float f_scale_unit = device_->getDepthScale();
       uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
       float fx = cam_info->K[0]; //fx
@@ -380,13 +377,10 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
         int m_pix_x = i % image->width;
         int m_pix_y = i / image->width;
         if(data[i] != 0) {
-          pcl::PointXYZRGB  p;
+          pcl::PointXYZ  p;
           p.x = f_scale_unit * (m_pix_x - cx) * data[i] / (1000.f * fx);
           p.y = f_scale_unit * (m_pix_y - cy) * data[i] / (1000.f * fy);
           p.z = f_scale_unit * data[i] / 1000.f;
-          p.r = 255;
-          p.g = 255;
-          p.b = 255;
           point_cloud->points.push_back(p);
         }
       }

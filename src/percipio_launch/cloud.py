@@ -2,17 +2,16 @@
 import rospy
 import numpy as np
 import open3d as o3d
-import cv2
-from cv_bridge import CvBridge
-from sensor_msgs.msg import Image, CameraInfo
-import message_filters
+from sensor_msgs.msg import PointCloud2
+from sensor_msgs import point_cloud2
 import threading
 import sys
 import os
 import time
-from datetime import datetime  # 添加datetime用于生成时间戳文件名
+from datetime import datetime
 
 def get_current_zoom(view_control):
+    """获取当前视角的缩放级别"""
     if hasattr(view_control, 'get_zoom'):
         return view_control.get_zoom()
     else:
@@ -21,17 +20,13 @@ def get_current_zoom(view_control):
         camera_pos = np.linalg.inv(camera_params.extrinsic)[:3, 3]
         return np.linalg.norm(camera_pos)
         
-class DepthCloudViewer3D:
+class PointCloudViewer3D:
     def __init__(self):
-        rospy.init_node('depthcloud_3d_viewer', anonymous=True)
-        
-        # 创建OpenCV转换器
-        self.bridge = CvBridge()
+        rospy.init_node('pointcloud_3d_viewer', anonymous=True)
         
         # 点云可视化参数
         self.point_size = rospy.get_param('~point_size', 1.0)
         self.background_color = [0.1, 0.1, 0.1]
-        self.camera_params = None
         self.latest_cloud = None
         self.update_view = False
         
@@ -40,91 +35,68 @@ class DepthCloudViewer3D:
         os.makedirs(self.save_path, exist_ok=True)
         rospy.loginfo(f"点云将保存至: {self.save_path}")
         
-        # 设置ROS订阅器
-        depth_topic = rospy.get_param('~depth_topic', '/camera/depth/image')
-        info_topic = rospy.get_param('~info_topic', '/camera/depth/camera_info')
-        
-        depth_sub = message_filters.Subscriber(depth_topic, Image)
-        info_sub = message_filters.Subscriber(info_topic, CameraInfo)
-        
-        # 同步订阅
-        self.ts = message_filters.ApproximateTimeSynchronizer(
-            [depth_sub, info_sub], queue_size=10, slop=0.2
-        )
-        self.ts.registerCallback(self.image_callback)
+        # 设置PointCloud2订阅器
+        pointcloud_topic = rospy.get_param('~pointcloud_topic', '/camera/PointCloud2')
+        self.sub = rospy.Subscriber(pointcloud_topic, PointCloud2, self.pointcloud_callback)
+        rospy.loginfo(f"订阅点云话题: {pointcloud_topic}")
         
         # 启动Open3D可视化线程
         threading.Thread(target=self.visualization_thread, daemon=True).start()
         
         # 打印使用说明
-        rospy.loginfo(f"3D DepthCloud Viewer Ready. Topics: {depth_topic}, {info_topic}")
+        rospy.loginfo("3D PointCloud Viewer Ready")
         rospy.loginfo("按 'S' 保存当前点云 | 按 'Q' 退出 | 按 'P' 打印视角信息")
         rospy.loginfo("Press Ctrl+C to exit.")
 
-    def image_callback(self, depth_msg, info_msg):
+    def pointcloud_callback(self, msg):
+        """PointCloud2消息回调函数"""
         try:
-            # 保存相机内参
-            if self.camera_params is None:
-                self.camera_params = {
-                    'fx': info_msg.K[0],
-                    'fy': info_msg.K[4],
-                    'cx': info_msg.K[2],
-                    'cy': info_msg.K[5],
-                    'width': info_msg.width,
-                    'height': info_msg.height
-                }
-                rospy.loginfo(f"相机参数: fx={self.camera_params['fx']}, fy={self.camera_params['fy']}, "
-                              f"cx={self.camera_params['cx']}, cy={self.camera_params['cy']}")
+            # 提取点云数据
+            points = []
+            colors = []
             
-            # 转换深度图
-            depth_image = self.bridge.imgmsg_to_cv2(depth_msg, desired_encoding="passthrough")
+            # 从PointCloud2消息中提取点和颜色
+            gen = point_cloud2.read_points(msg, skip_nans=True, field_names=("x", "y", "z"))
             
-            # 生成点云
-            self.generate_pointcloud(depth_image)
+            for point in gen:
+                # 提取坐标
+                x, y, z = point[0], point[1], point[2]
+                points.append([x, y, z])
+                
+                # 提取颜色（如果存在）
+                #if len(point) > 3:
+                #    rgb = point[3]
+                    # 解析RGB（32位浮点数转RGB）
+                #    r = 1.0
+                #    g = 1.0
+                #    b = 1.0
+                colors.append([1.0, 1.0, 1.0])
+            
+            if not points:
+                rospy.logwarn("收到空点云消息!")
+                return
+            
+            # 创建Open3D点云
+            pcd = o3d.geometry.PointCloud()
+            pcd.points = o3d.utility.Vector3dVector(np.array(points))
+            
+            # 如果有颜色信息则添加
+            if colors and len(colors) == len(points):
+                pcd.colors = o3d.utility.Vector3dVector(np.array(colors))
+                
+            
+            # 下采样提高性能
+            #if len(points) > 100000:
+            #    pcd = pcd.voxel_down_sample(voxel_size=0.01)
+            #    rospy.loginfo(f"点云下采样后点数: {len(pcd.points)}")
+            
+            self.latest_cloud = pcd
             self.update_view = True
             
         except Exception as e:
-            rospy.logerr(f"处理错误: {str(e)}")
+            rospy.logerr(f"处理点云错误: {str(e)}")
             exc_type, exc_obj, exc_tb = sys.exc_info()
             rospy.logerr(f"错误位置: 第 {exc_tb.tb_lineno} 行")
-
-    def generate_pointcloud(self, depth_image):
-        """生成点云并优化性能"""
-        fx, fy = self.camera_params['fx'], self.camera_params['fy']
-        cx, cy = self.camera_params['cx'], self.camera_params['cy']
-        height, width = depth_image.shape
-        
-        # 使用向量化操作替代循环
-        u = np.arange(width)
-        v = np.arange(height)
-        u, v = np.meshgrid(u, v)
-        
-        # 转换为3D坐标
-        z = depth_image.astype(np.float32) / 1000.0  # 转为米
-        valid_mask = (z > 0) & (z < 5.0)  # 过滤无效点
-        
-        if not np.any(valid_mask):
-            rospy.logwarn("未找到有效的深度点!")
-            return
-            
-        x = (u[valid_mask] - cx) * z[valid_mask] / fx
-        y = (v[valid_mask] - cy) * z[valid_mask] / fy
-        z_valid = z[valid_mask]
-        
-        # 创建点云
-        points = np.column_stack((x, y, z_valid))
-        
-        # 创建Open3D点云
-        pcd = o3d.geometry.PointCloud()
-        pcd.points = o3d.utility.Vector3dVector(points)
-
-        # 下采样提高性能
-        #if len(points) > 50000:
-        #    rospy.loginfo(f"点云下采样前点数: {len(points)}")
-        #    pcd = pcd.voxel_down_sample(voxel_size=0.02)
-        #    rospy.loginfo(f"点云下采样后点数: {len(pcd.points)}")
-        
-        self.latest_cloud = pcd
 
     def save_current_pointcloud(self, cloud):
         """保存当前点云到文件"""
@@ -134,7 +106,7 @@ class DepthCloudViewer3D:
             
         # 生成带时间戳的文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"pointcloud_{timestamp}.ply"
+        filename = f"cloud_{timestamp}.ply"
         filepath = os.path.join(self.save_path, filename)
         
         try:
@@ -155,7 +127,7 @@ class DepthCloudViewer3D:
         # 创建可视化窗口
         vis = o3d.visualization.Visualizer()
         vis.create_window(
-            window_name='ROS DepthCloud (Press S to save, Q to quit)',
+            window_name='ROS PointCloud2 Viewer',
             width=1280,
             height=720,
             visible=True
@@ -182,7 +154,6 @@ class DepthCloudViewer3D:
         first_frame = True
         
         while not rospy.is_shutdown():
-
             # 更新点云显示
             if self.update_view and self.latest_cloud is not None:
                 # 保存当前视图状态（如果已有）
@@ -218,9 +189,9 @@ class DepthCloudViewer3D:
                     # 设置缩放
                     zoom_level = 0.5 * (1.0 / max_extent) if max_extent > 0 else 0.4
                     ctr.set_zoom(zoom_level)
-
-                    self.key_s_callback(vis)
                     
+                    self.key_s_callback(vis)
+
                     first_frame = False
                     #rospy.loginfo(f"设置智能初始视角: 距离={distance:.2f}m, 缩放={zoom_level:.2f}")
                 elif prev_view_params:
@@ -238,7 +209,7 @@ class DepthCloudViewer3D:
             zoom = get_current_zoom(ctr)
             if self.latest_cloud:
                 point_count = len(self.latest_cloud.points) if self.latest_cloud else 0
-                title = f"ROS深度点云 - 点数: {point_count} | 缩放: {zoom:.2f} | 按 S 保存"
+                title = f"ROS PointCloud2 - 点数: {point_count} | 缩放: {zoom:.2f} | 按 S 保存"
                 #vis.set_window_title(title)
             
             rospy.sleep(0.05)
@@ -263,8 +234,8 @@ if __name__ == '__main__':
             if 'DISPLAY' not in os.environ:
                 rospy.logwarn("未设置DISPLAY环境变量，尝试设置为 ':0'")
                 os.environ['DISPLAY'] = ':0'
-        print(o3d.__version__) 
-        viewer = DepthCloudViewer3D()
+        
+        viewer = PointCloudViewer3D()
         rospy.spin()
     except rospy.ROSInterruptException:
         rospy.loginfo("节点已关闭")

@@ -142,7 +142,7 @@ class DepthCloudViewer3D:
             
         # 生成带时间戳的文件名
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = f"pointcloud_{timestamp}.ply"
+        filename = f"depthcloud_{timestamp}.ply"
         filepath = os.path.join(self.save_path, filename)
         
         try:
@@ -163,7 +163,7 @@ class DepthCloudViewer3D:
         # 创建可视化窗口
         vis = o3d.visualization.Visualizer()
         vis.create_window(
-            window_name='ROS DepthCloud (Press S to save, Q to quit)',
+            window_name='ROS DepthCloud Viewer',
             width=1280,
             height=720,
             visible=True
@@ -189,14 +189,7 @@ class DepthCloudViewer3D:
         current_view_params = None
         first_frame = True
         
-        #key_map = {
-        #    ord("S"): self.key_s_callback,  # Trigger on 'K' key press
-        #    ord("Q"): self.key_q_callback,
-        #    ord("P"): self.key_p_callback,
-        #}
-        
         while not rospy.is_shutdown():
-
             # 更新点云显示
             if self.update_view and self.latest_cloud is not None:
                 # 保存当前视图状态（如果已有）
