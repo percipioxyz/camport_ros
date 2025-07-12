@@ -10,16 +10,6 @@ import os
 import time
 from datetime import datetime
 
-def get_current_zoom(view_control):
-    """获取当前视角的缩放级别"""
-    if hasattr(view_control, 'get_zoom'):
-        return view_control.get_zoom()
-    else:
-        # 旧版本替代方法
-        camera_params = view_control.convert_to_pinhole_camera_parameters()
-        camera_pos = np.linalg.inv(camera_params.extrinsic)[:3, 3]
-        return np.linalg.norm(camera_pos)
-        
 class PointCloudViewer3D:
     def __init__(self):
         rospy.init_node('pointcloud_3d_viewer', anonymous=True)
@@ -45,7 +35,6 @@ class PointCloudViewer3D:
         
         # 打印使用说明
         rospy.loginfo("3D PointCloud Viewer Ready")
-        rospy.loginfo("按 'S' 保存当前点云 | 按 'Q' 退出 | 按 'P' 打印视角信息")
         rospy.loginfo("Press Ctrl+C to exit.")
 
     def pointcloud_callback(self, msg):
@@ -146,9 +135,15 @@ class PointCloudViewer3D:
         
         # 设置默认视角
         ctr = vis.get_view_control()
-        ctr.set_front([0, -1, 0.5])  # 相机朝向 (X:右, Y:下, Z:前)
-        ctr.set_up([0, 0, 1])        # 上方向 (Z轴向上)
-        ctr.set_zoom(0.4)            # 初始缩放
+        cam = ctr.convert_to_pinhole_camera_parameters()
+        extrinsics = np.array([
+            [1, 0, 0, 0],
+            [0, 1, 0, 0],
+            [0, 0, 1, -1],
+            [0, 0, 0, 1]
+        ])
+        cam.extrinsic = extrinsics
+        ctr.convert_from_pinhole_camera_parameters(cam)
         
         current_view_params = None
         first_frame = True
@@ -165,35 +160,9 @@ class PointCloudViewer3D:
                 vis.add_geometry(self.latest_cloud)
                 self.update_view = False
                 
-                # 智能设置初始视角
                 if first_frame:
-                    # 计算点云的边界框
-                    bbox = self.latest_cloud.get_axis_aligned_bounding_box()
-                    center = bbox.get_center()
-                    extent = bbox.get_extent()
-                    
-                    # 设置智能初始视角
-                    ctr.set_lookat(center)  # 看向点云中心
-                    
-                    # 根据点云大小自动设置距离
-                    max_extent = max(extent[0], extent[1], extent[2])
-                    distance = max_extent * 1.8  # 保持适当距离
-                    
-                    # 设置视角位置
-                    eye_pos = center + np.array([distance, distance, distance])
-                    ctr.set_front(eye_pos - center)
-                    
-                    # 设置向上方向
-                    ctr.set_up([0, 0, 1]) 
-                    
-                    # 设置缩放
-                    zoom_level = 0.5 * (1.0 / max_extent) if max_extent > 0 else 0.4
-                    ctr.set_zoom(zoom_level)
-                    
-                    self.key_s_callback(vis)
-
+                    self.save_current_pointcloud(self.latest_cloud)
                     first_frame = False
-                    #rospy.loginfo(f"设置智能初始视角: 距离={distance:.2f}m, 缩放={zoom_level:.2f}")
                 elif prev_view_params:
                     # 恢复之前的视图状态
                     ctr.convert_from_pinhole_camera_parameters(prev_view_params)
@@ -204,13 +173,6 @@ class PointCloudViewer3D:
             
             # 保存当前视图状态（用于下一次更新）
             current_view_params = ctr.convert_to_pinhole_camera_parameters()
-            
-            # 显示当前视角信息
-            zoom = get_current_zoom(ctr)
-            if self.latest_cloud:
-                point_count = len(self.latest_cloud.points) if self.latest_cloud else 0
-                title = f"ROS PointCloud2 - 点数: {point_count} | 缩放: {zoom:.2f} | 按 S 保存"
-                #vis.set_window_title(title)
             
             rospy.sleep(0.05)
         
