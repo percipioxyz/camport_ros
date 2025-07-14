@@ -12,6 +12,8 @@ import os
 import time
 from datetime import datetime  # 添加datetime用于生成时间戳文件名
 
+f_depth_scale_unit = 1.0
+
 class DepthCloudViewer3D:
     def __init__(self):
         rospy.init_node('depthcloud_3d_viewer', anonymous=True)
@@ -96,8 +98,8 @@ class DepthCloudViewer3D:
         u, v = np.meshgrid(u, v)
         
         # 转换为3D坐标
-        z = depth_image.astype(np.float32) / 1000.0  # 转为米
-        valid_mask = (z > 0) & (z < 5.0)  # 过滤无效点
+        z = f_depth_scale_unit * depth_image.astype(np.float32) / 1000.0  # 转为米
+        valid_mask = (z > 0) & (z < 10.0)  # 过滤
         
         if not np.any(valid_mask):
             rospy.logwarn("未找到有效的深度点!")
