@@ -286,9 +286,6 @@ namespace percipio
 
       //std::mutex m_mutex;
       pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-      int32_t current_depth_width;
-      int32_t current_depth_height;
       
       int32_t current_rgb_width;
       int32_t current_rgb_height;

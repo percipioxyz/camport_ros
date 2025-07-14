@@ -58,9 +58,6 @@ namespace percipio
     frameBuffer[1] = NULL;
     isRuning = false;
 
-    current_depth_width = 0;
-    current_depth_height = 0;
-
     current_rgb_width = 0;
     current_rgb_height = 0;
 
@@ -883,11 +880,6 @@ namespace percipio
         m_gige_dev->getColorIntrinsic(color_intr);
 
         b_stream_with_color = true;
-
-#ifdef IMAGE_DoUndistortion_With_OpenCV
-        //add depth distortion map
-        ImgProc::addColorDistortionMap(color_calib, current_rgb_width, current_rgb_height);
-#endif
       } else {
         ROS_INFO("Disable color stream!");
         rc = m_gige_dev->EnableColorStream(false);
@@ -907,11 +899,11 @@ namespace percipio
       if( b_support_depth || b_support_point3d ) {
         auto it = m_gige_dev->current_video_mode.find(SENSOR_DEPTH);
         if (it != m_gige_dev->current_video_mode.end()) {
-          current_depth_width = it->second.getResolutionX();
-          current_depth_height = it->second.getResolutionY();
+          int current_depth_width = it->second.getResolutionX();
+          int current_depth_height = it->second.getResolutionY();
           ROS_INFO("Current depth image size : %d x %d.", current_depth_width, current_depth_height);
         } else {
-          ROS_WARN("Got current depth image size failed!");
+          ROS_WARN("Got current depth image size failed, use default size!");
         }
 
         depth_distortion = m_gige_dev->need_depth_undistortion;
@@ -924,19 +916,9 @@ namespace percipio
 
         TYGetFloat(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale_unit);
         ROS_INFO("Depth stream scale unit : %f", f_depth_scale_unit);
-
-#ifdef IMAGE_DoUndistortion_With_OpenCV
-        if(depth_distortion) {
-          //add depth distortion map
-          ImgProc::addDepthDistortionMap(depth_calib, current_depth_width, current_depth_height);
-        }
-#endif
       } else {
         ROS_INFO("Disable depth stream!");
         rc = m_gige_dev->EnableDepthStream(false);
-
-        current_depth_width = 0;
-        current_depth_height = 0;
       }
     }
 

@@ -406,6 +406,43 @@ TY_STATUS GigE_2_1::PreSetting()
       TYBooleanSetValue(hDevice, "ComponentEnable", false);
     }
   }
+
+  for(size_t i = 0; i < cnt; i++) {
+    if(std::string(entrys[i].name) == std::string("Intensity")) {
+      ret = TYEnumSetValue(hDevice, "SourceSelector", entrys[i].value);
+      if(!ret) {
+        int64_t m_intensity_w, m_intensity_h;
+        ret = TYIntegerGetValue(hDevice, "SensorWidth", &m_intensity_w);
+        if(ret) {
+          ROS_WARN("Read intensity sensor width failed, error code : %d", ret);
+          return ret;
+        }
+
+        ret = TYIntegerGetValue(hDevice, "SensorHeight", &m_intensity_h);
+        if(ret) {
+          ROS_WARN("Read intensity sensor height failed, error code : %d", ret);
+          return ret;
+        }
+
+        int32_t default_fmt = 0;
+        ret = TYEnumGetValue(hDevice, "PixelFormat", &default_fmt);
+        if(ret) {
+          ROS_WARN("Read intensity pixel format failed, error code : %d", ret);
+          return ret;
+        }
+
+        int32_t binning = 0;
+        ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
+        if(ret) {
+          ROS_WARN("Read intensity image bining failed, error code : %d", ret);
+          return ret;
+        }
+
+        current_video_mode[SENSOR_COLOR] = VideoMode(default_fmt, m_intensity_w / binning, m_intensity_h / binning);
+      }
+    }
+  }
+
   return TY_STATUS_OK;
 }
 

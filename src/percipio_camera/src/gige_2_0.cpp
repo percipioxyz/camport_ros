@@ -109,7 +109,7 @@ static TYPixFmt OldPixelFormatToStdTYPixFmt(TY_PIXEL_FORMAT fmt)
   }
 }
 
-GigE_2_0::GigE_2_0(const TY_DEV_HANDLE dev) : GigEBase(dev) 
+GigE_2_0::GigE_2_0(const TY_DEV_HANDLE dev) : GigEBase(dev)
 {
   TYHasFeature(hDevice, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_DISTORTION, &need_depth_undistortion);
 }
@@ -272,6 +272,13 @@ TY_STATUS GigE_2_0::SetImageMode(const SensorType sensorType, const int width, c
 TY_STATUS GigE_2_0::PreSetting()
 {
   load_default_parameter();
+
+  uint32_t image_mode;
+  TY_STATUS ret = TYGetEnum(hDevice, TY_COMPONENT_RGB_CAM, TY_ENUM_IMAGE_MODE, &image_mode);
+  if(TY_STATUS_OK == ret) {
+    //default video mode
+    current_video_mode[SENSOR_COLOR] = VideoMode(OldPixelFormatToStdTYPixFmt(TYPixelFormat(image_mode)), TYImageWidth(image_mode), TYImageHeight(image_mode));
+  }
 
   bool b_gsvp_resend_support = false;
   TYHasFeature(hDevice, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, &b_gsvp_resend_support);
