@@ -1224,7 +1224,6 @@ namespace percipio
             VideoFrameData  tempFrame;
             ret = g_Context->MapXYZ48FrameToColorCoordinate(&vframe, &tempFrame);
             if(ret == TY_STATUS_OK) {
-              ROS_WARN("XYZ48 MapXYZ48FrameToColorCoordinate OK!!");
               frame.clone(tempFrame);
             } else {
               ROS_WARN("XYZ48 MapXYZ48FrameToColorCoordinate ERR : %d", ret);
