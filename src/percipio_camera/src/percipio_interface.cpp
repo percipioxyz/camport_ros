@@ -729,7 +729,7 @@ namespace percipio
           if (frame.image[i].status != TY_STATUS_OK) continue;
 
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
-            if(cam->DepthStream->isValid()) {
+            if(frame.image[i].pixelFormat == TYPixelFormatCoord3D_C16) {
               uint16_t* ptrDepth = static_cast<uint16_t*>(frame.image[i].buffer);
               int32_t PixsCnt = frame.image[i].width * frame.image[i].height;
               for(int32_t i = 0; i < PixsCnt; i++) {
@@ -743,14 +743,15 @@ namespace percipio
 
               if(cam->depth_time_domain_enable) {
                 cam->DepthDomainTimeFilterMgrPtr->add_frame(frame.image[i]);
-                if(cam->DepthDomainTimeFilterMgrPtr->do_time_domain_process(frame.image[i])) {
-                  cam->DepthStream->cb(cam->DepthStream.get(), cam->DepthStream->frame_listener, &frame.image[i]);
-                } else {
+                if(!cam->DepthDomainTimeFilterMgrPtr->do_time_domain_process(frame.image[i])) {
                   ROS_WARN("Do Time-domain filter, drop frame!");
+                  continue;
                 }
-              } else {
-                cam->DepthStream->cb(cam->DepthStream.get(), cam->DepthStream->frame_listener, &frame.image[i]);
               }
+            }
+
+            if(cam->DepthStream->isValid()) {
+              cam->DepthStream->cb(cam->DepthStream.get(), cam->DepthStream->frame_listener, &frame.image[i]);
             }
             
             if(cam->Point3DStream->isValid()) {
