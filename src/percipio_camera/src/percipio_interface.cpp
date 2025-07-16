@@ -160,6 +160,7 @@ namespace percipio
       m_gige_dev->getDepthCalibData(depth_calib);
     }
 
+    m_gige_dev->PreSetting();
     m_gige_dev->AcquisitionInit();
     
     if (TYIsNetworkInterface(info.iface.type)) {
@@ -837,8 +838,6 @@ namespace percipio
 
     bool b_support_depth = false;
     bool b_support_point3d = false;
-
-    m_gige_dev->PreSetting();
 
     std::string component_list;
     if(mIDS & TY_COMPONENT_IR_CAM_LEFT) {

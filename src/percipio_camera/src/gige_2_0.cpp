@@ -111,12 +111,20 @@ static TYPixFmt OldPixelFormatToStdTYPixFmt(TY_PIXEL_FORMAT fmt)
 
 GigE_2_0::GigE_2_0(const TY_DEV_HANDLE dev) : GigEBase(dev)
 {
-  TYHasFeature(hDevice, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_DISTORTION, &need_depth_undistortion);
+  ids = 0;
+  TY_STATUS  status = TYGetComponentIDs(hDevice, &ids);
+  if(status) return ;
+
+  if(status & TY_COMPONENT_DEPTH_CAM) 
+    TYHasFeature(hDevice, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_DISTORTION, &need_depth_undistortion);
 }
 
 std::vector<VideoMode> GigE_2_0::getLeftIRVideoModeList()
 {
   TY_STATUS ret;
+  if(!(ids & TY_COMPONENT_IR_CAM_LEFT))
+    return std::vector<VideoMode>();
+
   std::vector<TY_ENUM_ENTRY> feature_info;
   get_feature_enum_list(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_ENUM_IMAGE_MODE, feature_info);
 
@@ -134,6 +142,9 @@ std::vector<VideoMode> GigE_2_0::getLeftIRVideoModeList()
 std::vector<VideoMode> GigE_2_0::getRightIRVideoModeList()
 {
   TY_STATUS ret;
+  if(!(ids & TY_COMPONENT_IR_CAM_RIGHT))
+    return std::vector<VideoMode>();
+
   std::vector<TY_ENUM_ENTRY> feature_info;
   get_feature_enum_list(hDevice, TY_COMPONENT_IR_CAM_RIGHT, TY_ENUM_IMAGE_MODE, feature_info);
 
@@ -151,6 +162,9 @@ std::vector<VideoMode> GigE_2_0::getRightIRVideoModeList()
 std::vector<VideoMode> GigE_2_0::getColorVideoModeList()
 {
   TY_STATUS ret;
+  if(!(ids & TY_COMPONENT_RGB_CAM))
+    return std::vector<VideoMode>();
+
   std::vector<TY_ENUM_ENTRY> feature_info;
   get_feature_enum_list(hDevice, TY_COMPONENT_RGB_CAM, TY_ENUM_IMAGE_MODE, feature_info);
 
@@ -168,6 +182,9 @@ std::vector<VideoMode> GigE_2_0::getColorVideoModeList()
 std::vector<VideoMode> GigE_2_0::getDepthVideoModeList()
 {
   TY_STATUS ret;
+  if(!(ids & TY_COMPONENT_DEPTH_CAM))
+    return std::vector<VideoMode>();
+
   std::vector<TY_ENUM_ENTRY> feature_info;
   get_feature_enum_list(hDevice, TY_COMPONENT_DEPTH_CAM, TY_ENUM_IMAGE_MODE, feature_info);
 
@@ -184,26 +201,41 @@ std::vector<VideoMode> GigE_2_0::getDepthVideoModeList()
 
 TY_STATUS GigE_2_0::getColorCalibData(TY_CAMERA_CALIB_INFO& calib_data)
 {
+  if(!(ids & TY_COMPONENT_RGB_CAM))
+    return TY_STATUS_INVALID_COMPONENT;
+
   return TYGetStruct(hDevice, TY_COMPONENT_RGB_CAM, TY_STRUCT_CAM_CALIB_DATA, &calib_data, sizeof(calib_data));
 }
 
 TY_STATUS GigE_2_0::getDepthCalibData(TY_CAMERA_CALIB_INFO& calib_data)
 {
+  if(!(ids & TY_COMPONENT_DEPTH_CAM))
+    return TY_STATUS_INVALID_COMPONENT;
+
   return TYGetStruct(hDevice, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_CALIB_DATA, &calib_data, sizeof(calib_data));
 }
 
 TY_STATUS GigE_2_0::getColorIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
 {
+  if(!(ids & TY_COMPONENT_RGB_CAM))
+    return TY_STATUS_INVALID_COMPONENT;
+
   return TYGetStruct(hDevice, TY_COMPONENT_RGB_CAM, TY_STRUCT_CAM_INTRINSIC, &Intrinsic, sizeof(Intrinsic));
 }
 
 TY_STATUS GigE_2_0::getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
 {
+  if(!(ids & TY_COMPONENT_DEPTH_CAM))
+    return TY_STATUS_INVALID_COMPONENT;
+
   return TYGetStruct(hDevice, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &Intrinsic, sizeof(Intrinsic));
 }
 
 TY_STATUS GigE_2_0::AcquisitionInit()
 {
+  if(!(ids & TY_COMPONENT_DEVICE))
+    return TY_STATUS_OK;
+
   bool hasTrigger = false;
   TYHasFeature(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM, &hasTrigger);
   if (hasTrigger) {
@@ -219,6 +251,9 @@ TY_STATUS GigE_2_0::SetImageMode(const SensorType sensorType, const int width, c
   TY_STATUS ret;
   TY_COMPONENT_ID component = SensorTypeToPercipComonentID(sensorType);
   if(component == INVALID_COMPONENT) return TY_STATUS_INVALID_COMPONENT;
+
+  if(!(ids & component))
+    return TY_STATUS_INVALID_COMPONENT;
 
   auto it = videos.find(sensorType);
   if (it == videos.end())
@@ -273,26 +308,36 @@ TY_STATUS GigE_2_0::PreSetting()
 {
   load_default_parameter();
 
-  uint32_t image_mode;
-  TY_STATUS ret = TYGetEnum(hDevice, TY_COMPONENT_RGB_CAM, TY_ENUM_IMAGE_MODE, &image_mode);
-  if(TY_STATUS_OK == ret) {
-    //default video mode
-    current_video_mode[SENSOR_COLOR] = VideoMode(OldPixelFormatToStdTYPixFmt(TYPixelFormat(image_mode)), TYImageWidth(image_mode), TYImageHeight(image_mode));
+  if(ids & TY_COMPONENT_RGB_CAM) {
+    uint32_t image_mode;
+    TY_STATUS ret = TYGetEnum(hDevice, TY_COMPONENT_RGB_CAM, TY_ENUM_IMAGE_MODE, &image_mode);
+    if(TY_STATUS_OK == ret) {
+      //default video mode
+      current_video_mode[SENSOR_COLOR] = VideoMode(OldPixelFormatToStdTYPixFmt(TYPixelFormat(image_mode)), TYImageWidth(image_mode), TYImageHeight(image_mode));
+    }
   }
 
-  bool b_gsvp_resend_support = false;
-  TYHasFeature(hDevice, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, &b_gsvp_resend_support);
-  if(b_gsvp_resend_support) {
+  if(ids & TY_COMPONENT_DEVICE) {
+    bool b_gsvp_resend_support = false;
+    TYHasFeature(hDevice, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, &b_gsvp_resend_support);
+    if(b_gsvp_resend_support) {
       ROS_INFO("Device Open resend.");
       TYSetBool(hDevice, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, true);
+    }
   }
 
-  return TYSetBool(hDevice, TY_COMPONENT_LASER, TY_BOOL_LASER_AUTO_CTRL, true);
+  if(ids & TY_COMPONENT_LASER) 
+    return TYSetBool(hDevice, TY_COMPONENT_LASER, TY_BOOL_LASER_AUTO_CTRL, true);
+
+  return TY_STATUS_OK;
 }
 
 TY_STATUS GigE_2_0::EnableColorStream(const bool en)
 {
-  TY_STATUS ret = TY_STATUS_OK;
+  TY_STATUS ret;
+  if(!(ids & TY_COMPONENT_RGB_CAM))
+    return TY_STATUS_INVALID_COMPONENT;
+  
   if(en) {
     ret = TYEnableComponents(hDevice, TY_COMPONENT_RGB_CAM);
     if(ret) ROS_WARN("Enable rgb component failed: %d", ret);
@@ -305,7 +350,10 @@ TY_STATUS GigE_2_0::EnableColorStream(const bool en)
 
 TY_STATUS GigE_2_0::EnableDepthStream(const bool en)
 {
-  TY_STATUS ret = TY_STATUS_OK;
+  TY_STATUS ret;
+  if(!(ids & TY_COMPONENT_DEPTH_CAM))
+    return TY_STATUS_INVALID_COMPONENT;
+
   if(en) {
     ret = TYEnableComponents(hDevice, TY_COMPONENT_DEPTH_CAM);
     if(ret) ROS_WARN("Enable depth component failed: %d", ret);
@@ -318,7 +366,10 @@ TY_STATUS GigE_2_0::EnableDepthStream(const bool en)
 
 TY_STATUS GigE_2_0::EnableLeftIRStream(const bool en)
 {
-  TY_STATUS ret = TY_STATUS_OK;
+  TY_STATUS ret;
+  if(!(ids & TY_COMPONENT_IR_CAM_LEFT))
+    return TY_STATUS_INVALID_COMPONENT;
+
   if(en) {
     ret = TYEnableComponents(hDevice, TY_COMPONENT_IR_CAM_LEFT);
     if(ret) ROS_WARN("Enable Left-IR component failed: %d", ret);
@@ -331,7 +382,10 @@ TY_STATUS GigE_2_0::EnableLeftIRStream(const bool en)
 
 TY_STATUS GigE_2_0::EnableRightIRStream(const bool en)
 {
-  TY_STATUS ret = TY_STATUS_OK;
+  TY_STATUS ret;
+  if(!(ids & TY_COMPONENT_IR_CAM_RIGHT))
+    return TY_STATUS_INVALID_COMPONENT;
+
   if(en) {
     ret = TYEnableComponents(hDevice, TY_COMPONENT_IR_CAM_RIGHT);
     if(ret) ROS_WARN("Enable Right-IR component failed: %d", ret);
@@ -343,86 +397,89 @@ TY_STATUS GigE_2_0::EnableRightIRStream(const bool en)
 }
 
 bool GigE_2_0::load_default_parameter()
-  {
-    TY_STATUS status = TY_STATUS_OK;
-    uint32_t block_size;
-    uint8_t* blocks = new uint8_t[MAX_STORAGE_SIZE] ();
-    status = TYGetByteArraySize(hDevice, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, &block_size);
-    if(status != TY_STATUS_OK) {
-        delete []blocks;
-        return false;
-    } 
-    
-    status = TYGetByteArray(hDevice, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, blocks,  block_size);
-    if(status != TY_STATUS_OK) {
-        delete []blocks;
-        return false;
-    }
-    
-    uint32_t crc_data = *(uint32_t*)blocks;
-    if(0 == crc_data || 0xffffffff == crc_data) {
-        LOGD("The CRC check code is empty.");
-        delete []blocks;
-        return false;
-    } 
-    
-    uint32_t crc;
-    std::string js_string;
-    uint8_t* js_code = blocks + 4;
-    crc = crc32_bitwise(js_code, strlen((const char*)js_code));
-    if((crc != crc_data) || !isValidJsonString((const char*)js_code)) {
-        EncodingType type = *(EncodingType*)(blocks + 4);
-        switch(type) {
-            case HUFFMAN:
-            {
-                uint32_t huffman_size = *(uint32_t*)(blocks + 8);
-                uint8_t* huffman_ptr = (uint8_t*)(blocks + 12);
-                if(huffman_size > (MAX_STORAGE_SIZE - 8)) {
-                    LOGE("Storage data length error.");
-                    delete []blocks;
-                    return false;
-                }
-                
-                crc = crc32_bitwise(huffman_ptr, huffman_size);
-                if(crc_data != crc) {
-                    LOGE("Storage area data check failed (check code error).");
-                    delete []blocks;
-                    return false;
-                }
+{
+  TY_STATUS status = TY_STATUS_OK;
+  uint32_t block_size;
+  uint8_t* blocks = new uint8_t[MAX_STORAGE_SIZE] ();
 
-                std::string huffman_string(huffman_ptr, huffman_ptr + huffman_size);
-                if(!TextHuffmanDecompression(huffman_string, js_string)) {
-                    LOGE("Huffman decompression error.");
-                    delete []blocks;
-                    return false;
-                }
-                break;
-            }
-            default:
-            {
-                LOGE("Unsupported encoding format.");
-                delete []blocks;
-                return false;
-            }
-        }
-    } else {
-        js_string = std::string((const char*)js_code);
-    }
+  if(!(ids & TY_COMPONENT_STORAGE)) return false;
 
-    if(!isValidJsonString(js_string.c_str())) {
-        LOGE("Incorrect json data.");
-        delete []blocks;
-        return false;
-    }
-
-    bool ret = json_parse(hDevice, js_string.c_str());
-    if(ret)  
-      LOGD("Loading default parameters successfully!");
-    else
-      LOGD("Failed to load default parameters, some parameters cannot be loaded properly!");
-    
+  status = TYGetByteArraySize(hDevice, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, &block_size);
+  if(status != TY_STATUS_OK) {
     delete []blocks;
-    return ret;
+    return false;
+  } 
+    
+  status = TYGetByteArray(hDevice, TY_COMPONENT_STORAGE, TY_BYTEARRAY_CUSTOM_BLOCK, blocks,  block_size);
+  if(status != TY_STATUS_OK) {
+    delete []blocks;
+    return false;
+  }
+    
+  uint32_t crc_data = *(uint32_t*)blocks;
+  if(0 == crc_data || 0xffffffff == crc_data) {
+    LOGD("The CRC check code is empty.");
+    delete []blocks;
+    return false;
+  } 
+    
+  uint32_t crc;
+  std::string js_string;
+  uint8_t* js_code = blocks + 4;
+  crc = crc32_bitwise(js_code, strlen((const char*)js_code));
+  if((crc != crc_data) || !isValidJsonString((const char*)js_code)) {
+    EncodingType type = *(EncodingType*)(blocks + 4);
+    switch(type) {
+      case HUFFMAN:
+      {
+        uint32_t huffman_size = *(uint32_t*)(blocks + 8);
+        uint8_t* huffman_ptr = (uint8_t*)(blocks + 12);
+        if(huffman_size > (MAX_STORAGE_SIZE - 8)) {
+          LOGE("Storage data length error.");
+          delete []blocks;
+          return false;
+        }
+                
+        crc = crc32_bitwise(huffman_ptr, huffman_size);
+        if(crc_data != crc) {
+          LOGE("Storage area data check failed (check code error).");
+          delete []blocks;
+          return false;
+        }
+
+        std::string huffman_string(huffman_ptr, huffman_ptr + huffman_size);
+        if(!TextHuffmanDecompression(huffman_string, js_string)) {
+          LOGE("Huffman decompression error.");
+          delete []blocks;
+          return false;
+        }
+        break;
+      }
+      default:
+      {
+        LOGE("Unsupported encoding format.");
+        delete []blocks;
+        return false;
+      }
+    }
+  } else {
+    js_string = std::string((const char*)js_code);
   }
 
+  if(!isValidJsonString(js_string.c_str())) {
+    LOGE("Incorrect json data.");
+    delete []blocks;
+    return false;
   }
+
+  bool ret = json_parse(hDevice, js_string.c_str());
+  if(ret)  
+    LOGD("Loading default parameters successfully!");
+  else
+    LOGD("Failed to load default parameters, some parameters cannot be loaded properly!");
+    
+  delete []blocks;
+  return ret;
+}
+
+}
