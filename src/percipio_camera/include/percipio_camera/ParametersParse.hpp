@@ -161,7 +161,10 @@ bool json_parse(const TY_DEV_HANDLE hDevice, const char* jscode)
                 TY_FEATURE_ID m_feat_id;
                 sscanf(feat_id_str,"%x",&m_feat_id);
 
-                param_list.push_back({m_comp_id, m_feat_id, feat_value});
+                if(m_feat_id == TY_ENUM_CONFIG_MODE)
+                    device_write_feature(hDevice, it->compID, it->featID, it->feat_value);
+                else
+                    param_list.push_back({m_comp_id, m_feat_id, feat_value});
             }
         }
 
