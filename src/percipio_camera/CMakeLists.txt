@@ -47,7 +47,7 @@ add_library(percipio_wrapper
    src/huffman.cpp
 )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/camport3/include)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/camport4/include)
 
 if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i686")
   set(ARCH i686)
@@ -61,7 +61,7 @@ else()
   message(STATUS "host processor architecture is unknown")
 endif()
 
-set(TYCAM ${CMAKE_CURRENT_SOURCE_DIR}/camport3/lib/linux/lib_${ARCH}/libtycam.so)
+set(TYCAM ${CMAKE_CURRENT_SOURCE_DIR}/camport4/lib/linux/lib_${ARCH}/libtycam.so)
 
 target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${TYCAM})
 
