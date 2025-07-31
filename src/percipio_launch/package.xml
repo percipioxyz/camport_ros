@@ -1,0 +1,20 @@
+<package>
+  <name>percipio_launch</name>
+  <version>1.0.0</version>
+  <description>
+    Launch files to start the percipio_camera drivers.
+  </description>
+  <maintainer email="jet_zou@percipio.xyz">Jet Zou</maintainer>
+  <license>BSD</license>
+
+  <author email="jet_zou@percipio.xyz">Jet Zou</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <run_depend>depth_image_proc</run_depend>
+  <run_depend>image_proc</run_depend>
+  <run_depend>nodelet</run_depend>
+  <run_depend>percipio_camera</run_depend>
+  <run_depend>tf</run_depend>
+
+</package>

@@ -1,0 +1,116 @@
+<!-- Launch the Percipio device driver -->
+<launch>
+
+  <!-- Name of nodelet manager, must be fully resolved -->
+  <arg name="manager" />
+
+  
+
+  <!-- Driver parameters -->
+  <arg name="use_ros_nodelet"/>
+
+  <arg name="device_id" />
+  <arg name="device_reconnection" default="false"/>
+  <arg name="rgb_frame_id" />
+  <arg name="depth_frame_id" />
+  <arg name="color_undistortion" default="true" />
+  <arg name="depth_registration" default="true" />
+
+  <arg name="depth_speckle_filter" />
+  <arg name="max_speckle_size" />
+  <arg name="max_speckle_diff" />
+
+  <arg name="depth_time_domain_filter" />
+  <arg name="depth_time_domain_num" />
+
+  <arg name="use_device_time" />
+
+  <!--<arg name="auto_exposure" default="true" /> -->
+  <!--<arg name="auto_white_balance" default="true" />-->
+  <arg name="rgb_resolution" default="640x480" />
+  <arg name="depth_resolution" default="640x480" />
+
+  <arg name="rgb_format" default="" />
+  <arg name="depth_format" default="" />
+
+  <arg name="respawn" default="false" />
+
+  <!-- Remapping arguments -->
+  <arg name="rgb"              default="rgb" />
+  <arg name="ir"               default="ir" />
+  <arg name="depth"            default="depth" />
+  <arg name="depth_registered" default="depth_registered" />
+
+  <!-- Driver nodelet -->
+  <!-- load_driver -->
+  <node if="$(arg use_ros_nodelet)" pkg="nodelet" type="nodelet" name="percipio_camera"
+        args="load percipio_camera/PercipioDriverNodelet $(arg manager)"
+	    output="screen" respawn="$(arg respawn)">
+    <param name="device_id" type="str" value="$(arg device_id)" />
+    <param name="device_reconnection" type="bool" value="$(arg device_reconnection)" />
+    <param name="rgb_frame_id"   value="$(arg rgb_frame_id)" />
+    <param name="depth_frame_id" value="$(arg depth_frame_id)" />
+
+    <param name="color_undistortion" type="bool" value="$(arg color_undistortion)" />
+    <param name="depth_registration" type="bool" value="$(arg depth_registration)" />
+
+    <param name="rgb_resolution" type="str" value="$(arg rgb_resolution)" />
+    <param name="depth_resolution" type="str" value="$(arg depth_resolution)" />
+
+    <param name="rgb_format" type="str" value="$(arg rgb_format)" />
+    <param name="depth_format" type="str" value="$(arg depth_format)" />
+
+    <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
+    <param name="max_speckle_size" value="$(arg max_speckle_size)" />
+    <param name="max_speckle_diff" value="$(arg max_speckle_diff)" />
+
+    <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
+    <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />
+
+    <param name="use_device_time" value="$(arg use_device_time)" />
+
+    <remap from="ir" to="$(arg ir)" />
+    <remap from="rgb" to="$(arg rgb)" />
+    <remap from="depth" to="$(arg depth)" />
+    <remap from="depth_registered" to="$(arg depth_registered)" />
+
+    <remap from="$(arg rgb)/image" to="$(arg rgb)/image" />
+    <remap from="$(arg depth)/image" to="$(arg depth)/image" />
+  </node>
+
+  <node unless="$(arg use_ros_nodelet)" pkg="percipio_camera" type="percipio_camera_node" name="percipio_camera" output="screen" respawn="$(arg respawn)">
+  <!--<node pkg="nodelet" type="nodelet" name="percipio_camera"
+        args="load percipio_camera/PercipioDriverNodelet $(arg manager)"
+	    output="screen" respawn="$(arg respawn)">-->
+    <param name="device_id" type="str" value="$(arg device_id)" />
+    <param name="device_reconnection" type="bool" value="$(arg device_reconnection)" />
+    <param name="rgb_frame_id"   value="$(arg rgb_frame_id)" />
+    <param name="depth_frame_id" value="$(arg depth_frame_id)" />
+
+    <param name="color_undistortion" type="bool" value="$(arg color_undistortion)" />
+    <param name="depth_registration" type="bool" value="$(arg depth_registration)" />
+
+    <param name="rgb_resolution" type="str" value="$(arg rgb_resolution)" />
+    <param name="depth_resolution" type="str" value="$(arg depth_resolution)" />
+
+    <param name="rgb_format" type="str" value="$(arg rgb_format)" />
+    <param name="depth_format" type="str" value="$(arg depth_format)" />
+
+    <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
+    <param name="max_speckle_size" value="$(arg max_speckle_size)" />
+    <param name="max_speckle_diff" value="$(arg max_speckle_diff)" />
+
+    <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
+    <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />
+
+    <param name="use_device_time" value="$(arg use_device_time)" />
+    
+    <remap from="ir" to="$(arg ir)" />
+    <remap from="rgb" to="$(arg rgb)" />
+    <remap from="depth" to="$(arg depth)" />
+    <remap from="depth_registered" to="$(arg depth_registered)" />
+
+    <remap from="$(arg rgb)/image" to="$(arg rgb)/image" />
+    <remap from="$(arg depth)/image" to="$(arg depth)/image" />
+  </node>
+</launch>

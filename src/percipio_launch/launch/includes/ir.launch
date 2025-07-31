@@ -1,0 +1,8 @@
+<launch>
+
+  <!-- have all the old parameters to prevent roslaunch errors -->
+  <arg name="manager" default="" />
+  <arg name="respawn" default="" />
+  <arg name="ir" default="" />
+  
+</launch>

@@ -1,0 +1,141 @@
+<!-- Entry point for using Percipio devices -->
+<launch>
+
+  <!-- "camera" should uniquely identify the device. All topics are pushed down
+       into the "camera" namespace, and it is prepended to tf frame ids. -->
+  <arg name="camera" default="camera" />
+  <arg name="rgb_frame_id"   default="$(arg camera)_rgb_optical_frame" />
+  <arg name="depth_frame_id" default="$(arg camera)_depth_optical_frame" />
+  <arg name="ir_frame_id" default="$(arg camera)_ir_optical_frame" />
+
+  <arg name="use_ros_nodelet" default="false" />
+
+  <!-- device_id can have the following formats:
+         "#1"           : the first device found
+         "serial numver : select the camera with a specified serial number" 
+         "IP            : select the net camera with a specified IP"   -->
+  <arg name="device_id" default="#1" />
+
+  <!--If the device is offline or disconnected, the driver will attempt to reconnect -->
+  <arg name="device_reconnection" default="false" />
+
+  <!-- Driver parameters -->
+  <arg name="rgb_resolution" default="640x480" />
+  <arg name="depth_resolution" default="640x480" />
+
+  <!-- rgb pixel format: mono / bayer / bgr / yuv / jpeg-->
+  <arg name="rgb_format" default="" />
+
+  <!-- depth format: depth16 / xyz48 -->
+  <arg name="depth_format" default="" />
+  
+  <!-- Software depth registration -->
+  <arg name="depth_registration" default="true" />
+
+  <!-- Software color undistortion -->
+  <arg name="color_undistortion" default="true" />
+
+  <!-- Speckle filtering enable/disable switch-->
+  <arg name="depth_speckle_filter"              default="false" />
+  <!-- Blob size smaller than this will be removed-->
+  <arg name="max_speckle_size"                  default="150" />
+  <!-- Maximum difference between neighbor disparity pixels.-->
+  <arg name="max_speckle_diff"                  default="64" />
+  
+  <!-- depth stream Time-domain filtering enable/disable switch-->
+  <arg name="depth_time_domain_filter"          default="false" />
+  <!-- Time-domain filtering frame count：2 - 10 -->
+  <arg name="depth_time_domain_num"             default="3" />
+
+  <!--  Use internal timer of device -->
+  <arg name="use_device_time"                   default="true" />
+  
+  <!--<arg name="auto_exposure"                   default="true" /> -->
+  <!--<arg name="auto_white_balance"              default="true" /> -->
+
+  <!-- Arguments for remapping all device namespaces -->
+  <arg name="rgb"              default="rgb" />
+  <arg name="ir"               default="ir" />
+  <arg name="depth"            default="depth" />
+
+  <!-- Optionally suppress loading the driver nodelet and/or publishing the default tf
+       tree. Useful if you are playing back recorded raw data from a bag, or are
+       supplying a more accurate tf tree from calibration. -->
+  <arg name="load_driver" default="true" />
+  <arg name="publish_tf" default="true" />
+  <!-- Processing Modules -->
+  <arg name="rgb_processing"                  default="true"  />
+  <arg name="debayer_processing"              default="false" />
+  <arg name="ir_processing"                   default="false" />
+  <arg name="depth_processing"                default="true" />
+  <arg name="depth_registered_processing"     default="true" />
+  <arg name="disparity_processing"            default="false" />
+  <arg name="disparity_registered_processing" default="false" />
+  
+  <!--<arg name="hw_registered_processing"        default="true" if="$(arg depth_registration)" /> -->
+  <!--<arg name="sw_registered_processing"        default="false" if="$(arg depth_registration)" /> -->
+  <!--<arg name="hw_registered_processing"        default="false" unless="$(arg depth_registration)" /> -->
+  <!--<arg name="sw_registered_processing"        default="true" unless="$(arg depth_registration)" /> -->
+  <arg name="hw_registered_processing"        default="false" />
+  <arg name="sw_registered_processing"        default="false" />
+
+  <!-- Disable bond topics by default -->
+  <arg name="respawn" default="false" />
+
+  <!-- Worker threads for the nodelet manager -->
+  <arg name="num_worker_threads" default="4" />
+
+  <!-- Push down all topics/nodelets into "camera" namespace -->
+  <group ns="$(arg camera)">
+  
+	  <!-- Start nodelet manager -->
+	  <arg name="manager" value="$(arg camera)_nodelet_manager" />
+	  <arg name="debug" default="false" /> <!-- Run manager in GDB? -->
+
+    <include if="$(arg use_ros_nodelet)"
+        file="$(find percipio_launch)/launch/includes/manager.launch.xml">
+	    <arg name="name" value="$(arg manager)" />
+	    <arg name="debug" value="$(arg debug)" />
+	    <arg name="num_worker_threads"  value="$(arg num_worker_threads)" />
+	  </include>
+
+    <!-- Load driver -->
+    <include if="$(arg load_driver)"
+	     file="$(find percipio_launch)/launch/includes/device.launch.xml">
+      <arg name="use_ros_nodelet"                 value="$(arg use_ros_nodelet)" /> 
+      <arg name="manager"                         value="$(arg manager)" />
+      <arg name="device_id"                       value="$(arg device_id)" />
+      <arg name="device_reconnection"             value="$(arg device_reconnection)" />
+      
+      <arg name="rgb_frame_id"                    value="$(arg rgb_frame_id)" />
+      <arg name="depth_frame_id"                  value="$(arg depth_frame_id)" />
+      <arg name="rgb"                             value="$(arg rgb)" />
+      <arg name="ir"                              value="$(arg ir)" />
+      <arg name="depth"                           value="$(arg depth)" />
+      <arg name="respawn"                         value="$(arg respawn)" />
+
+      <arg name="color_undistortion"              value="$(arg color_undistortion)" />
+      <arg name="depth_registration"              value="$(arg depth_registration)" />
+
+      <arg name="depth_speckle_filter"              value="$(arg depth_speckle_filter)" />
+      <arg name="max_speckle_size"                  value="$(arg max_speckle_size)" />
+      <arg name="max_speckle_diff"                  value="$(arg max_speckle_diff)" />
+
+      <arg name="depth_time_domain_filter"          value="$(arg depth_time_domain_filter)" />
+      <arg name="depth_time_domain_num"             value="$(arg depth_time_domain_num)" />
+
+      <arg name="use_device_time"                   value="$(arg use_device_time)" />
+
+      <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->
+      <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->
+      <arg name="rgb_resolution"                  value="$(arg rgb_resolution)" />
+      <arg name="depth_resolution"                value="$(arg depth_resolution)" />
+
+      <arg name="rgb_format"                      value="$(arg rgb_format)" />
+      <arg name="depth_format"                    value="$(arg depth_format)" />
+
+    </include>
+
+  </group> <!-- camera -->
+
+</launch>

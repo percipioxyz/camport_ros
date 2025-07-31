@@ -1,0 +1,7 @@
+<launch>
+
+  <!-- have all the old parameters to prevent roslaunch errors -->
+  <arg name="manager" default="" />
+  <arg name="debug" default="" />
+  
+</launch>
