@@ -162,7 +162,7 @@ bool MatchPixelFormat(const std::string& fmt_desc, const TYPixFmt& m_fmt)
 
 GigE_2_1::GigE_2_1(const TY_DEV_HANDLE dev) : GigEBase(dev) 
 {
-  TY_STATUS ret = TYEnumSetString(hDevice, "SourceSelector", "Range");
+  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Range);
   if(ret) {
     need_depth_undistortion = false;
     return;
