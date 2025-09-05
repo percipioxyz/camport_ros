@@ -195,7 +195,6 @@ typedef uint32_t TY_COMPONENT_ID;///< component unique  id @see TY_DEVICE_COMPON
 ///Feature Format Type definitions
 typedef enum TY_FEATURE_TYPE_LIST :uint32_t
 {
-    TY_FEATURE_CMD              = 0x0000,
     TY_FEATURE_INT              = 0x1000,
     TY_FEATURE_FLOAT            = 0X2000,
     TY_FEATURE_ENUM             = 0x3000,
@@ -246,29 +245,6 @@ typedef enum TY_FEATURE_ID_LIST :uint32_t
 
     TY_ENUM_TRIGGER_POL             = 0x0201 | TY_FEATURE_ENUM,  ///< Trigger POL, see TY_TRIGGER_POL_LIST
     TY_INT_FRAME_PER_TRIGGER        = 0x0202 | TY_FEATURE_INT,  ///< Number of frames captured per trigger
-    
-    //UserSetDefault
-    TY_ENUM_USER_SET_DEFAULT        = 0x0301 | TY_FEATURE_ENUM,     ///Set the configuration set to be used as the default startup set.
-                                                                    ///Write & Read
-
-    //UserSetCurrent
-    TY_ENUM_USER_SET_CURRENT        = 0x0304 | TY_FEATURE_ENUM,     ///Indicates the currently active user configuration profile.
-                                                                    ///Read Only
-    ///UserSetSelector
-    TY_ENUM_USER_SET_SELECTOR       = 0x0302 | TY_FEATURE_ENUM,     ///Selects the configuration set to load, save, or configure. 
-                                                                    ///Write & Read
-
-    //UserSetLoad
-    TY_CMD_USER_SET_LOAD           = 0x0305 | TY_FEATURE_CMD,       ///Stores the selected configuration in the camera's volatile memory and sets it as the temporary active configuration.
-                                                                    ///Write Only
-    
-    //UserSetSave
-    TY_CMD_USER_SET_SAVE           = 0x0303 | TY_FEATURE_CMD,       ///Saves the active configuration set to the chosen user set(set by TY_ENUM_USER_SET_SELECTOR).
-                                                                    ///Write Only
-    
-    //UserSetDescription
-    TY_STRING_USER_SET_DESCRIPTION  = 0x0306 | TY_FEATURE_STRING,   ///Description of the selected User Set content. 
-                                                                    ///Write & Read    
     
     TY_STRUCT_TRIGGER_PARAM         = 0x0523 | TY_FEATURE_STRUCT,  ///< param of trigger, see TY_TRIGGER_PARAM
     TY_STRUCT_TRIGGER_PARAM_EX      = 0x0525 | TY_FEATURE_STRUCT,  ///< param of trigger, see TY_TRIGGER_PARAM_EX
@@ -394,6 +370,8 @@ typedef enum TY_FEATURE_ID_LIST :uint32_t
     TY_INT_TOF_ANTI_SUNLIGHT_INDEX  = 0x0906 | TY_FEATURE_INT,  ///< the index of anti-sunlight
     TY_INT_MAX_SPECKLE_SIZE         = 0x0907 | TY_FEATURE_INT, ///< the max size of speckle
     TY_INT_MAX_SPECKLE_DIFF         = 0x0908 | TY_FEATURE_INT, ///< the max diff of speckle
+    
+    TY_ENUM_LENS_OPTICAL_TYPE       = 0x0909 | TY_FEATURE_ENUM, /// Types of optical distortion of lenses, see TYLensOpticalType
 
 }TY_FEATURE_ID_LIST;
 typedef uint32_t TY_FEATURE_ID;///< feature unique id @see TY_FEATURE_ID_LIST
@@ -468,6 +446,11 @@ typedef enum TY_STREAM_ASYNC_MODE_LIST :uint32_t
 }TY_STREAM_ASYNC_MODE_LIST;
 typedef uint8_t TY_STREAM_ASYNC_MODE;
 
+typedef enum TYLensOpticalType : uint32_t
+{
+    STANDARD_LENS = 0,
+    FISHEYE_LENS = 1,
+} TYLensOpticalType;
 
 ///pixel format definitions
 typedef enum TYPixFmtList : uint32_t

@@ -26,6 +26,7 @@ TY_CAPI TYUndistortImage (const TY_CAMERA_CALIB_INFO *srcCalibInfo
         , const TY_IMAGE_DATA *srcImage
         , const TY_CAMERA_INTRINSIC *cameraNewIntrinsic
         , TY_IMAGE_DATA *dstImage
+        , const TYLensOpticalType type = STANDARD_LENS
         );
 
 
