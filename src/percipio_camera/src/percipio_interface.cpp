@@ -1605,6 +1605,7 @@ namespace percipio
       m_deviceInfo.setUsbProductId(0);
     }
 #endif
+    return TY_STATUS_OK;
   }
 
   bool Device::IPv4_verify(const char *ip) 
