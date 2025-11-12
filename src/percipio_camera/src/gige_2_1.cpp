@@ -1,3 +1,4 @@
+#include <cinttypes>
 #include <boost/algorithm/string.hpp>
 #include "percipio_camera/gige_2_1.h"
 
@@ -372,7 +373,7 @@ TY_STATUS GigE_2_1::SetImageMode(SensorType sensorType, int width, int height, c
   }
 
   current_video_mode[sensorType] = VideoMode(default_fmt, m_sensor_w / binning, m_sensor_h / binning);
-  ROS_INFO("Set %s image mode : %d x %d, fmt: 0x%08x", SensorDesc[sensorType].c_str(), m_sensor_w / binning, m_sensor_h / binning, default_fmt);
+  ROS_INFO("Set %s image mode : %" PRId64 " x %" PRId64 ", fmt: 0x%08x", SensorDesc[sensorType].c_str(), m_sensor_w / binning, m_sensor_h / binning, default_fmt);
   return TY_STATUS_OK;
 }
 
