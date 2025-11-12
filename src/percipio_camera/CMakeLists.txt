@@ -9,6 +9,8 @@ find_package(PkgConfig)
 
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fpic")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 
 generate_dynamic_reconfigure_options(cfg/Percipio.cfg)
 add_service_files(FILES
