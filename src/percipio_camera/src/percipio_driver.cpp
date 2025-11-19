@@ -85,9 +85,9 @@ void PercipioDriver::publishStaticTransforms() {
   for(size_t i = 0; i < sizeof(stream_name) / sizeof(std::string); i++) {
     auto timestamp = ros::Time::now();//node_->now();
     
-    std::string camera_link_frame_id_ = "camera_link"; //camera_name_ + "_link";
-    std::string frame_id_ = "camera_" + stream_name[i] + "_frame";//camera_name_ + "_" + stream_name[index] + "_frame";
-    std::string optical_frame_id_ = "camera_" + stream_name[i] + "_optical_frame";//camera_name_ + "_" + stream_name[index] + "_optical_frame";
+    std::string camera_link_frame_id_ = camera_name_ + "_link";
+    std::string frame_id_ = camera_name_ + "_" + stream_name[i] + "_frame";
+    std::string optical_frame_id_ = camera_name_ + "_" + stream_name[i] + "_optical_frame";
     publishStaticTF(timestamp, trans,      Q,                  camera_link_frame_id_,   frame_id_);
     publishStaticTF(timestamp, zero_trans, quaternion_optical, frame_id_,               optical_frame_id_);
   }
@@ -537,6 +537,11 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDepthCameraInfo(int width, int hei
 
 void PercipioDriver::readConfigFromParameterServer()
 {
+  if (!pnh_.getParam("camera", camera_name_))
+  {
+    ROS_WARN ("~camera_name_ is not set! Using first device.");
+    camera_name_ = "camera";
+  }
   if (!pnh_.getParam("device_id", device_id_))
   {
     ROS_WARN ("~device_id is not set! Using first device.");

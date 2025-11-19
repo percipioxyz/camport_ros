@@ -2,6 +2,7 @@
 
   <!-- have all the old parameters to prevent roslaunch errors -->
   <arg name="manager" />
+  <arg name="camera" />
   <arg name="device_id" />
   <arg name="device_reconnection" />
   <arg name="rgb_frame_id" />
