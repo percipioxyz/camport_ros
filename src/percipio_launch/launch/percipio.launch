@@ -3,7 +3,7 @@
 
   <!-- "camera" should uniquely identify the device. All topics are pushed down
        into the "camera" namespace, and it is prepended to tf frame ids. -->
-  <arg name="camera" default="camera1" />
+  <arg name="camera" default="camera" />
   <arg name="rgb_frame_id"   default="$(arg camera)_rgb_optical_frame" />
   <arg name="depth_frame_id" default="$(arg camera)_depth_optical_frame" />
   <arg name="ir_frame_id" default="$(arg camera)_ir_optical_frame" />
@@ -20,8 +20,8 @@
   <arg name="device_reconnection" default="false" />
 
   <!-- Driver parameters -->
-  <arg name="rgb_resolution" default="1280x960" />
-  <arg name="depth_resolution" default="1280x960" />
+  <arg name="rgb_resolution" default="640x480" />
+  <arg name="depth_resolution" default="640x480" />
 
   <!-- rgb pixel format: mono / bayer / bgr / yuv / jpeg-->
   <arg name="rgb_format" default="" />
