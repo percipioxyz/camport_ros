@@ -349,7 +349,7 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
       pub_point3d_cloud.header.stamp = image->header.stamp;
 
       pub_point3d_.publish(pub_point3d_cloud);
-      ros::spinOnce();
+      // ros::spinOnce();
     } 
     else if(image->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
     {
@@ -393,7 +393,7 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
       pub_point3d_cloud.header.stamp = image->header.stamp;
 
       pub_point3d_.publish(pub_point3d_cloud);
-      ros::spinOnce();
+      // ros::spinOnce();
     }
   }
 }
