@@ -22,6 +22,7 @@ struct TYEnumEntry
     char displayName[512];
 };
 
+TY_CAPI  TYParamExist                   (TY_DEV_HANDLE hDevice, const char* feat, bool* pExist);
 TY_CAPI  TYParamGetToolTip              (TY_DEV_HANDLE hDevice, const char* feat, char* pBuffer, uint32_t bufferSize);
 TY_CAPI  TYParamGetDescriptor           (TY_DEV_HANDLE hDevice, const char* feat, char* pBuffer, uint32_t bufferSize);
 TY_CAPI  TYParamGetDisplayName          (TY_DEV_HANDLE hDevice, const char* feat, char* pBuffer, uint32_t bufferSize);

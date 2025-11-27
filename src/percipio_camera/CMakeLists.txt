@@ -21,7 +21,7 @@ catkin_package(
   INCLUDE_DIRS include
   LIBRARIES percipio_wrapper
   CATKIN_DEPENDS camera_info_manager dynamic_reconfigure image_transport nodelet sensor_msgs roscpp message_runtime
-  DEPENDS libtycam
+  DEPENDS libtycam libtyimgproc
 )
 
 include_directories(include 
@@ -64,8 +64,9 @@ else()
 endif()
 
 set(TYCAM ${CMAKE_CURRENT_SOURCE_DIR}/camport4/lib/linux/lib_${ARCH}/libtycam.so)
+set(TYIMGPROC ${CMAKE_CURRENT_SOURCE_DIR}/camport4/lib/linux/lib_${ARCH}/libtyimgproc.so)
 
-target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${TYCAM})
+target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${TYCAM} ${TYIMGPROC})
 
 #add_executable(test_wrapper test/test_wrapper.cpp )
 #target_link_libraries(test_wrapper percipio_wrapper ${Boost_LIBRARIES} ${TYCAM})
