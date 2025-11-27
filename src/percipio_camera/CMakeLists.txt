@@ -12,21 +12,36 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fpic")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Werror")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
 
+if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i686")
+  set(ARCH i686)
+elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
+  set(ARCH x64)
+elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64")
+  set(ARCH Aarch64)
+elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7")
+  set(ARCH armv7hf)
+else()
+  message(STATUS "host processor architecture is unknown")
+endif()
+
+find_package(TYCam REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/camport4 NO_DEFAULT_PATH)
+
 generate_dynamic_reconfigure_options(cfg/Percipio.cfg)
 add_service_files(FILES
   GetSerial.srv)
 generate_messages()
 
 catkin_package(
-  INCLUDE_DIRS include
+  INCLUDE_DIRS include ${TYCam_INCLUDE_DIRS}
   LIBRARIES percipio_wrapper
   CATKIN_DEPENDS camera_info_manager dynamic_reconfigure image_transport nodelet sensor_msgs roscpp message_runtime
-  DEPENDS libtycam libtyimgproc
+  DEPENDS TYCam
 )
 
 include_directories(include 
                     ${catkin_INCLUDE_DIRS} 
                     ${Boost_INCLUDE_DIRS}
+                    ${TYCam_INCLUDE_DIRS}
                     )
 
 #link_directories(${PC_PERCIPIO_LIBRARY_DIRS})
@@ -49,24 +64,7 @@ add_library(percipio_wrapper
    src/huffman.cpp
 )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/camport4/include)
-
-if(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "i686")
-  set(ARCH i686)
-elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "x86_64")
-  set(ARCH x64)
-elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "aarch64")
-  set(ARCH Aarch64)
-elseif(CMAKE_HOST_SYSTEM_PROCESSOR MATCHES "armv7")
-  set(ARCH armv7hf)
-else()
-  message(STATUS "host processor architecture is unknown")
-endif()
-
-set(TYCAM ${CMAKE_CURRENT_SOURCE_DIR}/camport4/lib/linux/lib_${ARCH}/libtycam.so)
-set(TYIMGPROC ${CMAKE_CURRENT_SOURCE_DIR}/camport4/lib/linux/lib_${ARCH}/libtyimgproc.so)
-
-target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${TYCAM} ${TYIMGPROC})
+target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${TYCam_LIBS})
 
 #add_executable(test_wrapper test/test_wrapper.cpp )
 #target_link_libraries(test_wrapper percipio_wrapper ${Boost_LIBRARIES} ${TYCAM})
@@ -128,6 +126,3 @@ install(DIRECTORY include/${PROJECT_NAME}/
 install(FILES percipio_nodelets.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
-
-
-
