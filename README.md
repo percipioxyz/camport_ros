@@ -1,6 +1,6 @@
 1. build ros
 
-$catkin_make
+$catkin_make -DCMAKE_BUILD_TYPE=Release
 
 2. config system env
 
