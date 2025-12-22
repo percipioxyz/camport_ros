@@ -48,10 +48,10 @@ PercipioDevice::PercipioDevice(const std::string& device_URI, const bool auto_re
   device_info_ = boost::make_shared<percipio::DeviceInfo>();
   *device_info_ = percipio_device_->getDeviceInfo();
 
-  ir_frame_listener = boost::make_shared<PercipioFrameListener>();
-  color_frame_listener = boost::make_shared<PercipioFrameListener>();
-  depth_frame_listener = boost::make_shared<PercipioFrameListener>();
-  point3d_frame_listener = boost::make_shared<PercipioFrameListener>();
+  ir_frame_listener = boost::make_shared<PercipioFrameListener>("IR-Stream");
+  color_frame_listener = boost::make_shared<PercipioFrameListener>("Color-Stream");
+  depth_frame_listener = boost::make_shared<PercipioFrameListener>("Depth-Stream");
+  point3d_frame_listener = boost::make_shared<PercipioFrameListener>("Point3D-Stream");
 
   //m_sensorInfo._setInternal(g_Context.get()->StreamGetSensorInfo(m_stream));
   boost::shared_ptr<percipio::VideoStream> ir_stream = getIRVideoStream();

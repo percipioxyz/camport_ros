@@ -820,7 +820,8 @@ typedef struct TY_DEVICE_USB_INFO
 {
     int     bus;
     int     addr;
-    char    reserved[248];
+    char    tlversion[32];
+    char    reserved[216];
 }TY_DEVICE_USB_INFO;
 
 ///@see TYGetInterfaceList

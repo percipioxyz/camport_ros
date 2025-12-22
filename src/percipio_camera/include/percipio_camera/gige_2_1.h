@@ -29,6 +29,8 @@ class GigE_2_1 : public GigEBase {
     virtual TY_STATUS getColorIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic);
     virtual TY_STATUS getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic);
 
+    virtual TY_STATUS getDepthScaleUnit(float& f_depth_scale);
+
     virtual TY_STATUS AcquisitionInit();
     virtual TY_STATUS SetImageMode(const SensorType sensorType, const int width, const int height, const std::string& fmt);
     

@@ -130,6 +130,8 @@ namespace percipio
     virtual TY_STATUS getColorIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic) = 0;
     virtual TY_STATUS getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic) = 0;
 
+    virtual TY_STATUS getDepthScaleUnit(float& f_depth_scale) = 0;
+
     virtual TY_STATUS AcquisitionInit() = 0;
 
     virtual TY_STATUS SetImageMode(const SensorType sensorType, const int width, const int height, const std::string& fmt) = 0;
@@ -486,7 +488,7 @@ namespace percipio
       void*           buffer;         ///< Pointer to data buffer
       int32_t         width;          ///< Image width in pixels
       int32_t         height;         ///< Image height in pixels
-      uint32_t        pixelFormat;    ///< Pixel format, see TY_PIXEL_FORMAT_LIST
+      uint32_t        pixelFormat;    ///< Pixel format, see TYPixFmtList
   };
 
   class VideoFrameRef

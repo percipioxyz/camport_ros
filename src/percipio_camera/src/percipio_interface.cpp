@@ -125,6 +125,11 @@ namespace percipio
         if(str_gige_version == "Gige_2_1") {
             gige_version = GigeE_2_1;
         }
+    } else {
+        std::string str_u3b_version = info.usbInfo.tlversion;
+        if(str_u3b_version == "USB3Vision_1_2") {
+          gige_version = GigeE_2_1;
+        }
     }
 
     if(!m_gige_dev) {
@@ -914,7 +919,8 @@ namespace percipio
 
         m_gige_dev->getDepthIntrinsic(depth_intr);
 
-        TYGetFloat(_M_DEVICE, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale_unit);
+        m_gige_dev->getDepthScaleUnit(f_depth_scale_unit);
+
         ROS_INFO("Depth stream scale unit : %f", f_depth_scale_unit);
       } else {
         ROS_INFO("Disable depth stream!");

@@ -231,6 +231,11 @@ TY_STATUS GigE_2_0::getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
   return TYGetStruct(hDevice, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &Intrinsic, sizeof(Intrinsic));
 }
 
+TY_STATUS GigE_2_0::getDepthScaleUnit(float& f_depth_scale)
+{
+  return TYGetFloat(hDevice, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale);
+}
+
 TY_STATUS GigE_2_0::AcquisitionInit()
 {
   if(!(ids & TY_COMPONENT_DEVICE))

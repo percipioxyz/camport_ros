@@ -18,7 +18,7 @@ class PercipioTimerFilter;
 class PercipioFrameListener : public percipio::VideoStream::NewFrameListener
 {
 public:
-  PercipioFrameListener();
+  PercipioFrameListener(const std::string& desc);
 
   virtual ~PercipioFrameListener(){ }
 

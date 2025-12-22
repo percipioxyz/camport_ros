@@ -15,7 +15,7 @@ enum ParamType {
 
 struct TYEnumEntry
 {
-    int32_t value;
+    int64_t value;
     char name[64];
     char tooltip[512];
     char description[512];
@@ -54,9 +54,9 @@ TY_CAPI  TYBooleanSetValue              (TY_DEV_HANDLE hDevice, const char* feat
 TY_CAPI  TYBooleanGetValue              (TY_DEV_HANDLE hDevice, const char* feat, bool* value);
 
 //Enumeration
-TY_CAPI  TYEnumSetValue                 (TY_DEV_HANDLE hDevice, const char* feat, int32_t value);
+TY_CAPI  TYEnumSetValue                 (TY_DEV_HANDLE hDevice, const char* feat, int64_t value);
 TY_CAPI  TYEnumSetString                (TY_DEV_HANDLE hDevice, const char* feat, const char* name);
-TY_CAPI  TYEnumGetValue                 (TY_DEV_HANDLE hDevice, const char* feat, int32_t* value);
+TY_CAPI  TYEnumGetValue                 (TY_DEV_HANDLE hDevice, const char* feat, int64_t* value);
 TY_CAPI  TYEnumGetString                (TY_DEV_HANDLE hDevice, const char* feat, char* name, const uint32_t length);
 TY_CAPI  TYEnumGetEntryCount            (TY_DEV_HANDLE hDevice, const char* feat, uint32_t* cnt);
 TY_CAPI  TYEnumGetEntryInfo             (TY_DEV_HANDLE hDevice, const char* feat, TYEnumEntry* pEnumEntry, uint32_t entryCount, uint32_t* pFilledEntryCount);

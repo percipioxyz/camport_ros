@@ -64,7 +64,7 @@ add_library(percipio_wrapper
    src/huffman.cpp
 )
 
-target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} ${TYCam_LIBS})
+target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TYCam_LIBS})
 
 #add_executable(test_wrapper test/test_wrapper.cpp )
 #target_link_libraries(test_wrapper percipio_wrapper ${Boost_LIBRARIES} ${TYCAM})
@@ -72,16 +72,6 @@ target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} $
 add_library(percipio_driver_lib
    src/percipio_driver.cpp
 )
-
-find_package(OpenCV REQUIRED PATHS ${catkin_INCLUDE_DIRS})
-if (NOT OpenCV_FOUND)
-    message(FATAL_ERROR "OpenCV library not found")
-else()
-    message(STATUS "OpenCV version: ${OpenCV_VERSION}")
-    include_directories(${OpenCV_INCLUDE_DIRS})
-    target_link_libraries(percipio_wrapper ${OpenCV_LIBRARIES})
-    target_link_libraries(percipio_driver_lib ${OpenCV_LIBRARIES})
-endif()
 
 find_package(PCL REQUIRED)
 if (NOT PCL_FOUND)
@@ -92,19 +82,19 @@ else()
     target_link_libraries(percipio_driver_lib ${PCL_LIBRARIES})
 endif()
 
-target_link_libraries(percipio_driver_lib percipio_wrapper ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} )
+target_link_libraries(percipio_driver_lib percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} )
 add_dependencies(percipio_driver_lib ${PROJECT_NAME}_gencfg)
 
 add_library(percipio_camera_nodelet
    ros/percipio_camera_nodelet.cpp
 )
-target_link_libraries(percipio_camera_nodelet percipio_driver_lib ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} )
+target_link_libraries(percipio_camera_nodelet percipio_driver_lib ${catkin_LIBRARIES} ${Boost_LIBRARIES} )
 add_dependencies(percipio_camera_nodelet ${PROJECT_NAME}_gencfg)
 
 add_executable(percipio_camera_node
    ros/percipio_camera_node.cpp
 )
-target_link_libraries(percipio_camera_node percipio_driver_lib ${catkin_LIBRARIES} ${OpenCV_LIBRARIES} ${Boost_LIBRARIES} )
+target_link_libraries(percipio_camera_node percipio_driver_lib ${catkin_LIBRARIES} ${Boost_LIBRARIES} )
 add_dependencies(percipio_camera_node ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 
 add_executable(list_devices

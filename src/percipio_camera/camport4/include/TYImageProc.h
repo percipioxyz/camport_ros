@@ -1,13 +1,53 @@
 /**@file TYImageProc.h
- * @breif Image post-process API
+ * @brief Image post-process API
  * @copyright  Copyright(C)2016-2018 Percipio All Rights Reserved
  **/
 
 #ifndef TY_IMAGE_PROC_H_
 #define TY_IMAGE_PROC_H_
 
-
 #include "TYApi.h"
+
+// Error code definitions
+typedef enum TYDecodeError {
+    TY_DECODE_SUCCESS = 0,
+    TY_DECODE_ERROR_INVALID_PARAM,
+    TY_DECODE_NO_DECODE_NEEDED,
+    TY_DECODE_ERROR_FORMAT_MISMATCH,
+    TY_DECODE_ERROR_UNSUPPORTED_FORMAT,
+    TY_DECODE_ERROR_BUFFER_TOO_SMALL,
+    TY_DECODE_ERROR_DATA_ERROR,
+
+    TY_DECODE_ERROR_CREATE_WINDOW,
+    TY_DECODE_ERROR_DISPLAY_IMAGE
+} TYDecodeError;
+
+// Image information structure
+typedef struct TYImageInfo {
+    uint32_t width;           // Image width
+    uint32_t height;          // Image height
+    TYPixFmt format;          // Pixel format
+    uint32_t dataSize;        // Data size (bytes)
+    const void* data;         // Image data pointer
+} TYImageInfo;
+
+// Output format definitions
+typedef enum TYOutputFormat {
+    TY_OUTPUT_FORMAT_AUTO = 0,           // Automatically select the most appropriate output format
+    TY_OUTPUT_FORMAT_MONO8,              // Single channel 8-bit
+    TY_OUTPUT_FORMAT_MONO16,             // Single channel 16-bit  
+    TY_OUTPUT_FORMAT_BGR                 // 3-channel BGR 8-bit
+} TYOutputFormat;
+
+// Decode result information
+typedef struct TYDecodeResult {
+    uint32_t width;           // Output image width
+    uint32_t height;          // Output image height
+    uint32_t dataSize;        // Output data size
+    TYPixFmt format;          // Actual output format
+} TYDecodeResult;
+
+#define TY_DECODE_API TY_EXTC TY_EXPORT TYDecodeError TY_STDC
 
 ///@brief  Get current library version.
 ///@param  [out] version       Version infomation to be filled.
@@ -18,6 +58,32 @@ TY_CAPI TYGetImageAlgorithmVersion(TY_VERSION_INFO* version);
 /// @brief Image processing acceleration switch
 /// @param  [in] en          Enable image process acceleration switch
 TY_CAPI TYImageProcesAcceEnable(bool en);
+
+/**
+ * @brief Calculate the required buffer size for image decoding
+ * 
+ * @param input Pointer to input image information
+ * @param totalSize Output parameter for required buffer size in bytes
+ * @param config Decode configuration parameters, defaults to TY_OUTPUT_FORMAT_AUTO
+ * @return TYDecodeError Error code indicating operation success or failure
+ */
+TY_DECODE_API TYGetDecodeBufferSize(const TYImageInfo* input, uint32_t* totalSize,
+                               const TYOutputFormat config = TY_OUTPUT_FORMAT_AUTO);
+
+/**
+ * @brief Decode an image from compressed format to specified output format
+ * 
+ * @param input Pointer to input image information
+ * @param config Decode configuration parameters specifying output format
+ * @param outputBuffer User-allocated output buffer for decoded image data
+ * @param outputBufferSize Size of the output buffer in bytes
+ * @param result Output parameter containing decode result information
+ * @return int Error code, TY_DECODE_SUCCESS (0) indicates success
+ */
+TY_DECODE_API TYDecodeImage(const TYImageInfo* input, const TYOutputFormat config,
+                       void* outputBuffer, uint32_t outputBufferSize, 
+                       TYDecodeResult* result);
+
 
 /// @brief Do image undistortion, only support TY_PIXEL_FORMAT_MONO ,TY_PIXEL_FORMAT_RGB,TY_PIXEL_FORMAT_BGR.
 /// @param  [in]  srcCalibInfo          Image calibration data.

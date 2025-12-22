@@ -264,12 +264,67 @@ TY_STATUS GigE_2_1::getDepthCalibData(TY_CAMERA_CALIB_INFO& calib_data)
 
 TY_STATUS GigE_2_1::getColorIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
 {
-  return TYGetStruct(hDevice, TY_COMPONENT_RGB_CAM, TY_STRUCT_CAM_INTRINSIC, &Intrinsic, sizeof(Intrinsic));
+  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Color);
+  if(ret) return ret;
+  
+  int64_t binning = 0;
+  ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
+  if(ret) return ret;
+
+  double intrinsic[9];
+  ret = TYByteArrayGetValue(hDevice, "Intrinsic", reinterpret_cast<uint8_t*>(intrinsic), sizeof(intrinsic));
+  if(TY_STATUS_OK == ret) {
+      /// | fx|  0| cx|
+      /// |  0| fy| cy|
+      /// |  0|  0|  1|
+      Intrinsic.data[0] = static_cast<float>(intrinsic[0] / binning);
+      Intrinsic.data[1] = 0;
+      Intrinsic.data[2] = static_cast<float>(intrinsic[2] / binning);
+
+      Intrinsic.data[3] = 0;
+      Intrinsic.data[4] = static_cast<float>(intrinsic[4] / binning);
+      Intrinsic.data[5] = static_cast<float>(intrinsic[5] / binning);
+
+      Intrinsic.data[6] = 0;
+      Intrinsic.data[7] = 0;
+      Intrinsic.data[8] = 1;
+  }
+  return ret;
+}
+
+TY_STATUS GigE_2_1::getDepthScaleUnit(float& f_depth_scale)
+{
+  double scale = 1.f;
+  TY_STATUS ret = TYFloatGetValue(hDevice, "DepthScaleUnit", &scale);
+  f_depth_scale = (float)scale; 
+  return ret;
 }
 
 TY_STATUS GigE_2_1::getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
 {
-  return TYGetStruct(hDevice, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &Intrinsic, sizeof(Intrinsic));
+  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Range);
+  if(ret) return ret;
+
+  int64_t binning = 0;
+  ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
+  if(ret) return ret;
+
+  double intrinsic[9];
+  ret = TYByteArrayGetValue(hDevice, "Intrinsic", reinterpret_cast<uint8_t*>(intrinsic), sizeof(intrinsic));
+  if(TY_STATUS_OK == ret) {
+    Intrinsic.data[0] = static_cast<float>(intrinsic[0] / binning);
+      Intrinsic.data[1] = 0;
+      Intrinsic.data[2] = static_cast<float>(intrinsic[2] / binning);
+
+      Intrinsic.data[3] = 0;
+      Intrinsic.data[4] = static_cast<float>(intrinsic[4] / binning);
+      Intrinsic.data[5] = static_cast<float>(intrinsic[5] / binning);
+
+      Intrinsic.data[6] = 0;
+      Intrinsic.data[7] = 0;
+      Intrinsic.data[8] = 1;
+  }
+  return ret;
 }
 
 TY_STATUS GigE_2_1::AcquisitionInit()
@@ -358,14 +413,14 @@ TY_STATUS GigE_2_1::SetImageMode(SensorType sensorType, int width, int height, c
 
   ROS_WARN("Incorrect image mode:(%s) target size: %d x %d - format(%s), using default value.", SensorDesc[sensorType].c_str(), width, height, fmt.c_str());
 
-  int32_t default_fmt = 0;
+  int64_t default_fmt = 0;
   ret = TYEnumGetValue(hDevice, "PixelFormat", &default_fmt);
   if(ret) {
     ROS_WARN("Read default image mode : %s failed!", SensorDesc[sensorType].c_str());
     return ret;
   }
 
-  int32_t binning = 0;
+  int64_t binning = 0;
   ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
   if(ret) {
     ROS_WARN("Read default image bining : %s failed!", SensorDesc[sensorType].c_str());
@@ -373,7 +428,7 @@ TY_STATUS GigE_2_1::SetImageMode(SensorType sensorType, int width, int height, c
   }
 
   current_video_mode[sensorType] = VideoMode(default_fmt, m_sensor_w / binning, m_sensor_h / binning);
-  ROS_INFO("Set %s image mode : %" PRId64 " x %" PRId64 ", fmt: 0x%08x", SensorDesc[sensorType].c_str(), m_sensor_w / binning, m_sensor_h / binning, default_fmt);
+  ROS_INFO("Set %s image mode : %" PRId64 " x %" PRId64 ", fmt: 0x%" PRIX64"", SensorDesc[sensorType].c_str(), m_sensor_w / binning, m_sensor_h / binning, default_fmt);
   return TY_STATUS_OK;
 }
 
@@ -425,14 +480,14 @@ TY_STATUS GigE_2_1::PreSetting()
           return ret;
         }
 
-        int32_t default_fmt = 0;
+        int64_t default_fmt = 0;
         ret = TYEnumGetValue(hDevice, "PixelFormat", &default_fmt);
         if(ret) {
           ROS_WARN("Read intensity pixel format failed, error code : %d", ret);
           return ret;
         }
 
-        int32_t binning = 0;
+        int64_t binning = 0;
         ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
         if(ret) {
           ROS_WARN("Read intensity image bining failed, error code : %d", ret);
@@ -593,11 +648,11 @@ std::vector<GegE2ImageMode> GigE_2_1::dump_source_image_mode()
     return image_mode_list;
   }
 
-  int32_t old_fmt = 0;
+  int64_t old_fmt = 0;
   ret = TYEnumGetValue(hDevice, "PixelFormat", &old_fmt);
   if(ret) ROS_WARN("read stream default fmt failed : %d",ret);
   
-  int32_t old_binnng = 0;
+  int64_t old_binnng = 0;
   ret = TYEnumGetValue(hDevice, "BinningHorizontal", &old_binnng);
   if(ret) ROS_WARN("read stream default binning failed : %d",ret);
 
@@ -612,7 +667,7 @@ std::vector<GegE2ImageMode> GigE_2_1::dump_source_image_mode()
   for(size_t i = 0; i < PixFmtCnt; i++) {
     ret = TYEnumSetValue(hDevice, "PixelFormat", PixelFormatList[i].value);
     if(ret) {
-      ROS_WARN("Set pixel fmt 0x%08x failed : %d", PixelFormatList[i].value, ret);
+      ROS_WARN("Set pixel fmt 0x%" PRIX64" failed : %d", PixelFormatList[i].value, ret);
       continue;
     }
 
