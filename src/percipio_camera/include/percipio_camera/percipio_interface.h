@@ -200,6 +200,9 @@ namespace percipio
       bool DepthStreamSetSpeckFilterDiff(int spec_diff);
       int DepthStreamGetSpeckFilterDiff();
 
+      bool DepthStreamSetSpeckFilterPhySize(float phy_size);
+      float DepthStreamGetSpeckFilterPhySize();
+
       bool DepthStreamSetTimeDomainFilterEn(bool enabled);
       bool DepthStreamGetTimeDomainFilterEn();
       bool DepthStreamSetTimeDomainFilterFCnt(int frameCnt);
@@ -244,9 +247,10 @@ namespace percipio
       void StopCapture(StreamHandle stream);
 
       float getDepthScaleUnit() { return f_depth_scale_unit; }
-      TY_CAMERA_INTRINSIC getDepthIntr() { return depth_intr; }
-      TY_CAMERA_INTRINSIC getColorIntr() { return color_intr; }
-      TY_CAMERA_DISTORTION getColorDist() { return color_calib.distortion; }
+      const TY_CAMERA_CALIB_INFO& getDepthCalib() { return depth_calib; }
+      const TY_CAMERA_INTRINSIC&  getDepthIntr() { return depth_intr; }
+      const TY_CAMERA_INTRINSIC&  getColorIntr() { return color_intr; }
+      const TY_CAMERA_DISTORTION& getColorDist() { return color_calib.distortion; }
       
       SensorType StreamGetSensorInfo(StreamHandle stream);
 
@@ -305,6 +309,7 @@ namespace percipio
       bool depth_stream_spec_enable = false;
       int  depth_stream_spec_size = 150; //default
       int  depth_stream_spec_diff = 64;
+      float depth_stream_physical_size = 20;
 
       bool depth_time_domain_enable = false;
       int  depth_time_domain_frame_cnt = 3;
@@ -679,6 +684,9 @@ namespace percipio
       
       bool setDepthSpeckFilterDiff(int spec_diff);
       int getDepthSpeckFilterDiff();
+
+      bool setDepthSpeckFilterPhySize(float phy_size);
+      float getDepthSpeckFilterPhySize();
 
       bool setDepthTimeDomainFilterEn(bool enabled);
       bool getDepthTimeDomainFilterEn();

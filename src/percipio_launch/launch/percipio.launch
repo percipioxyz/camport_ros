@@ -41,6 +41,8 @@
   <arg name="max_speckle_size"                  default="150" />
   <!-- Maximum difference between neighbor disparity pixels.-->
   <arg name="max_speckle_diff"                  default="64" />
+  <!-- Maximum Speckle Physical Size to be Filtered-Out, uint is mm^2-->
+  <arg name="max_physical_size"                  default="20.0" />
   
   <!-- depth stream Time-domain filtering enable/disable switch-->
   <arg name="depth_time_domain_filter"          default="false" />
@@ -121,6 +123,7 @@
       <arg name="depth_speckle_filter"              value="$(arg depth_speckle_filter)" />
       <arg name="max_speckle_size"                  value="$(arg max_speckle_size)" />
       <arg name="max_speckle_diff"                  value="$(arg max_speckle_diff)" />
+      <arg name="max_physical_size"                  value="$(arg max_physical_size)" />
 
       <arg name="depth_time_domain_filter"          value="$(arg depth_time_domain_filter)" />
       <arg name="depth_time_domain_num"             value="$(arg depth_time_domain_num)" />

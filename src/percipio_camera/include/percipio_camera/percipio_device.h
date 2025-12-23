@@ -84,6 +84,9 @@ public:
   bool setDepthSpeckFilterDiff(int spec_diff);
   int  getDepthSpeckFilterDiff();
 
+  bool setDepthSpeckFilterPhySize(float phy_size);
+  float  getDepthSpeckFilterPhySize();
+
   bool setDepthTimeDomainFilterEn(bool en);
   bool getDepthTimeDomainFilterEn();
   

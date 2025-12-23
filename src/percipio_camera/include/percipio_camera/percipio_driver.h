@@ -137,6 +137,7 @@ private:
   bool depth_speckle_filter_;
   int max_speckle_size_;
   int max_speckle_diff_;
+  float max_physical_size_;
 
   bool depth_time_domain_filter_;
   int  depth_time_domain_num_;

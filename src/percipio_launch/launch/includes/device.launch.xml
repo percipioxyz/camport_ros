@@ -19,6 +19,7 @@
   <arg name="depth_speckle_filter" />
   <arg name="max_speckle_size" />
   <arg name="max_speckle_diff" />
+  <arg name="max_physical_size" />
 
   <arg name="depth_time_domain_filter" />
   <arg name="depth_time_domain_num" />
@@ -64,6 +65,7 @@
     <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
     <param name="max_speckle_size" value="$(arg max_speckle_size)" />
     <param name="max_speckle_diff" value="$(arg max_speckle_diff)" />
+    <param name="max_physical_size" value="$(arg max_physical_size)" />
 
     <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
     <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />
@@ -101,6 +103,7 @@
     <param name="depth_speckle_filter" value="$(arg depth_speckle_filter)" />
     <param name="max_speckle_size" value="$(arg max_speckle_size)" />
     <param name="max_speckle_diff" value="$(arg max_speckle_diff)" />
+    <param name="max_physical_size" type="double" value="$(arg max_physical_size)" />
 
     <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
     <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />

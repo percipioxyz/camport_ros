@@ -377,6 +377,15 @@ int PercipioDevice::getDepthSpeckFilterDiff()
   return percipio_device_->getDepthSpeckFilterDiff();
 }
 
+bool PercipioDevice::setDepthSpeckFilterPhySize(float phy_size)
+{
+  return percipio_device_->setDepthSpeckFilterPhySize(phy_size);
+}
+
+float  PercipioDevice::getDepthSpeckFilterPhySize()
+{
+  return percipio_device_->getDepthSpeckFilterPhySize();
+}
 //
 bool PercipioDevice::setDepthTimeDomainFilterEn(bool en)
 {

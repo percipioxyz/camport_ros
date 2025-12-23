@@ -53,7 +53,6 @@ add_library(percipio_wrapper
    src/percipio_device.cpp
    src/gige_2_0.cpp
    src/gige_2_1.cpp
-   src/DepthStreamProc.cpp
    src/percipio_device_info.cpp 
    src/percipio_timer_filter.cpp 
    src/percipio_frame_listener.cpp

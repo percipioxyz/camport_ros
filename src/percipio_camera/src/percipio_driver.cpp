@@ -167,6 +167,7 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
     config.depth_speckle_filter = depth_speckle_filter_;
     config.max_speckle_size = max_speckle_size_;
     config.max_speckle_diff = max_speckle_diff_;
+    config.max_physical_size = max_physical_size_;
 
     config.depth_time_domain_filter = depth_time_domain_filter_;
     config.depth_time_domain_num = depth_time_domain_num_;
@@ -175,6 +176,7 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
     depth_speckle_filter_ = config.depth_speckle_filter;
     max_speckle_size_ = config.max_speckle_size;
     max_speckle_diff_ = config.max_speckle_diff;
+    max_physical_size_ = config.max_physical_size;
 
     depth_time_domain_filter_ = config.depth_time_domain_filter;
     depth_time_domain_num_ = config.depth_time_domain_num;
@@ -183,6 +185,7 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       device_->setDepthSpecFilterEn(depth_speckle_filter_);
       device_->setDepthSpecFilterSpecSize(max_speckle_size_);
       device_->setDepthSpeckFilterDiff(max_speckle_diff_);
+      device_->setDepthSpeckFilterPhySize(max_physical_size_);
 
       device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
       device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
@@ -589,6 +592,7 @@ void PercipioDriver::readConfigFromParameterServer()
   pnh_.getParam("depth_speckle_filter",             depth_speckle_filter_);
   pnh_.getParam("max_speckle_size",                 max_speckle_size_);
   pnh_.getParam("max_speckle_diff",                 max_speckle_diff_);
+  pnh_.getParam("max_physical_size",                max_physical_size_);
 
   pnh_.getParam("depth_time_domain_filter",         depth_time_domain_filter_);
   pnh_.getParam("depth_time_domain_num",            depth_time_domain_num_);
@@ -727,6 +731,7 @@ void PercipioDriver::initDevice()
   device_->setDepthSpecFilterEn(depth_speckle_filter_);
   device_->setDepthSpecFilterSpecSize(max_speckle_size_);
   device_->setDepthSpeckFilterDiff(max_speckle_diff_);
+  device_->setDepthSpeckFilterPhySize(max_physical_size_);
 
   device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
   device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);

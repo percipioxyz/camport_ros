@@ -11,7 +11,6 @@
 #include "percipio_camera/gige_2_0.h"
 #include "percipio_camera/gige_2_1.h"
 
-#include "percipio_camera/DepthStreamProc.h"
 #include "percipio_camera/percipio_depth_algorithm.h"
 
 #define MAX_STORAGE_SIZE    (10*1024*1024)
@@ -386,6 +385,17 @@ namespace percipio
     return depth_stream_spec_diff;
   }
 
+  bool PercipioDepthCam::DepthStreamSetSpeckFilterPhySize(float phy_size)
+  {
+    depth_stream_physical_size = phy_size;
+    return true;
+  }
+
+  float PercipioDepthCam::DepthStreamGetSpeckFilterPhySize()
+  {
+    return depth_stream_physical_size;
+  }
+
   bool PercipioDepthCam::DepthStreamSetTimeDomainFilterEn(bool enabled)
   {
     depth_time_domain_enable = enabled;
@@ -725,6 +735,7 @@ namespace percipio
     TY_STATUS rc;
     PercipioDepthCam* cam = (PercipioDepthCam*)ptr;
     const TY_DEV_HANDLE handle = cam->getCurrentDeviceHandle();
+
     while(cam->isRuning) {
       TY_FRAME_DATA frame;
       rc = TYFetchFrame(handle, &frame, 2000);
@@ -743,8 +754,8 @@ namespace percipio
               }
 
               if(cam->depth_stream_spec_enable) {
-                DepthSpkFilterPara param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff};
-                TYDepthSpeckleFilter(frame.image[i], param);
+                DepthSpeckleFilterParameters param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff, cam->depth_stream_physical_size};
+                TYDepthSpeckleFilter(&frame.image[i], &param, &cam->getDepthCalib(), cam->getDepthScaleUnit());
               }
 
               if(cam->depth_time_domain_enable) {
@@ -1488,6 +1499,16 @@ namespace percipio
   int Device::getDepthSpeckFilterDiff()
   {
     return g_Context->DepthStreamGetSpeckFilterDiff();
+  }
+
+  bool Device::setDepthSpeckFilterPhySize(float phy_size)
+  {
+    return g_Context->DepthStreamSetSpeckFilterPhySize(phy_size);
+  }
+
+  float Device::getDepthSpeckFilterPhySize()
+  {
+    return g_Context->DepthStreamGetSpeckFilterPhySize();
   }
 
   bool Device::setDepthTimeDomainFilterEn(bool enabled)
