@@ -115,7 +115,7 @@ GigE_2_0::GigE_2_0(const TY_DEV_HANDLE dev) : GigEBase(dev)
   TY_STATUS  status = TYGetComponentIDs(hDevice, &ids);
   if(status) return ;
 
-  if(status & TY_COMPONENT_DEPTH_CAM) 
+  if(ids & TY_COMPONENT_DEPTH_CAM) 
     TYHasFeature(hDevice, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_DISTORTION, &need_depth_undistortion);
 }
 

@@ -145,7 +145,7 @@ namespace percipio
     
     TY_DEV_HANDLE hDevice;
 
-    bool need_depth_undistortion;
+    bool need_depth_undistortion = false;
 
     std::map<SensorType, std::vector<VideoMode>> videos;
     std::map<SensorType, VideoMode> current_video_mode;
