@@ -29,6 +29,7 @@ public:
 
   boost::shared_ptr<PercipioDevice> getAnyDevice();
   boost::shared_ptr<PercipioDevice> getDevice(const std::string& device_URI, const bool reconnection = false);
+  bool setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway);
 
   std::string getSerial(const std::string& device_URI) const;
 

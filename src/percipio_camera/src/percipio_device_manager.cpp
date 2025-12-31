@@ -211,6 +211,10 @@ boost::shared_ptr<PercipioDevice> PercipioDeviceManager::getDevice(const std::st
   return boost::make_shared<PercipioDevice>(device_URI, reconnection);
 }
 
+bool setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
+{
+  return device_listener_->setNetworkConfiguration(device_URI, ip, netmask, gateway);
+}
 
 std::ostream& operator << (std::ostream& stream, const PercipioDeviceManager& device_manager) {
 

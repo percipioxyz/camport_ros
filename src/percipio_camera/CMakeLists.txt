@@ -99,9 +99,15 @@ add_dependencies(percipio_camera_node ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gen
 add_executable(list_devices
    src/list_devices.cpp
 )
-target_link_libraries(list_devices percipio_wrapper)
 
-install(TARGETS percipio_wrapper percipio_camera_nodelet percipio_camera_node list_devices percipio_driver_lib ${ADDITIONAL_EXECUTABLES}
+add_executable(network_ip_config
+   src/network_ip_config.cpp
+)
+
+target_link_libraries(list_devices percipio_wrapper)
+target_link_libraries(network_ip_config percipio_wrapper)
+
+install(TARGETS percipio_wrapper percipio_camera_nodelet percipio_camera_node list_devices network_ip_config percipio_driver_lib ${ADDITIONAL_EXECUTABLES}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -115,3 +121,45 @@ install(DIRECTORY include/${PROJECT_NAME}/
 install(FILES percipio_nodelets.xml
         DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 )
+
+if(ARCH)
+  if(MSVC)
+    if(CMAKE_CL_64)
+      set(LIB_SUBDIR "x64")
+    else()
+      set(LIB_SUBDIR "x86")
+    endif()
+    
+    set(TYCAM_DLL "${TYCAM_LIB_PATH}/lib/win/hostapp/${LIB_SUBDIR}/tycam.dll")
+    set(TYIMGPROC_DLL "${TYCAM_LIB_PATH}/lib/win/hostapp/${LIB_SUBDIR}/tyimgproc.dll")
+    
+    if(EXISTS ${TYCAM_DLL} AND EXISTS ${TYIMGPROC_DLL})
+      install(FILES ${TYCAM_DLL} ${TYIMGPROC_DLL}
+        DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+      )
+    else()
+      message(WARNING "TYCam DLL files not found: ${TYCAM_DLL}, ${TYIMGPROC_DLL}")
+    endif()
+    
+  else()
+    set(TYCAM_LIB_DIR "${TYCAM_LIB_PATH}/lib/linux/lib_${ARCH}")
+    
+    if(EXISTS ${TYCAM_LIB_DIR})
+      install(DIRECTORY "${TYCAM_LIB_DIR}/"
+        DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
+        FILES_MATCHING
+        PATTERN "libtycam.so*"
+        PATTERN "libtyimgproc.so*"
+      )
+      
+      set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
+      set_target_properties(percipio_camera_node percipio_camera_nodelet list_devices network_ip_config
+        PROPERTIES
+          INSTALL_RPATH ${CMAKE_INSTALL_RPATH}
+          BUILD_WITH_INSTALL_RPATH TRUE
+      )
+    else()
+      message(WARNING "TYCam library directory not found: ${TYCAM_LIB_DIR}")
+    endif()
+  endif()
+endif()
