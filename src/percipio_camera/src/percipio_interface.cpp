@@ -6,6 +6,7 @@
  * @LastEditTime: 2024-05-30 14:59:24
  */
 #include "percipio_camera/percipio_interface.h"
+#include "percipio_camera/percipio_log_server.h"
 #include "percipio_camera/image_process.hpp"
 
 #include "percipio_camera/gige_2_0.h"
@@ -121,7 +122,6 @@ namespace percipio
 
     TY_STATUS rc;
     rc = TYInitLib();
-
     TYImageProcesAcceEnable(false);
   }
 
@@ -287,7 +287,7 @@ namespace percipio
       ROS_ERROR("not found any device");
       return TY_STATUS_ERROR;
     }
-    
+
     TY_DEVICE_BASE_INFO& selectedDev = selected[0];
     for(size_t m = 0; m < selected.size(); m++) {
       selectedDev = selected[m];
@@ -1752,6 +1752,41 @@ namespace percipio
 
   const char* Percipio::getExtendedError(TY_STATUS status) {
     return TYErrorString(status);
+  }
+
+  int Percipio::tycam_log_server_init(bool enable, const std::string& level, int32_t port)
+  {
+    if(enable) {
+      TYSetLogPrefix("[TYCam]");
+      TYEnableLog(TY_LOG_TYPE_SERVER);
+
+      static std::map<std::string, TY_LOG_LEVEL> lv_map = {
+          {"VERBOSE",  TY_LOG_LEVEL_VERBOSE},
+          {"DEBUG",    TY_LOG_LEVEL_DEBUG  },
+          {"INFO",     TY_LOG_LEVEL_INFO   },
+          {"WARNING",  TY_LOG_LEVEL_WARNING},
+          {"ERROR",    TY_LOG_LEVEL_ERROR  },
+          {"NEVER",    TY_LOG_LEVEL_NEVER  }
+      };
+
+      TY_LOG_LEVEL log_level;
+      auto it = lv_map.find(level);
+      if (it == lv_map.end())
+        log_level = TY_LOG_LEVEL_ERROR;
+      else
+        log_level = it->second;
+
+      TYSetLogLevel(TY_LOG_TYPE_SERVER, log_level);
+
+      static std::string host = "127.0.0.1";
+      TYCfgLogServer(TY_SERVER_TYPE_TCP, (char*)host.c_str(), port);
+    } else {
+      PercipioTcpLogServer::getInstance().stop();
+    }
+    if(PercipioTcpLogServer::getInstance().start(port)) {
+      
+    }
+    return 0;
   }
 
   bool Percipio::forceDeviceIP(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)

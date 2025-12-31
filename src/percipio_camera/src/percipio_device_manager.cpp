@@ -135,8 +135,12 @@ public:
   std::size_t getNumOfConnectedDevices()
   {
     boost::mutex::scoped_lock l(device_mutex_);
-
     return device_set_.size();
+  }
+
+  int log_server_init(bool enable, const std::string& level, int32_t port)
+  {
+    return percipio::Percipio::tycam_log_server_init(enable, level, port);
   }
 
   bool setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
@@ -171,6 +175,11 @@ boost::shared_ptr<PercipioDeviceManager> PercipioDeviceManager::getSingelton()
     singelton_ = boost::make_shared<PercipioDeviceManager>();
 
   return singelton_;
+}
+
+int PercipioDeviceManager::init_tycam_log_server(bool enable, const std::string& level, int32_t port)
+{
+  return device_listener_->log_server_init(enable, level, port);
 }
 
 boost::shared_ptr<std::vector<PercipioDeviceInfo> > PercipioDeviceManager::getConnectedDeviceInfos() const

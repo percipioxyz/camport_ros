@@ -22,6 +22,12 @@
   <!--If the device is offline or disconnected, the driver will attempt to reconnect -->
   <arg name="device_reconnection" default="false" />
 
+  <!-- Device log configuration -->
+  <arg name="device_log_enable" default="false" />
+  <!-- VERBOSE / DEBUG / INFO / WARNING / ERROR / NEVER -->
+  <arg name="device_log_level" default="ERROR" /> 
+  <arg name="device_log_server_port" default="9001" />
+
   <!-- Driver parameters -->
   <arg name="rgb_resolution" default="640x480" />
   <arg name="depth_resolution" default="640x480" />
@@ -132,6 +138,10 @@
       <arg name="depth_time_domain_num"             value="$(arg depth_time_domain_num)" />
 
       <arg name="use_device_time"                   value="$(arg use_device_time)" />
+
+      <arg name="device_log_enable" value="$(arg device_log_enable)" />
+      <arg name="device_log_level" value="$(arg device_log_level)" />
+      <arg name="device_log_server_port" value="$(arg device_log_server_port)" />
 
       <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->
       <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->

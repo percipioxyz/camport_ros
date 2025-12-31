@@ -1,0 +1,191 @@
+<!-- Launch multiple Percipio depth cameras -->
+<launch>
+  
+  <!-- ====================================== -->
+  <!-- Camera 1 Configuration -->
+  <!-- ====================================== -->
+  <arg name="camera1" default="camera1" />
+  <arg name="camera1_device_id" default="207000113334" />
+  <arg name="camera1_rgb_frame_id" default="$(arg camera1)_rgb_optical_frame" />
+  <arg name="camera1_depth_frame_id" default="$(arg camera1)_depth_optical_frame" />
+  
+  <!-- Camera 1 resolution settings -->
+  <arg name="camera1_rgb_resolution" default="640x480" />
+  <arg name="camera1_depth_resolution" default="640x480" />
+
+  <arg name="camera1_rgb_format" default="" />
+  <arg name="camera1_depth_format" default="" />
+  
+  <arg name="camera1_depth_speckle_filter" default="false" />
+  <arg name="camera1_max_speckle_size" default="150" />
+  <arg name="camera1_max_speckle_diff" default="64" />
+  <arg name="camera1_max_physical_size" default="20.0" />
+  <arg name="camera1_depth_time_domain_filter" default="false" />
+  <arg name="camera1_depth_time_domain_num" default="3" />
+
+  <arg name="camera1_use_device_time" default="true" />
+  
+  <!-- Camera 1 processing options -->
+  <!--<arg name="camera1_rgb_processing" default="true" />-->
+  <!--<arg name="camera1_depth_processing" default="true" />-->
+  <arg name="camera1_depth_registration" default="true" />
+  <arg name="camera1_color_undistortion" default="true" />
+  
+  <!-- ====================================== -->
+  <!-- Camera 2 Configuration -->
+  <!-- ====================================== -->
+  <arg name="camera2" default="camera2" />
+  <arg name="camera2_device_id" default="207000160264" />
+  <arg name="camera2_rgb_frame_id" default="$(arg camera2)_rgb_optical_frame" />
+  <arg name="camera2_depth_frame_id" default="$(arg camera2)_depth_optical_frame" />
+  
+  <!-- Camera 2 resolution settings -->
+  <arg name="camera2_rgb_resolution" default="640x480" />
+  <arg name="camera2_depth_resolution" default="640x480" />
+
+  <arg name="camera2_rgb_format" default="" />
+  <arg name="camera2_depth_format" default="" />
+  
+  <arg name="camera2_depth_speckle_filter" default="false" />
+  <arg name="camera2_max_speckle_size" default="150" />
+  <arg name="camera2_max_speckle_diff" default="64" />
+  <arg name="camera2_max_physical_size" default="20.0" />
+  <arg name="camera2_depth_time_domain_filter" default="false" />
+  <arg name="camera2_depth_time_domain_num" default="3" />
+
+  <arg name="camera2_use_device_time" default="true" />
+  
+  <!-- Camera 2 processing options -->
+  <!--<arg name="camera2_rgb_processing" default="true" />-->
+  <!--<arg name="camera2_depth_processing" default="true" />-->
+  <arg name="camera2_depth_registration" default="true" />
+  <arg name="camera2_color_undistortion" default="true" />
+  
+  <!-- ====================================== -->
+  <!-- Common Configuration -->
+  <!-- ====================================== -->
+  <arg name="use_ros_nodelet" default="true" />
+  <arg name="num_worker_threads" default="4" />
+  <arg name="respawn" default="false" />
+
+
+  
+  <!-- Percipio camera initialization configuration file -->
+  <param name="percipio_camera_parameter" textfile="$(find percipio_launch)/parameters.xml" />
+  
+  <!-- ====================================== -->
+  <!-- Launch Camera 1 -->
+  <!-- ====================================== -->
+  <group ns="$(arg camera1)">
+    
+    <!-- Start nodelet manager -->
+    <arg name="manager1" value="$(arg camera1)_nodelet_manager" />
+    <arg name="debug" default="false" />
+    
+    <include if="$(arg use_ros_nodelet)"
+        file="$(find percipio_launch)/launch/includes/manager.launch.xml">
+      <arg name="name" value="$(arg manager1)" />
+      <arg name="debug" value="$(arg debug)" />
+      <arg name="num_worker_threads" value="$(arg num_worker_threads)" />
+    </include>
+    
+    <!-- Load camera 1 driver -->
+    <include file="$(find percipio_launch)/launch/includes/device.launch.xml">
+      <arg name="use_ros_nodelet" value="$(arg use_ros_nodelet)" /> 
+      <arg name="manager" value="$(arg manager1)" />
+      <arg name="camera" value="$(arg camera1)" />
+      <arg name="device_id" value="$(arg camera1_device_id)" />
+      
+      <arg name="rgb_frame_id" value="$(arg camera1_rgb_frame_id)" />
+      <arg name="depth_frame_id" value="$(arg camera1_depth_frame_id)" />
+      
+      <arg name="rgb" value="rgb" />
+      <arg name="ir" value="ir" />
+      <arg name="depth" value="depth" />
+      <arg name="respawn" value="$(arg respawn)" />
+      
+      <arg name="depth_registration" value="$(arg camera1_depth_registration)" />
+      <arg name="rgb_resolution" value="$(arg camera1_rgb_resolution)" />
+      <arg name="depth_resolution" value="$(arg camera1_depth_resolution)" />
+
+      <arg name="rgb_format" value="$(arg camera1_rgb_format)" />
+
+      <arg name="depth_format" value="$(arg camera1_depth_format)" />
+      
+      <arg name="color_undistortion" value="$(arg camera1_color_undistortion)" />
+
+      <arg name="depth_speckle_filter" value="$(arg camera1_depth_speckle_filter)" />
+      <arg name="max_speckle_size" value="$(arg camera1_max_speckle_size)" />
+      <arg name="max_speckle_diff" value="$(arg camera1_max_speckle_diff)" />
+      <arg name="max_physical_size" value="$(arg camera1_max_physical_size)" />
+      
+      <arg name="depth_time_domain_filter" value="$(arg camera1_depth_time_domain_filter)" />
+      <arg name="depth_time_domain_num" value="$(arg camera1_depth_time_domain_num)" />
+
+      <arg name="use_device_time" value="$(arg camera1_use_device_time)" />
+      
+      <!-- Processing options -->
+      <!--<arg name="rgb_processing" value="$(arg camera1_rgb_processing)" />-->
+      <!--<arg name="depth_processing" value="$(arg camera1_depth_processing)" />-->
+    </include>
+    
+  </group> <!-- camera1 -->
+  
+  <!-- ====================================== -->
+  <!-- Launch Camera 2 -->
+  <!-- ====================================== -->
+  <group ns="$(arg camera2)">
+    
+    <!-- Start nodelet manager -->
+    <arg name="manager2" value="$(arg camera2)_nodelet_manager" />
+    <arg name="debug" default="false" />
+    
+    <include if="$(arg use_ros_nodelet)"
+        file="$(find percipio_launch)/launch/includes/manager.launch.xml">
+      <arg name="name" value="$(arg manager2)" />
+      <arg name="debug" value="$(arg debug)" />
+      <arg name="num_worker_threads" value="$(arg num_worker_threads)" />
+    </include>
+    
+    <!-- Load camera 2 driver -->
+    <include file="$(find percipio_launch)/launch/includes/device.launch.xml">
+      <arg name="use_ros_nodelet" value="$(arg use_ros_nodelet)" /> 
+      <arg name="manager" value="$(arg manager2)" />
+      <arg name="camera" value="$(arg camera2)" />
+      <arg name="device_id" value="$(arg camera2_device_id)" />
+      
+      <arg name="rgb_frame_id" value="$(arg camera2_rgb_frame_id)" />
+      <arg name="depth_frame_id" value="$(arg camera2_depth_frame_id)" />
+      
+      <arg name="rgb" value="rgb" />
+      <arg name="ir" value="ir" />
+      <arg name="depth" value="depth" />
+      <arg name="respawn" value="$(arg respawn)" />
+      
+      <arg name="depth_registration" value="$(arg camera2_depth_registration)" />
+      <arg name="rgb_resolution" value="$(arg camera2_rgb_resolution)" />
+      <arg name="depth_resolution" value="$(arg camera2_depth_resolution)" />
+
+      <arg name="rgb_format" value="$(arg camera2_rgb_format)" />
+
+      <arg name="depth_format" value="$(arg camera2_depth_format)" />
+      
+      <arg name="color_undistortion" value="$(arg camera2_color_undistortion)" />
+
+      <arg name="depth_speckle_filter" value="$(arg camera2_depth_speckle_filter)" />
+      <arg name="max_speckle_size" value="$(arg camera2_max_speckle_size)" />
+      <arg name="max_speckle_diff" value="$(arg camera2_max_speckle_diff)" />
+      <arg name="max_physical_size" value="$(arg camera2_max_physical_size)" />
+      
+      <arg name="depth_time_domain_filter" value="$(arg camera2_depth_time_domain_filter)" />
+      <arg name="depth_time_domain_num" value="$(arg camera2_depth_time_domain_num)" />
+
+      <arg name="use_device_time" value="$(arg camera2_use_device_time)" />
+      
+      <!-- Processing options -->
+      <!--<arg name="rgb_processing" value="$(arg camera2_rgb_processing)" />-->
+      <!--<arg name="depth_processing" value="$(arg camera2_depth_processing)" />-->
+    </include>
+    
+  </group> <!-- camera2 -->
+</launch>

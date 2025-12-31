@@ -99,6 +99,10 @@ private:
   std::string rgb_format_;
   std::string depth_format_;
 
+  bool device_log_enable_;
+  std::string device_log_level_;
+  int device_log_server_port_;
+
   bool reconnection_flag_;
 
   bool color_undistortion_;

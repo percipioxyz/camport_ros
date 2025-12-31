@@ -60,6 +60,7 @@ add_library(percipio_wrapper
    src/percipio_exception.cpp
    src/percipio_video_mode.cpp
    src/percipio_depth_algorithm.cpp
+   src/percipio_log_server.cpp
    src/huffman.cpp
    src/percipio_xml.cpp
 )

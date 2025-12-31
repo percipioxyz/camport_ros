@@ -786,6 +786,8 @@ namespace percipio
 
       static void enumerateDevices(Array<DeviceInfo>* deviceInfoList);
 
+      static int tycam_log_server_init(bool enable, const std::string& level, int32_t port);
+
       static bool forceDeviceIP(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway);
 
       static const char* getExtendedError(TY_STATUS status);

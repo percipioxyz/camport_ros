@@ -537,6 +537,21 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDepthCameraInfo(int width, int hei
 
 void PercipioDriver::readConfigFromParameterServer()
 {
+  if (!pnh_.getParam("device_log_enable", device_log_enable_))
+  {
+    device_log_enable_ = false;
+  }
+
+  if (!pnh_.getParam("device_log_level", device_log_level_))
+  {
+    device_log_level_ = "ERROR";
+  }
+
+  if (!pnh_.getParam("device_log_server_port", device_log_server_port_))
+  {
+    device_log_server_port_ = 9001;
+  }
+
   if (!pnh_.getParam("camera", camera_name_))
   {
     ROS_WARN ("~camera_name_ is not set! Using first device.");
@@ -751,6 +766,7 @@ void PercipioDriver::initDevice()
 
 void PercipioDriver::setupDevice()
 {
+  device_manager_->init_tycam_log_server(device_log_enable_, device_log_level_, device_log_server_port_);
   while (ros::ok() && !device_)
   {
     try
@@ -763,7 +779,6 @@ void PercipioDriver::setupDevice()
       }
 
       device_ = device_manager_->getDevice(device_URI, reconnection_flag_);
-
       initDevice();
 
       auto cb = boost::make_shared<percipio::initDeviceCallbackFunction>(boost::bind(&PercipioDriver::initDevice, this));

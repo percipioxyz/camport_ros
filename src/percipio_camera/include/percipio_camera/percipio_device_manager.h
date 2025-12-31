@@ -23,6 +23,8 @@ public:
 
   static boost::shared_ptr<PercipioDeviceManager> getSingelton();
 
+  int init_tycam_log_server(bool enable, const std::string& level, int32_t port);
+
   boost::shared_ptr<std::vector<PercipioDeviceInfo> > getConnectedDeviceInfos() const;
   boost::shared_ptr<std::vector<std::string> > getConnectedDeviceURIs() const;
   std::size_t getNumOfConnectedDevices() const;
