@@ -28,6 +28,8 @@ class GigE_2_0 : public GigEBase {
 
     virtual TY_STATUS PreSetting();
 
+    virtual TY_STATUS LoadParametersFromXML(const percipio_feat& cfg);
+
     virtual TY_STATUS EnableColorStream(const bool en);
     virtual TY_STATUS EnableDepthStream(const bool en);
     virtual TY_STATUS EnableLeftIRStream(const bool en);
@@ -36,5 +38,6 @@ class GigE_2_0 : public GigEBase {
   private:
     TY_COMPONENT_ID ids;
     bool load_default_parameter();
+    bool try_xml_parameter(const std::string& source, const std::string& feat, const std::string& val_str);
 };
 }

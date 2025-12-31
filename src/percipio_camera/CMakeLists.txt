@@ -61,6 +61,7 @@ add_library(percipio_wrapper
    src/percipio_video_mode.cpp
    src/percipio_depth_algorithm.cpp
    src/huffman.cpp
+   src/percipio_xml.cpp
 )
 
 target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TYCam_LIBS})

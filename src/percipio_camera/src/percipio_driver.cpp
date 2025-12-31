@@ -542,6 +542,12 @@ void PercipioDriver::readConfigFromParameterServer()
     ROS_WARN ("~camera_name_ is not set! Using first device.");
     camera_name_ = "camera";
   }
+
+  const std::string param_name = "/percipio_camera_parameter";
+  if (!pnh_.getParam(param_name, xml_content)) {
+      ROS_ERROR("Failed to get parameter %s after waiting", param_name.c_str());
+  }
+
   if (!pnh_.getParam("device_id", device_id_))
   {
     ROS_WARN ("~device_id is not set! Using first device.");
@@ -711,6 +717,10 @@ bool PercipioDriver::resolveDeviceResolution(const std::string& resolution_, int
 
 void PercipioDriver::initDevice()
 {
+  if(xml_content.length()) {
+    device_->init_parameters_from_xml(xml_content);
+  }
+  
   int rgb_width, rgb_height;
   int depth_width, depth_height;
   if(resolveDeviceResolution(rgb_resolution_, rgb_width, rgb_height)) {

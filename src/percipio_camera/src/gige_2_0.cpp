@@ -17,6 +17,65 @@ enum EncodingType : uint32_t
 extern std::map<SensorType, std::string> SensorDesc;
 extern bool MatchPixelFormat(const std::string& fmt_desc, const TYPixFmt& m_fmt);
 
+static std::map<std::string, TY_FEATURE_ID> m_gige_2_0_feature_map = {
+    {"ExposureAuto",                              TY_BOOL_AUTO_EXPOSURE},
+    {"ExposureTime",                              TY_INT_EXPOSURE_TIME},
+    {"ExposureTargetBrightness",                  TY_INT_AE_TARGET_Y},
+    {"AnalogAll",                                 TY_INT_ANALOG_GAIN},
+    {"DigitalAll",                                TY_INT_GAIN},
+    {"DigitalRed",                                TY_INT_R_GAIN},
+    {"DigitalGreen",                              TY_INT_G_GAIN},
+    {"DigitalBlue",                               TY_INT_B_GAIN},
+    {"BalanceWhiteAuto",                          TY_BOOL_AUTO_AWB},
+
+    {"DepthScaleUnit",                            TY_FLOAT_SCALE_UNIT},
+    {"DepthSgbmImageNumber",                      TY_INT_SGBM_IMAGE_NUM},
+    {"DepthSgbmDisparityNumber",                  TY_INT_SGBM_DISPARITY_NUM},
+    {"DepthSgbmDisparityOffset",                  TY_INT_SGBM_DISPARITY_OFFSET},
+    {"DepthSgbmMatchWinHeight",                   TY_INT_SGBM_MATCH_WIN_HEIGHT},
+    {"DepthSgbmSemiParamP1",                      TY_INT_SGBM_SEMI_PARAM_P1},
+    {"DepthSgbmSemiParamP2",                      TY_INT_SGBM_SEMI_PARAM_P2},
+    {"DepthSgbmUniqueFactor",                     TY_INT_SGBM_UNIQUE_FACTOR},
+    {"DepthSgbmUniqueAbsDiff",                    TY_INT_SGBM_UNIQUE_ABSDIFF},
+    {"DepthSgbmUniqueMaxCost",                    TY_INT_SGBM_UNIQUE_MAX_COST},
+    {"DepthSgbmHFilterHalfWin",                   TY_BOOL_SGBM_HFILTER_HALF_WIN},
+    {"DepthSgbmMatchWinWidth",                    TY_INT_SGBM_MATCH_WIN_WIDTH},
+    {"DepthSgbmMedFilter",                        TY_BOOL_SGBM_MEDFILTER},
+    {"DepthSgbmLRC",                              TY_BOOL_SGBM_LRC},
+    {"DepthSgbmLRCDiff",                          TY_INT_SGBM_LRC_DIFF},
+    {"DepthSgbmMedFilterThresh",                  TY_INT_SGBM_MEDFILTER_THRESH},
+    {"DepthSgbmSemiParamP1Scale",                 TY_INT_SGBM_SEMI_PARAM_P1_SCALE},
+    {"DepthSgpmPhaseNumber",                      TY_INT_SGPM_PHASE_NUM},
+    {"DepthSgpmPhaseScale",                       TY_INT_SGPM_NORMAL_PHASE_SCALE},
+    {"DepthSgpmPhaseOffset",                      TY_INT_SGPM_NORMAL_PHASE_OFFSET},
+    {"DepthSgpmReferencePhaseScale",              TY_INT_SGPM_REF_PHASE_SCALE},
+    {"DepthSgpmReferencePhaseOffset",             TY_INT_SGPM_REF_PHASE_OFFSET},
+    {"DepthSgpmEpipolarConstraintPatternScale",   TY_INT_SGPM_REF_PHASE_SCALE},
+    {"DepthSgpmEpipolarConstraintPatternOffset",  TY_INT_SGPM_REF_PHASE_OFFSET},
+    {"DepthSgpmEpipolarConstraintEnable",         TY_BOOL_SGPM_EPI_EN},
+    {"DepthSgpmEpipolarConstraintChan0",          TY_INT_SGPM_EPI_CH0},
+    {"DepthSgpmEpipolarConstraintChan1",          TY_INT_SGPM_EPI_CH1},
+    {"DepthSgpmEpipolarConstraintThresh",         TY_INT_SGPM_EPI_THRESH},
+    {"DepthSgpmPhaseOrderFilterEnable",           TY_BOOL_SGPM_ORDER_FILTER_EN},
+    {"DepthSgpmPhaseOrderFilterChannel",          TY_INT_SGPM_ORDER_FILTER_CHN},
+    {"DepthRangeMin",                             TY_INT_DEPTH_MIN_MM},
+    {"DepthRangeMax",                             TY_INT_DEPTH_MAX_MM},
+    {"DepthSgbmTextureFilterValueOffset",         TY_INT_SGBM_TEXTURE_OFFSET},
+    {"DepthSgbmTextureFilterThreshold",           TY_INT_SGBM_TEXTURE_THRESH},
+
+    {"DepthStreamTofFilterThreshold",             TY_INT_FILTER_THRESHOLD},
+    {"DepthStreamTofChannel",                     TY_INT_TOF_CHANNEL},
+    {"DepthStreamTofModulationThreshold",         TY_INT_TOF_MODULATION_THRESHOLD},
+    {"DepthStreamTofDepthQuality",                TY_ENUM_DEPTH_QUALITY},
+    {"DepthStreamTofHdrRatio",                    TY_INT_TOF_HDR_RATIO},
+    {"DepthStreamTofJitterThreshold",             TY_INT_TOF_JITTER_THRESHOLD},
+
+    {"DepthStreamTofAntiSunlightIndex",           TY_INT_TOF_ANTI_SUNLIGHT_INDEX},
+    {"DepthStreamTofAntiInterference",            TY_BOOL_TOF_ANTI_INTERFERENCE},
+    {"DepthStreamTofSpeckleSize",                 TY_INT_MAX_SPECKLE_SIZE},
+    {"DepthStreamTofSpeckleDiff",                 TY_INT_MAX_SPECKLE_DIFF}
+};
+ 
 static bool isValidJsonString(const char* code)
 {
   std::string err;
@@ -337,6 +396,17 @@ TY_STATUS GigE_2_0::PreSetting()
   return TY_STATUS_OK;
 }
 
+TY_STATUS GigE_2_0::LoadParametersFromXML(const percipio_feat& cfg)
+{
+  for(auto& iter : cfg) {
+    for(auto& feat : iter.second) {
+      try_xml_parameter(iter.first, feat.first, feat.second);
+    }
+  }
+
+  return TY_STATUS_OK;
+}
+
 TY_STATUS GigE_2_0::EnableColorStream(const bool en)
 {
   TY_STATUS ret;
@@ -485,6 +555,86 @@ bool GigE_2_0::load_default_parameter()
     
   delete []blocks;
   return ret;
+}
+
+bool GigE_2_0::try_xml_parameter(const std::string& source, const std::string& feat, const std::string& str_val)
+{
+  TY_STATUS status;
+  TY_COMPONENT_ID comp = 0;
+  if(source == "Range")
+    comp = TY_COMPONENT_DEPTH_CAM;
+  else if(source == "Intensity")
+    comp = TY_COMPONENT_RGB_CAM;
+  else if(source == "BinocularLeft")
+    comp = TY_COMPONENT_IR_CAM_LEFT;
+  else if(source == "BinocularRight")
+    comp = TY_COMPONENT_IR_CAM_RIGHT;
+  else {
+    ROS_WARN("Incorrect source name: %s", source.c_str());
+    return false;
+  }
+
+  if(!(ids & comp)) {
+    ROS_WARN("Unsupported source name: %s", source.c_str());
+    return false;
+  }
+
+  auto feature = m_gige_2_0_feature_map.find(feat);
+  if (feature == m_gige_2_0_feature_map.end()) {
+    ROS_WARN("Unsupported feature name: %s", feat.c_str());
+    return false;
+  }
+
+  TY_FEATURE_ID feat_id = feature->second;
+  TY_FEATURE_TYPE type = TYFeatureType(feat_id);
+  
+  switch(type) {
+    case TY_FEATURE_INT:
+    {
+      int32_t val = atoi(str_val.c_str());
+      status = TYSetInt(hDevice, comp, feat_id, val);
+      break;
+    }
+
+    case TY_FEATURE_ENUM:
+    {
+      uint32_t val = static_cast<uint32_t>(atoi(str_val.c_str()));
+      status = TYSetEnum(hDevice, comp, feat_id, val);
+      break;
+    }
+
+    case TY_FEATURE_FLOAT:
+    {
+      float val = static_cast<float>(atof(str_val.c_str()));
+      status = TYSetFloat(hDevice, comp, feat_id, val);
+      break;
+    }
+
+    case TY_FEATURE_BOOL:
+    {
+      bool val = static_cast<bool>(atof(str_val.c_str()));
+      status = TYSetBool(hDevice, comp, feat_id, val);
+      break;
+    }
+    case TY_FEATURE_STRING:
+    {
+      status = TYSetString(hDevice, comp, feat_id, str_val.c_str());
+      break;
+    }
+    default:
+    {
+      ROS_WARN("Unsupported feature type: %s(%d)", feat.c_str(), feat_id);
+      return false;
+    }
+  }
+
+  if(status) {
+    ROS_WARN("Xml parameter(%s/%s(0x%08x)) init failed(%s(%d))!", source.c_str(), feat.c_str(), feat_id, 
+          TYErrorString(status), status);
+    return false;
+  }
+
+  return true;
 }
 
 }

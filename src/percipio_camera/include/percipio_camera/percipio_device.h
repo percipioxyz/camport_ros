@@ -116,6 +116,7 @@ public:
   bool getColorCalibIntristic(void* data, const size_t size);
   bool getColorCalibDistortion(void* data, const size_t size);
 
+  int init_parameters_from_xml(const std::string& xml);
 protected:
   void shutdown();
 

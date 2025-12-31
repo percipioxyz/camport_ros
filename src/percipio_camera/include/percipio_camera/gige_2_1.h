@@ -36,6 +36,8 @@ class GigE_2_1 : public GigEBase {
     
     virtual TY_STATUS PreSetting();
 
+    virtual TY_STATUS LoadParametersFromXML(const percipio_feat& cfg);
+
     virtual TY_STATUS EnableColorStream(const bool en);
     virtual TY_STATUS EnableDepthStream(const bool en);
     virtual TY_STATUS EnableLeftIRStream(const bool en);

@@ -153,6 +153,8 @@ private:
   bool color_subscribers_;
   bool point3d_subscribers_;
   bool depth_subscribers_;
+
+  std::string xml_content;
 };
 
 }

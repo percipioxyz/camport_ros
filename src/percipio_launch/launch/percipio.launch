@@ -16,6 +16,9 @@
          "IP            : select the net camera with a specified IP"   -->
   <arg name="device_id" default="#1" />
 
+  <!-- percipio camera initialization configuration parameter file -->
+  <param name="percipio_camera_parameter" textfile="$(find percipio_launch)/parameters.xml" />
+  
   <!--If the device is offline or disconnected, the driver will attempt to reconnect -->
   <arg name="device_reconnection" default="false" />
 

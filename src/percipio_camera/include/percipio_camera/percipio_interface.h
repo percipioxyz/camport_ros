@@ -106,6 +106,8 @@ namespace percipio
     void* pListener;
   } DeviceCallback_t;
 
+  typedef std::map<std::string, std::map<std::string, std::string>> percipio_feat;
+
   static std::vector<DeviceCallback_t> cb_list;
 
   class VideoFrameData;
@@ -138,6 +140,8 @@ namespace percipio
 
     virtual TY_STATUS PreSetting() = 0;
 
+    virtual TY_STATUS LoadParametersFromXML(const percipio_feat& cfg) = 0;
+
     virtual TY_STATUS EnableColorStream(const bool en) = 0;
     virtual TY_STATUS EnableDepthStream(const bool en) = 0;
     virtual TY_STATUS EnableLeftIRStream(const bool en) = 0;
@@ -167,6 +171,8 @@ namespace percipio
 
       TY_STATUS openWithSN(const char* sn);
       TY_STATUS openWithIP(const char* ip);
+
+      int parse_xml_parameters(const std::string& xml);
 
       boost::shared_ptr<initDeviceCallbackFunction> ptrFuncDeviceInit;
       void setDeviceInitCallback(boost::shared_ptr<initDeviceCallbackFunction>& callback);
@@ -292,6 +298,8 @@ namespace percipio
 
       //std::mutex m_mutex;
       pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
+      
+      percipio_feat cfg;
       
       int32_t current_rgb_width;
       int32_t current_rgb_height;

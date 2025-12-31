@@ -139,6 +139,11 @@ public:
     return device_set_.size();
   }
 
+  bool setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
+  {
+    return false;
+  }
+
   boost::mutex device_mutex_;
   DeviceSet device_set_;
 };
@@ -211,7 +216,7 @@ boost::shared_ptr<PercipioDevice> PercipioDeviceManager::getDevice(const std::st
   return boost::make_shared<PercipioDevice>(device_URI, reconnection);
 }
 
-bool setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
+bool PercipioDeviceManager::setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
 {
   return device_listener_->setNetworkConfiguration(device_URI, ip, netmask, gateway);
 }

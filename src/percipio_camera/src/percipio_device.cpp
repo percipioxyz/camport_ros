@@ -454,6 +454,11 @@ void PercipioDevice::setUseDeviceTimer(bool enable)
     point3d_frame_listener->setUseDeviceTimer(enable);
 }
 
+int PercipioDevice::init_parameters_from_xml(const std::string& xml)
+{
+  return percipio_device_->DevicePtr()->parse_xml_parameters(xml);
+}
+
 void PercipioDevice::setIRFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
 {
   ir_frame_listener->setCallback(callback);

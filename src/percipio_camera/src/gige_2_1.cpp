@@ -502,6 +502,84 @@ TY_STATUS GigE_2_1::PreSetting()
   return TY_STATUS_OK;
 }
 
+TY_STATUS GigE_2_1::LoadParametersFromXML(const percipio_feat& cfg)
+{
+  TY_STATUS status;
+  std::string  m_current_source;
+  for(auto& iter : cfg) {
+    for(auto& feat : iter.second) {
+      const std::string& source = iter.first;
+      const std::string& feature = feat.first;
+      const std::string& feat_val = feat.second;
+
+      if(m_current_source != source) {
+        status = TYEnumSetString(hDevice, "SourceSelector", source.c_str());
+        if(status) {
+          ROS_WARN("Xml parameter(%s %s) init err( SourceSelector set failed: %d )!", source.c_str(), feature.c_str(), status);
+          continue;
+        }
+
+        m_current_source = source;
+      }
+
+      ParamType type;
+      status = TYParamGetType(hDevice, feature.c_str(), &type);
+      if(status) {
+        ROS_WARN("Xml parameter(%s %s) init err( parameter type read failed: %d )!", source.c_str(), feature.c_str(), status);
+        continue;
+      }
+
+      switch(type) {
+        case Integer:
+        {
+          int32_t val = atoi(feat_val.c_str());
+          status = TYIntegerSetValue(hDevice, feature.c_str(), val);
+          break;
+        }
+        
+        case Float:
+        {
+          double val = atoi(feat_val.c_str());
+          status = TYFloatSetValue(hDevice, feature.c_str(), val);
+          break;
+        }
+
+        case Boolean:
+        {
+          bool val = static_cast<bool>(atof(feat_val.c_str()));
+          status = TYBooleanSetValue(hDevice, feature.c_str(), val);
+          break;
+        }
+
+        case Enumeration:
+        {
+          int32_t val = atoi(feat_val.c_str());
+          status = TYEnumSetValue(hDevice, feature.c_str(), val);
+          break;
+        }
+
+        case String:
+        {
+          status = TYStringSetValue(hDevice, feature.c_str(), feat_val.c_str());
+          break;
+        }
+
+        default:{
+          ROS_WARN("Unsupported feature type: %s/%s", source.c_str(), feature.c_str());
+          break;
+        }
+      }
+
+      if(status) {
+        ROS_WARN("Xml parameter(%s %s) init failed(%s(%d))!", source.c_str(), feature.c_str(), 
+              TYErrorString(status), status);
+        continue;
+      }
+    }
+  }
+  return TY_STATUS_OK;
+}
+
 TY_STATUS GigE_2_1::EnableColorStream(const bool en)
 {
   TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", 1);

@@ -13,9 +13,13 @@
 
 #include "percipio_camera/percipio_depth_algorithm.h"
 
+#include "percipio_camera/percipio_xml.h"
+
 #define MAX_STORAGE_SIZE    (10*1024*1024)
 namespace percipio
 {
+  static tinyxml2::XMLDocument m_doc;
+
   std::map<SensorType, std::string> SensorDesc = {
     {SENSOR_IR_LEFT, "Left-IR"},
     {SENSOR_IR_RIGHT, "Right-IR"},
@@ -49,6 +53,57 @@ namespace percipio
   TY_STATUS PercipioDepthCam::initialize()
   {
     return TY_STATUS_OK;
+  }
+
+  static std::string WrapXML(const std::string& xml) {
+      return std::string("<root>") + xml + "</root>";
+  }
+
+  static inline std::string xml_key_trim(const std::string& str) {
+    auto start = str.find_first_not_of(' ');
+    auto end = str.find_last_not_of(' ');
+    return str.substr(start, end - start + 1);
+  }
+
+  int PercipioDepthCam::parse_xml_parameters(const std::string& xml)
+  {
+    if(!m_gige_dev) return TY_STATUS_NOT_INITED;
+
+    cfg.clear();
+
+    std::string wrappedXML = WrapXML(xml);
+    tinyxml2::XMLError err = m_doc.Parse(wrappedXML.c_str());
+    if( err != tinyxml2::XML_SUCCESS ){
+      ROS_ERROR("xml parse failed");
+      return -1;
+    }
+
+    tinyxml2::XMLElement* m_root = m_doc.RootElement();
+    if(!m_root){
+      ROS_ERROR("found no root element");
+      return -1;
+    }
+
+    for(auto elemSource = m_root->FirstChildElement("source")
+      ; elemSource != NULL; elemSource = elemSource->NextSiblingElement("source")) {
+
+        auto str = elemSource->Attribute("name");
+        if(!str) continue;
+
+        std::string source = xml_key_trim(std::string(str));
+        for(auto elemFeat = elemSource->FirstChildElement("feature");
+            elemFeat != NULL; elemFeat = elemFeat->NextSiblingElement("feature")) {
+              
+          auto sub_str = elemFeat->Attribute("name");
+          auto text = elemFeat->GetText();
+          if(sub_str && text) {
+            std::string feat_name = xml_key_trim(std::string(sub_str));
+            std::string val = xml_key_trim(std::string(text));
+            cfg[source].insert(std::make_pair(feat_name, val));
+          }
+        }
+    }
+    return m_gige_dev->LoadParametersFromXML(cfg);
   }
 
   PercipioDepthCam::PercipioDepthCam() : _M_IFACE(0), _M_DEVICE(0), mIDS(0)
