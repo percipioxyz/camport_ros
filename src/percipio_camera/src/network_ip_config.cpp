@@ -70,11 +70,7 @@ bool setCameraIP(PercipioDeviceManager& manager, const std::string& uri,
         std::cout << "  Netmask: " << netmask << std::endl;
         std::cout << "  Gateway: " << gateway << std::endl;
         
-        manager.setNetworkConfiguration(uri, ip, netmask, gateway);
-        
-        
-        //std::cout << "IP configuration command sent (Note: API calls may need adjustment based on actual SDK)" << std::endl;
-        return true;
+        return manager.setNetworkConfiguration(uri, ip, netmask, gateway);
     } catch (const PercipioException& e) {
         std::cerr << "Error setting IP: " << e.what() << std::endl;
         return false;
@@ -145,9 +141,9 @@ bool getNetworkModeFromUser(bool& use_dhcp, std::string& ip,
     }
     else if (choice == "2") {
         use_dhcp = true;
-        ip = "0.0.0.0";
-        netmask = "0.0.0.0";
-        gateway = "0.0.0.0";
+        ip = "";
+        netmask = "";
+        gateway = "";
         return true;
     }
     else {

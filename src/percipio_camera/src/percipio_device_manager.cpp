@@ -141,7 +141,7 @@ public:
 
   bool setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
   {
-    return false;
+    return percipio::Percipio::forceDeviceIP(device_URI, ip, netmask, gateway);
   }
 
   boost::mutex device_mutex_;

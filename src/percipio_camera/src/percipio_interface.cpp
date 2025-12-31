@@ -160,6 +160,8 @@ namespace percipio
           }
         }
       }
+    } else {
+      ROS_ERROR("not found any device");
     }
     
     *cnt = device_list.size();
@@ -247,8 +249,10 @@ namespace percipio
     std::vector<TY_DEVICE_BASE_INFO> selected;
     std::string SN = std::string(sn);
     TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, SN, "", 1, selected);
-    if(!selected.size())
+    if(!selected.size()) {
+      ROS_ERROR("not found any device");
       return TY_STATUS_ERROR;
+    }
 
     TY_DEVICE_BASE_INFO& selectedDev = selected[0];
     for(size_t m = 0; m < selected.size(); m++) {
@@ -279,8 +283,10 @@ namespace percipio
     std::vector<TY_DEVICE_BASE_INFO> selected;
     std::string IP = std::string(ip);
     TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", IP, 1, selected);
-    if(!selected.size())
+    if(!selected.size()) {
+      ROS_ERROR("not found any device");
       return TY_STATUS_ERROR;
+    }
     
     TY_DEVICE_BASE_INFO& selectedDev = selected[0];
     for(size_t m = 0; m < selected.size(); m++) {
@@ -1746,5 +1752,87 @@ namespace percipio
 
   const char* Percipio::getExtendedError(TY_STATUS status) {
     return TYErrorString(status);
+  }
+
+  bool Percipio::forceDeviceIP(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
+  {
+    std::vector<TY_DEVICE_BASE_INFO> selected;
+    TY_STATUS rc = selectDevice(TY_INTERFACE_ETHERNET | TY_INTERFACE_IEEE80211, "", "", 100, selected);
+    if(rc) {
+      ROS_ERROR("not found any device");
+      return false;
+    }
+
+    TY_DEVICE_BASE_INFO* pSelected = nullptr;
+    for(size_t i = 0; i < selected.size(); i++) {
+      if(device_URI == std::string(selected[i].id)) {
+        pSelected = &selected[i];
+        break;
+      }
+    }
+
+    if(!pSelected) return false;
+
+    TY_INTERFACE_HANDLE hIface;
+    rc = TYOpenInterface(pSelected->iface.id, &hIface);
+    if(rc) {
+      ROS_ERROR("Failed to open interface %d", rc);
+      return false;
+    }
+
+    const char* mac = pSelected->netInfo.mac;
+    std::string newIP = "0.0.0.0";
+    std::string newNetmask = "0.0.0.0";
+    std::string newGateway = "0.0.0.0";
+    if(ip.length()) newIP = ip;
+    if(netmask.length()) newNetmask = netmask;
+    if(gateway.length()) newGateway = gateway;
+    if (TYForceDeviceIP(hIface, mac, newIP.c_str(), newNetmask.c_str(), newGateway.c_str()) == TY_STATUS_OK) {
+      if(newIP == "0.0.0.0" && newNetmask == "0.0.0.0" && newGateway == "0.0.0.0") {
+        ROS_INFO("**** Set Temporary IP/Netmask/Gateway ...Done! ****");
+        TYCloseInterface(hIface);
+        return true;
+      }
+
+      TYUpdateDeviceList(hIface);
+
+      TY_DEV_HANDLE hDev;
+      rc = TYOpenDeviceWithIP(hIface, ip.c_str(), &hDev);
+      if(rc == TY_STATUS_OK) {
+        int32_t ip_i[4];
+        uint8_t ip_b[4];
+        int32_t ip32;
+        sscanf(ip.c_str(), "%d.%d.%d.%d", &ip_i[0], &ip_i[1], &ip_i[2], &ip_i[3]);
+        ip_b[0] = ip_i[0];ip_b[1] = ip_i[1];ip_b[2] = ip_i[2];ip_b[3] = ip_i[3];
+        ip32 = TYIPv4ToInt(ip_b);
+        ROS_INFO("Set persistent IP 0x%x(%d.%d.%d.%d)", ip32, ip_b[0], ip_b[1], ip_b[2], ip_b[3]);
+        ASSERT_OK( TYSetInt(hDev, TY_COMPONENT_DEVICE, TY_INT_PERSISTENT_IP, ip32) );
+
+        sscanf(netmask.c_str(), "%d.%d.%d.%d", &ip_i[0], &ip_i[1], &ip_i[2], &ip_i[3]);
+        ip_b[0] = ip_i[0];ip_b[1] = ip_i[1];ip_b[2] = ip_i[2];ip_b[3] = ip_i[3];
+        ip32 = TYIPv4ToInt(ip_b);
+        ROS_INFO("Set persistent Netmask 0x%x(%d.%d.%d.%d)", ip32, ip_b[0], ip_b[1], ip_b[2], ip_b[3]);
+        ASSERT_OK( TYSetInt(hDev, TY_COMPONENT_DEVICE, TY_INT_PERSISTENT_SUBMASK, ip32) );
+
+        sscanf(gateway.c_str(), "%d.%d.%d.%d", &ip_i[0], &ip_i[1], &ip_i[2], &ip_i[3]);
+        ip_b[0] = ip_i[0];ip_b[1] = ip_i[1];ip_b[2] = ip_i[2];ip_b[3] = ip_i[3];
+        ip32 = TYIPv4ToInt(ip_b);
+        ROS_INFO("Set persistent Gateway 0x%x(%d.%d.%d.%d)", ip32, ip_b[0], ip_b[1], ip_b[2], ip_b[3]);
+        ASSERT_OK( TYSetInt(hDev, TY_COMPONENT_DEVICE, TY_INT_PERSISTENT_GATEWAY, ip32) );
+
+        ROS_INFO("**** Set Persistent IP/Netmask/Gateway ...Done! ****");
+        TYCloseInterface(hIface);
+        return true;
+      } else {
+        ROS_ERROR("Failed to open device %s(%d)", selected[0].netInfo.ip, rc);
+        goto ForceFailed;
+      }
+    } else {
+      ROS_ERROR("Force ip failed on interface %s", pSelected->iface.id);
+      goto ForceFailed;
+    }
+ForceFailed:
+    TYCloseInterface(hIface);
+    return false;  
   }
 }

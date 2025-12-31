@@ -786,6 +786,8 @@ namespace percipio
 
       static void enumerateDevices(Array<DeviceInfo>* deviceInfoList);
 
+      static bool forceDeviceIP(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway);
+
       static const char* getExtendedError(TY_STATUS status);
   };
 }
