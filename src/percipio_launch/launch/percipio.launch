@@ -20,7 +20,7 @@
   <param name="percipio_camera_parameter" textfile="$(find percipio_launch)/parameters.xml" />
   
   <!--If the device is offline or disconnected, the driver will attempt to reconnect -->
-  <arg name="device_reconnection" default="false" />
+  <arg name="device_reconnection" default="true" />
 
   <!-- Device log configuration -->
   <arg name="device_log_enable" default="false" />

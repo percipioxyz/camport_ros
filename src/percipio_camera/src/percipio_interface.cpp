@@ -1113,7 +1113,12 @@ public:
       if(m_gige_dev->is_support_frame_rate_ctrl())
         m_gige_dev->frame_rate_init(f_frame_rate);
       else {
-        enable_soft_frame_rate_ctrl = true;
+        rc = m_gige_dev->enable_trigger_mode(true);
+        if(rc == TY_STATUS_OK) {
+          enable_soft_frame_rate_ctrl = true;
+        } else {
+          ROS_WARN("The frame rate of the device output is uncontrollable, and frame rate control cannot be achieved.");
+        }
       }
     }
       
