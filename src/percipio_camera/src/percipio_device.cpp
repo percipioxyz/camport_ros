@@ -464,6 +464,11 @@ int PercipioDevice::init_parameters_from_xml(const std::string& xml)
   return percipio_device_->DevicePtr()->parse_xml_parameters(xml);
 }
 
+int PercipioDevice::sendSoftTrigger()
+{
+  return percipio_device_->DevicePtr()->send_soft_trigger();
+}
+
 void PercipioDevice::setIRFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
 {
   ir_frame_listener->setCallback(callback);

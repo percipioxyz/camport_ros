@@ -7,6 +7,7 @@
 #include <boost/function.hpp>
 
 #include <sensor_msgs/Image.h>
+#include <std_msgs/Empty.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <percipio_camera/PercipioConfig.h>
@@ -52,6 +53,8 @@ private:
   void newColorFrameCallback(sensor_msgs::ImagePtr image);
   void newDepthFrameCallback(sensor_msgs::ImagePtr image);
   void newPoint3DFrameCallback(sensor_msgs::ImagePtr image);
+  
+  void softTriggerCb(const std_msgs::EmptyConstPtr& msg);
 
   // Methods to get calibration parameters for the various cameras
   sensor_msgs::CameraInfoPtr getDefaultCameraInfo(int width, int height, double f);
@@ -133,6 +136,8 @@ private:
 
   std::vector<geometry_msgs::TransformStamped> static_tf_msgs_;
   tf2_ros::StaticTransformBroadcaster static_tf_broadcaster_;
+  
+  ros::Subscriber soft_trigger_sub_;
 
   /** \brief Camera info manager objects. */
   boost::shared_ptr<camera_info_manager::CameraInfoManager> color_info_manager_, depth_info_manager_, ir_info_manager;

@@ -107,6 +107,11 @@ void PercipioDriver::advertiseROSTopics()
   image_transport::ImageTransport depth_it(depth_nh);
 
   // Advertise all published topics
+  if (trigger_mode_) {
+    soft_trigger_sub_ = nh_.subscribe(soft_trigger_topic_, 10, &PercipioDriver::softTriggerCb, this);
+    ROS_INFO("Soft trigger mode enabled, subscribe to the topic.: %s", soft_trigger_topic_.c_str());
+  }
+
   // Prevent connection callbacks from executing until we've set all the publishers. Otherwise
   // connectCb() can fire while we're advertising (say) "depth/image", but before we actually
   // assign to pub_depth_raw_. Then pub_depth_raw_.getNumSubscribers() returns 0, and we fail to start
@@ -793,6 +798,20 @@ void PercipioDriver::initDevice()
 
   if(xml_content.length()) {
     device_->init_parameters_from_xml(xml_content);
+  }
+}
+
+void PercipioDriver::softTriggerCb(const std_msgs::EmptyConstPtr& msg)
+{
+  if (device_ && trigger_mode_)
+  {
+    device_->sendSoftTrigger();
+    ROS_DEBUG("Received soft trigger signal, sent trigger command to device");
+  } else {
+    if (!device_)
+      ROS_WARN("Device not initialized, unable to send soft trigger command");
+    else if (!trigger_mode_)
+      ROS_WARN("Device not in trigger mode, ignoring soft trigger signal");
   }
 }
 

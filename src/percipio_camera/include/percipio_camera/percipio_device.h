@@ -112,6 +112,8 @@ public:
 
   void setDeviceWorkMode(bool enable_rate, float frame_rate, bool trigger_mode_en);
 
+  int sendSoftTrigger();
+
   //PERCIPIO
   float getDepthScale();
   bool getDepthCalibIntristic(void* data, const size_t size);

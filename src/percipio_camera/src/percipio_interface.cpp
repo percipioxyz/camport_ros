@@ -107,6 +107,22 @@ namespace percipio
     return m_gige_dev->LoadParametersFromXML(cfg);
   }
 
+  int PercipioDepthCam::send_soft_trigger()
+  {
+    TY_STATUS ret = 0;
+    if(b_trigger_mode_en) {
+      ret = m_gige_dev->send_soft_trigger_signal();
+      if(ret) {
+        ROS_ERROR("Failed to send trigger command, error: %d", ret);
+        return -1;
+      }
+    } else {
+      ROS_ERROR("Device not in trigger mode, ignoring soft trigger signal");
+      return -1;
+    }
+    return 0;
+  }
+
   PercipioDepthCam::PercipioDepthCam() : _M_IFACE(0), _M_DEVICE(0), mIDS(0)
   {
     frameBuffer[0] = NULL;
@@ -262,7 +278,7 @@ namespace percipio
       rc = TYOpenDevice(_M_IFACE, selectedDev.id, &deviceHandle);
       if(rc == TY_STATUS_OK) break;
 
-      ROS_INFO("TYOpenDevice err : %d", rc);
+      ROS_INFO("TYOpenDevice error: %d", rc);
       TYCloseInterface(_M_IFACE);
     }
 

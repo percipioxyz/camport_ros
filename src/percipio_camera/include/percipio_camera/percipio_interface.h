@@ -182,6 +182,8 @@ namespace percipio
       TY_STATUS openWithSN(const char* sn);
       TY_STATUS openWithIP(const char* ip);
 
+      int send_soft_trigger();
+
       int parse_xml_parameters(const std::string& xml);
 
       boost::shared_ptr<initDeviceCallbackFunction> ptrFuncDeviceInit;
