@@ -28,6 +28,16 @@
   <arg name="device_log_level" default="ERROR" /> 
   <arg name="device_log_server_port" default="9001" />
 
+  <!-- Whether to enable frame rate control for device output images -->
+  <arg name="frame_rate_control" default="false" /> 
+  <!-- Frame rate parameter for device output images (floating point number) --> 
+  <arg name="frame_rate" default="5.0" /> 
+  
+  <!-- Whether to set the device operation mode to trigger mode --> 
+  <arg name="trigger_mode" default="false" />
+  <!-- Topic path for publishing soft trigger signals to the device --> 
+  <arg name="soft_trigger_topic" default="$(arg camera)/soft_trigger" />
+
   <!-- Driver parameters -->
   <arg name="rgb_resolution" default="640x480" />
   <arg name="depth_resolution" default="640x480" />
@@ -142,6 +152,11 @@
       <arg name="device_log_enable" value="$(arg device_log_enable)" />
       <arg name="device_log_level" value="$(arg device_log_level)" />
       <arg name="device_log_server_port" value="$(arg device_log_server_port)" />
+
+      <arg name="frame_rate_control" value="$(arg frame_rate_control)" />
+      <arg name="frame_rate" value="$(arg frame_rate)" />
+      <arg name="trigger_mode" value="$(arg trigger_mode)" />
+      <arg name="soft_trigger_topic" value="$(arg soft_trigger_topic)" />
 
       <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->
       <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->

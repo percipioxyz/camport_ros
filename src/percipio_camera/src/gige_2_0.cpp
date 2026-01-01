@@ -396,11 +396,42 @@ TY_STATUS GigE_2_0::PreSetting()
   return TY_STATUS_OK;
 }
 
+bool GigE_2_0::is_support_frame_rate_ctrl()
+{
+  TY_TRIGGER_PARAM param;
+  param.mode = TY_TRIGGER_MODE_M_PER;
+  param.fps = 2;
+  TY_STATUS ret = TYSetStruct(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM_EX, (void*)&param, sizeof(param));
+  return ret ? false : true;
+}
+
+TY_STATUS GigE_2_0::frame_rate_init(const float fps)
+{
+  TY_TRIGGER_PARAM param;
+  param.mode = TY_TRIGGER_MODE_M_PER;
+  param.fps = (int8_t)fps;
+  return TYSetStruct(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM_EX, (void*)&param, sizeof(param));
+}
+
+TY_STATUS GigE_2_0::enable_trigger_mode(const bool en)
+{
+  TY_TRIGGER_PARAM_EX trigger;
+  trigger.mode = TY_TRIGGER_MODE_SLAVE;
+  return TYSetStruct(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM_EX, &trigger, sizeof(trigger));
+}
+
+TY_STATUS  GigE_2_0::send_soft_trigger_signal()
+{
+  int err = TY_STATUS_OK;
+  while(TY_STATUS_BUSY == (err = TYSendSoftTrigger(hDevice)));
+  return err;
+}
+
 TY_STATUS GigE_2_0::LoadParametersFromXML(const percipio_feat& cfg)
 {
   for(auto& iter : cfg) {
     for(auto& feat : iter.second) {
-      try_xml_parameter(iter.first, feat.first, feat.second);
+      try_xml_parameter(iter.first, feat.node_desc, feat.node_info);
     }
   }
 

@@ -30,6 +30,12 @@ class GigE_2_0 : public GigEBase {
 
     virtual TY_STATUS LoadParametersFromXML(const percipio_feat& cfg);
 
+    virtual bool is_support_frame_rate_ctrl();
+    virtual TY_STATUS  frame_rate_init(const float fps);
+    virtual TY_STATUS  enable_trigger_mode(const bool en);
+
+    virtual TY_STATUS  send_soft_trigger_signal();
+
     virtual TY_STATUS EnableColorStream(const bool en);
     virtual TY_STATUS EnableDepthStream(const bool en);
     virtual TY_STATUS EnableLeftIRStream(const bool en);

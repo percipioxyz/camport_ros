@@ -106,7 +106,11 @@ namespace percipio
     void* pListener;
   } DeviceCallback_t;
 
-  typedef std::map<std::string, std::map<std::string, std::string>> percipio_feat;
+  typedef struct {
+    std::string node_desc;
+    std::string node_info;
+  } DeviceNodeInfo;
+  typedef std::map<std::string, std::vector<DeviceNodeInfo>> percipio_feat;
 
   static std::vector<DeviceCallback_t> cb_list;
 
@@ -141,6 +145,12 @@ namespace percipio
     virtual TY_STATUS PreSetting() = 0;
 
     virtual TY_STATUS LoadParametersFromXML(const percipio_feat& cfg) = 0;
+
+    virtual bool is_support_frame_rate_ctrl() = 0;
+    virtual TY_STATUS  frame_rate_init(const float fps) = 0;
+    virtual TY_STATUS  enable_trigger_mode(const bool en) = 0;
+
+    virtual TY_STATUS  send_soft_trigger_signal() = 0;
 
     virtual TY_STATUS EnableColorStream(const bool en) = 0;
     virtual TY_STATUS EnableDepthStream(const bool en) = 0;
@@ -240,7 +250,8 @@ namespace percipio
 
       void StreamUnregisterNewFrameCallback(StreamHandle stream);
 
-      static void* fetch_thread(void* ptr);
+      static void* soft_frame_rate_ctrl_thread(void* ptr);
+      static void* device_frame_fetch_thread(void* ptr);
 
       static void* device_offline_reconnect(void* ptr);
 
@@ -251,6 +262,8 @@ namespace percipio
 
       TY_STATUS StartCapture();
       void StopCapture(StreamHandle stream);
+
+      void set_work_mode(bool enable_rate, float frame_rate, bool trigger_mode_en);
 
       float getDepthScaleUnit() { return f_depth_scale_unit; }
       const TY_CAMERA_CALIB_INFO& getDepthCalib() { return depth_calib; }
@@ -265,6 +278,10 @@ namespace percipio
       bool                   b_auto_reconnect;
       bool                   isRuning;
       const TY_DEV_HANDLE getCurrentDeviceHandle() const;
+
+      const boost::shared_ptr<GigEBase> getCurrentGigEDevice() const;
+
+      const float get_frame_rate() const;
       
       std::mutex detect_mutex;
       std::condition_variable detect_cond;
@@ -280,12 +297,19 @@ namespace percipio
 
       boost::shared_ptr<GigEBase> m_gige_dev;
 
+      bool enable_soft_frame_rate_ctrl = false;
+      bool b_enable_rate_ctrl;
+      float f_frame_rate;
+      
+      bool b_trigger_mode_en;
+
       std::vector<VideoMode> leftIRVideoMode;
       std::vector<VideoMode> rightIRVideoMode;
       std::vector<VideoMode> RGBVideoMode;
       std::vector<VideoMode> DepthVideoMode;
 
       char*                  frameBuffer[2];
+      pthread_t              frame_rate_ctrl_thread;
       pthread_t              frame_fetch_thread;
 
       boost::shared_ptr<NewFrameCallbackManager> leftIRStream;

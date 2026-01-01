@@ -575,6 +575,30 @@ void PercipioDriver::readConfigFromParameterServer()
     reconnection_flag_ = false;
   }
 
+  if (!pnh_.getParam("frame_rate_control", frame_rate_control_))
+  {
+    ROS_WARN ("~frame_rate_control is not set! Try using default.");
+    frame_rate_control_ = false;
+  }
+
+  
+  if (!pnh_.getParam("frame_rate", frame_rate_))
+  {
+    ROS_WARN ("~frame_rate is not set! Try using default.");
+    frame_rate_ = 5.0;
+  }
+  
+  if (!pnh_.getParam("trigger_mode", trigger_mode_))
+  {
+    ROS_WARN ("~trigger_mode is not set! Try using default.");
+    trigger_mode_ = false;
+  }
+
+  if (!pnh_.getParam("soft_trigger_topic", soft_trigger_topic_))
+  {
+    soft_trigger_topic_ = camera_name_ + "/soft_trigger";
+  }
+
   if (!pnh_.getParam("rgb_resolution", rgb_resolution_))
   {
     ROS_WARN ("~rgb_resolution is not set! Try using default.");
@@ -732,10 +756,6 @@ bool PercipioDriver::resolveDeviceResolution(const std::string& resolution_, int
 
 void PercipioDriver::initDevice()
 {
-  if(xml_content.length()) {
-    device_->init_parameters_from_xml(xml_content);
-  }
-  
   int rgb_width, rgb_height;
   int depth_width, depth_height;
   if(resolveDeviceResolution(rgb_resolution_, rgb_width, rgb_height)) {
@@ -762,6 +782,18 @@ void PercipioDriver::initDevice()
   device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
 
   device_->setUseDeviceTimer(use_device_time_);
+
+  device_->setDeviceWorkMode(frame_rate_control_, frame_rate_, trigger_mode_);
+
+  //frame_rate_control_;
+  //frame_rate_;
+  
+  //trigger_mode_;
+  //soft_trigger_topic_;
+
+  if(xml_content.length()) {
+    device_->init_parameters_from_xml(xml_content);
+  }
 }
 
 void PercipioDriver::setupDevice()

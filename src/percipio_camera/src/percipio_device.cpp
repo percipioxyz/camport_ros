@@ -439,6 +439,11 @@ float PercipioDevice::getDepthScale()
   return percipio_device_->DevicePtr()->getDepthScaleUnit();
 }
 
+void PercipioDevice::setDeviceWorkMode(bool enable_rate, float frame_rate, bool trigger_mode_en)
+{
+  return percipio_device_->DevicePtr()->set_work_mode(enable_rate, frame_rate, trigger_mode_en);
+}
+
 void PercipioDevice::setUseDeviceTimer(bool enable)
 {
   if (ir_frame_listener)

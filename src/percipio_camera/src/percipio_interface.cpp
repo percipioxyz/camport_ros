@@ -100,7 +100,7 @@ namespace percipio
           if(sub_str && text) {
             std::string feat_name = xml_key_trim(std::string(sub_str));
             std::string val = xml_key_trim(std::string(text));
-            cfg[source].insert(std::make_pair(feat_name, val));
+            cfg[source].push_back({feat_name, val});
           }
         }
     }
@@ -311,6 +311,21 @@ namespace percipio
     _M_DEVICE = deviceHandle;
 
     return DeviceInit();
+  }
+
+  void PercipioDepthCam::set_work_mode(bool enable_rate, float frame_rate, bool trigger_mode_en)
+  {
+    if(enable_rate) {
+      if(trigger_mode_en) {
+        ROS_WARN("Since enable_rate is enabled, trigger_mode_en parameter will be ignored");
+        trigger_mode_en = false;
+      }
+    }
+
+    b_enable_rate_ctrl = enable_rate;
+    f_frame_rate = frame_rate;
+      
+    b_trigger_mode_en = trigger_mode_en;
   }
 
   void PercipioDepthCam::setDeviceInitCallback(boost::shared_ptr<initDeviceCallbackFunction>& callback)
@@ -791,7 +806,41 @@ namespace percipio
     return nullptr;
   }
 
-  void* PercipioDepthCam::fetch_thread(void* ptr)
+  void* PercipioDepthCam::soft_frame_rate_ctrl_thread(void* ptr)
+  {
+    TY_STATUS rc;
+    PercipioDepthCam* cam = (PercipioDepthCam*)ptr;
+    const float fps = cam->get_frame_rate();
+    auto dev = cam->getCurrentGigEDevice();
+
+    while(cam->isRuning) {
+      int delay = (int)(1000 / fps);
+      uint64_t trig_before = getSystemTime();
+      rc = dev->send_soft_trigger_signal();
+      if(rc) {
+        ROS_ERROR("Failed to send soft trigger signal!");
+      }
+      uint64_t trig_after = getSystemTime();
+
+      int trig_time = static_cast<int>(trig_after - trig_before);
+      int delt = delay > trig_time ? (delay - trig_time) : 0;
+
+      if(delt) {
+          if(delt<60)
+          {
+           
+            delt=60;
+          }
+          MSLEEP(delt);
+      } else {
+          ROS_WARN("Trigger signal timeout!");
+      }
+    }
+
+    return nullptr;
+  }
+
+  void* PercipioDepthCam::device_frame_fetch_thread(void* ptr)
   {
     TY_STATUS rc;
     PercipioDepthCam* cam = (PercipioDepthCam*)ptr;
@@ -857,7 +906,7 @@ namespace percipio
       }
     }
     
-    return NULL;
+    return nullptr;
   }
 
   bool PercipioDepthCam::HasStream()
@@ -1005,6 +1054,17 @@ namespace percipio
     ROS_INFO("Depth undistortion flag: %d", depth_distortion);
     ROS_INFO("RGBD alignment flag:     %d", DeviceGetImageRegistrationMode());
 
+    enable_soft_frame_rate_ctrl = false;
+    if(b_enable_rate_ctrl) {
+      if(m_gige_dev->is_support_frame_rate_ctrl())
+        m_gige_dev->frame_rate_init(f_frame_rate);
+      else {
+        enable_soft_frame_rate_ctrl = true;
+      }
+    }
+      
+    m_gige_dev->enable_trigger_mode(b_trigger_mode_en);
+    
     uint32_t frameSize;
     TYGetFrameBufferSize(_M_DEVICE, &frameSize);
     if(frameBuffer[0]) delete []frameBuffer[0];
@@ -1020,9 +1080,12 @@ namespace percipio
       ROS_WARN("TYStartCapture got error code : %d!", rc);
       return rc;
     }
-    
+
     isRuning = true;
-    pthread_create(&frame_fetch_thread, NULL, fetch_thread, this);
+    if(enable_soft_frame_rate_ctrl) {
+      pthread_create(&frame_rate_ctrl_thread, NULL, soft_frame_rate_ctrl_thread, this);
+    }
+    pthread_create(&frame_fetch_thread, NULL, device_frame_fetch_thread, this);
     
     return TY_STATUS_OK;
   }
@@ -1031,6 +1094,9 @@ namespace percipio
   {
     if(isRuning) {
       isRuning = false;
+      if(enable_soft_frame_rate_ctrl) {
+        pthread_join(frame_rate_ctrl_thread, NULL);
+      }
       pthread_join(frame_fetch_thread, NULL);
     }
     TYStopCapture(_M_DEVICE);
@@ -1049,6 +1115,9 @@ namespace percipio
 
     if(isRuning) {
       isRuning = false;
+      if(enable_soft_frame_rate_ctrl) {
+        pthread_join(frame_rate_ctrl_thread, NULL);
+      }
       pthread_join(frame_fetch_thread, NULL);
     }
     
@@ -1072,6 +1141,16 @@ namespace percipio
   const TY_DEV_HANDLE PercipioDepthCam::getCurrentDeviceHandle() const
   {
     return _M_DEVICE;
+  }
+
+  const boost::shared_ptr<GigEBase> PercipioDepthCam::getCurrentGigEDevice() const
+  {
+    return m_gige_dev;
+  }
+
+  const float PercipioDepthCam::get_frame_rate() const
+  {
+    return f_frame_rate;
   }
 
   TY_STATUS PercipioDepthCam::create_leftIR_stream(StreamHandle& stream)

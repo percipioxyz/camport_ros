@@ -509,8 +509,8 @@ TY_STATUS GigE_2_1::LoadParametersFromXML(const percipio_feat& cfg)
   for(auto& iter : cfg) {
     for(auto& feat : iter.second) {
       const std::string& source = iter.first;
-      const std::string& feature = feat.first;
-      const std::string& feat_val = feat.second;
+      const std::string& feature = feat.node_desc;
+      const std::string& feat_val = feat.node_info;
 
       if(m_current_source != source) {
         status = TYEnumSetString(hDevice, "SourceSelector", source.c_str());
@@ -578,6 +578,80 @@ TY_STATUS GigE_2_1::LoadParametersFromXML(const percipio_feat& cfg)
     }
   }
   return TY_STATUS_OK;
+}
+
+bool GigE_2_1::is_support_frame_rate_ctrl()
+{
+  TY_STATUS status = TY_STATUS_OK;
+  status = TYEnumSetString(hDevice, "AcquisitionMode", "Continuous");
+  if(status != TY_STATUS_OK) {
+    ROS_WARN("Failed to set AcquisitionMode to Continuous. Error: %d", status);
+    return false;
+  }
+  
+  status = TYBooleanSetValue(hDevice, "AcquisitionFrameRateEnable", true);
+  if(status != TY_STATUS_OK) {
+    ROS_WARN("Failed to enable AcquisitionFrameRateEnable. Error: %d", status);
+    return false;
+  }
+  
+  return true;
+}
+
+TY_STATUS GigE_2_1::frame_rate_init(const float fps)
+{
+  TY_STATUS status = TY_STATUS_OK;
+  double min = 0, max = 0;
+  double target_fps = static_cast<double>(fps);
+  
+  status = TYFloatGetMin(hDevice, "AcquisitionFrameRate", &min);
+  if(status != TY_STATUS_OK) {
+    ROS_WARN("Failed to get minimum frame rate from device. Error code: %d", status);
+    min = 1.0;
+  }
+  
+  status = TYFloatGetMax(hDevice, "AcquisitionFrameRate", &max);
+  if(status != TY_STATUS_OK) {
+    ROS_WARN("Failed to get maximum frame rate from device. Error code: %d", status);
+    max = 30.0;
+  }
+  
+  if(target_fps < min) {
+    ROS_WARN("Requested frame rate %.2f is below minimum %.2f. Clamping to minimum.", target_fps, min);
+    target_fps = min;
+  } else if(target_fps > max) {
+    ROS_WARN("Requested frame rate %.2f exceeds maximum %.2f. Clamping to maximum.", target_fps, max);
+    target_fps = max;
+  }
+  
+  status = TYFloatSetValue(hDevice, "AcquisitionFrameRate", target_fps);
+  if(status != TY_STATUS_OK) {
+    ROS_ERROR("Failed to set frame rate to %.2f FPS. Error code: %d", target_fps, status);
+  }
+
+  return status;
+}
+
+TY_STATUS GigE_2_1::enable_trigger_mode(const bool en)
+{
+  TY_STATUS status = TY_STATUS_OK;
+  status = TYEnumSetString(hDevice, "AcquisitionMode", "SingleFrame");
+  if(status != TY_STATUS_OK) {
+    ROS_WARN("Failed to set AcquisitionMode to SingleFrame. Error: %d", status);
+    return false;
+  }
+
+  status = TYEnumSetString(hDevice, "TriggerSource", "Software");
+  if(status != TY_STATUS_OK) {
+    ROS_ERROR("Failed to set TriggerSource to Software. Error: %d", status);
+  }
+
+  return status;
+}
+
+TY_STATUS GigE_2_1::send_soft_trigger_signal()
+{
+  return TYCommandExec(hDevice, "TriggerSoftware");
 }
 
 TY_STATUS GigE_2_1::EnableColorStream(const bool en)

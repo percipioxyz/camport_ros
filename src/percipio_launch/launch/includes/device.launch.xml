@@ -30,6 +30,11 @@
   <arg name="device_log_level" default="ERROR" />
   <arg name="device_log_server_port" default="9001" />
 
+  <arg name="frame_rate_control" default="false" />
+  <arg name="frame_rate" default="5.0" />
+  <arg name="trigger_mode" default="false" />
+  <arg name="soft_trigger_topic" default="$(arg camera)/soft_trigger" />
+
   <!--<arg name="auto_exposure" default="true" /> -->
   <!--<arg name="auto_white_balance" default="true" />-->
   <arg name="rgb_resolution" default="640x480" />
@@ -63,6 +68,11 @@
     <param name="device_log_enable" value="$(arg device_log_enable)" />
     <param name="device_log_level" value="$(arg device_log_level)" />
     <param name="device_log_server_port" value="$(arg device_log_server_port)" />
+
+    <param name="frame_rate_control" type="bool" value="$(arg frame_rate_control)" />
+    <param name="frame_rate" type="double" value="$(arg frame_rate)" />
+    <param name="trigger_mode" type="bool" value="$(arg trigger_mode)" />
+    <param name="soft_trigger_topic" type="str" value="$(arg soft_trigger_topic)" />
 
     <param name="rgb_resolution" type="str" value="$(arg rgb_resolution)" />
     <param name="depth_resolution" type="str" value="$(arg depth_resolution)" />
@@ -105,6 +115,11 @@
     <param name="device_log_enable" value="$(arg device_log_enable)" />
     <param name="device_log_level" value="$(arg device_log_level)" />
     <param name="device_log_server_port" value="$(arg device_log_server_port)" />
+
+    <param name="frame_rate_control" type="bool" value="$(arg frame_rate_control)" />
+    <param name="frame_rate" type="double" value="$(arg frame_rate)" />
+    <param name="trigger_mode" type="bool" value="$(arg trigger_mode)" />
+    <param name="soft_trigger_topic" type="str" value="$(arg soft_trigger_topic)" />
 
     <param name="rgb_resolution" type="str" value="$(arg rgb_resolution)" />
     <param name="depth_resolution" type="str" value="$(arg depth_resolution)" />

@@ -99,6 +99,12 @@ private:
   std::string rgb_format_;
   std::string depth_format_;
 
+  bool frame_rate_control_;
+  float frame_rate_;
+  
+  bool trigger_mode_;
+  std::string soft_trigger_topic_;
+
   bool device_log_enable_;
   std::string device_log_level_;
   int device_log_server_port_;
