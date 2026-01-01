@@ -400,8 +400,8 @@ bool GigE_2_0::is_support_frame_rate_ctrl()
 {
   TY_TRIGGER_PARAM param;
   param.mode = TY_TRIGGER_MODE_M_PER;
-  param.fps = 2;
-  TY_STATUS ret = TYSetStruct(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM_EX, (void*)&param, sizeof(param));
+  param.fps = 1;
+  TY_STATUS ret = TYSetStruct(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM, (void*)&param, sizeof(param));
   return ret ? false : true;
 }
 
@@ -410,11 +410,14 @@ TY_STATUS GigE_2_0::frame_rate_init(const float fps)
   TY_TRIGGER_PARAM param;
   param.mode = TY_TRIGGER_MODE_M_PER;
   param.fps = (int8_t)fps;
-  return TYSetStruct(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM_EX, (void*)&param, sizeof(param));
+  TY_STATUS ret = TYSetStruct(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM, (void*)&param, sizeof(param));
+  return  ret;
 }
 
 TY_STATUS GigE_2_0::enable_trigger_mode(const bool en)
 {
+  if(!en) return 0;
+
   TY_TRIGGER_PARAM_EX trigger;
   trigger.mode = TY_TRIGGER_MODE_SLAVE;
   return TYSetStruct(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM_EX, &trigger, sizeof(trigger));

@@ -634,6 +634,8 @@ TY_STATUS GigE_2_1::frame_rate_init(const float fps)
 
 TY_STATUS GigE_2_1::enable_trigger_mode(const bool en)
 {
+  if(!en) return 0;
+  
   TY_STATUS status = TY_STATUS_OK;
   status = TYEnumSetString(hDevice, "AcquisitionMode", "SingleFrame");
   if(status != TY_STATUS_OK) {

@@ -107,6 +107,69 @@ namespace percipio
     return m_gige_dev->LoadParametersFromXML(cfg);
   }
 
+  class FPSCounter {
+private:
+    struct State {
+        struct timeval start_time;
+        int counter;
+        bool initialized;
+        
+        State() : counter(0), initialized(false) {
+            start_time.tv_sec = 0;
+            start_time.tv_usec = 0;
+        }
+    };
+    
+    static std::unique_ptr<State> state_;
+
+    static long timeval_to_ms(const struct timeval& tv) {
+        return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+    }
+
+public:
+    static float get_fps() {
+        if (!state_) {
+            state_ = std::make_unique<State>();
+        }
+        
+        struct timeval current_time;
+        gettimeofday(&current_time, NULL);
+        
+        if (!state_->initialized) {
+            state_->start_time = current_time;
+            state_->initialized = true;
+            return -1.0f;
+        }
+        
+        state_->counter++;
+        
+        long elapsed_ms = timeval_to_ms(current_time) - timeval_to_ms(state_->start_time);
+        
+        if (elapsed_ms < 5000) {
+            return -1.0f;
+        }
+        
+        float fps = 1000.0f * state_->counter / elapsed_ms;
+        
+        reset();
+        
+        return fps;
+    }
+    
+    static void reset() {
+        if (!state_) {
+            state_ = std::make_unique<State>();
+        } else {
+            state_->counter = 0;
+            state_->initialized = false;
+        }
+    }
+  };
+
+  std::unique_ptr<FPSCounter::State> FPSCounter::state_ = nullptr;
+  static FPSCounter fps_counter;
+
+
   int PercipioDepthCam::send_soft_trigger()
   {
     TY_STATUS ret = 0;
@@ -763,32 +826,6 @@ namespace percipio
     pthread_mutex_unlock(&m_mutex);
   }
 
-  static float get_fps() {
-    static clock_t fps_tm = 0;
-    static int fps_counter = 0;
-    struct timeval start;
-    
-    gettimeofday(&start, NULL);
-    if(0 == fps_tm) {
-        fps_tm = start.tv_sec * 1000 + start.tv_usec / 1000;
-        return -1.0;
-    }
-
-    fps_counter++;
-
-    int elapse = start.tv_sec * 1000 + start.tv_usec / 1000 - fps_tm;
-    if(elapse < 5000)
-    {
-        return -1.0;
-    }
-
-    float v = 1000.0f * fps_counter / elapse;
-    fps_tm = 0;
-    fps_counter = 0;
-
-    return v;
-  }
-
   bool PercipioDepthCam::isOffline = false;
   bool PercipioDepthCam::b_device_opened = false;
 
@@ -862,11 +899,12 @@ namespace percipio
     PercipioDepthCam* cam = (PercipioDepthCam*)ptr;
     const TY_DEV_HANDLE handle = cam->getCurrentDeviceHandle();
 
+    fps_counter.reset();
     while(cam->isRuning) {
       TY_FRAME_DATA frame;
       rc = TYFetchFrame(handle, &frame, 2000);
       if(rc == TY_STATUS_OK) {
-        float fps = get_fps();
+        float fps = fps_counter.get_fps();
         if(fps > 0) ROS_INFO("fps: %.2f", fps);
         for (int i = 0; i < frame.validCount; i++){
           if (frame.image[i].status != TY_STATUS_OK) continue;
