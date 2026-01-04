@@ -329,9 +329,24 @@ TY_STATUS GigE_2_1::getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
 
 TY_STATUS GigE_2_1::AcquisitionInit()
 {
-  TY_STATUS status = TYEnumSetString(hDevice, "AcquisitionMode", "Continuous");
+  TY_STATUS status;
+  bool IsLinkSpeedExist = false;
+  status = TYParamExist(hDevice, "DeviceLinkSpeed", &IsLinkSpeedExist);
+  if(status == TY_STATUS_OK) {
+    if(IsLinkSpeedExist) {
+      int64_t speed;
+      status = TYIntegerGetValue(hDevice, "DeviceLinkSpeed", &speed);
+      if(status != TY_STATUS_OK) {
+        ROS_WARN("Failed to get DeviceLinkSpeed, Error: %d", status);
+      } else {
+        ROS_INFO("Device Link Speed: %" PRId64 "(Mbps)", speed);
+      }
+    }
+  }
+
+  status = TYEnumSetString(hDevice, "AcquisitionMode", "Continuous");
   if(status != TY_STATUS_OK) {
-    ROS_WARN("Set AcquisitionMode error : %d", status);
+    ROS_WARN("Failed to set AcquisitionMode, Error: %d", status);
   } else {
     TY_ACCESS_MODE _access = 0;
     status = TYParamGetAccess(hDevice, "AcquisitionFrameRateEnable", &_access);

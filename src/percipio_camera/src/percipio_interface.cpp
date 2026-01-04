@@ -253,6 +253,12 @@ public:
   {
     TY_DEVICE_BASE_INFO info;
     TYGetDeviceInfo(_M_DEVICE, &info);
+    ROS_INFO("Device Information:");
+    ROS_INFO("  - Model: %s", info.modelName);
+    ROS_INFO("  - Serial Number: %s", info.id);
+    ROS_INFO("  - Firmware Version: %s", info.buildHash);
+    ROS_INFO("  - Configuration Version: %s", info.configVersion);
+    ROS_INFO("  - Vendor: %s", info.vendorName);
 
     bool isNetDev = TYIsNetworkInterface(info.iface.type);
     if(isNetDev) {

@@ -527,7 +527,7 @@ bool GigE_2_0::load_default_parameter()
     
   uint32_t crc_data = *(uint32_t*)blocks;
   if(0 == crc_data || 0xffffffff == crc_data) {
-    LOGD("The CRC check code is empty.");
+    ROS_INFO("The CRC check code is empty.");
     delete []blocks;
     return false;
   } 
@@ -544,21 +544,21 @@ bool GigE_2_0::load_default_parameter()
         uint32_t huffman_size = *(uint32_t*)(blocks + 8);
         uint8_t* huffman_ptr = (uint8_t*)(blocks + 12);
         if(huffman_size > (MAX_STORAGE_SIZE - 8)) {
-          LOGE("Storage data length error.");
+          ROS_WARN("Storage data length error.");
           delete []blocks;
           return false;
         }
                 
         crc = crc32_bitwise(huffman_ptr, huffman_size);
         if(crc_data != crc) {
-          LOGE("Storage area data check failed (check code error).");
+          ROS_WARN("Storage area data check failed (check code error).");
           delete []blocks;
           return false;
         }
 
         std::string huffman_string(huffman_ptr, huffman_ptr + huffman_size);
         if(!TextHuffmanDecompression(huffman_string, js_string)) {
-          LOGE("Huffman decompression error.");
+          ROS_ERROR("Huffman decompression error.");
           delete []blocks;
           return false;
         }
@@ -566,7 +566,7 @@ bool GigE_2_0::load_default_parameter()
       }
       default:
       {
-        LOGE("Unsupported encoding format.");
+        ROS_WARN("Unsupported encoding format.");
         delete []blocks;
         return false;
       }
@@ -576,16 +576,16 @@ bool GigE_2_0::load_default_parameter()
   }
 
   if(!isValidJsonString(js_string.c_str())) {
-    LOGE("Incorrect json data.");
+    ROS_WARN("Incorrect json data.");
     delete []blocks;
     return false;
   }
 
   bool ret = json_parse(hDevice, js_string.c_str());
   if(ret)  
-    LOGD("Loading default parameters successfully!");
+    ROS_INFO("Loading default parameters successfully!");
   else
-    LOGD("Failed to load default parameters, some parameters cannot be loaded properly!");
+    ROS_WARN("Failed to load default parameters, some parameters cannot be loaded properly!");
     
   delete []blocks;
   return ret;
