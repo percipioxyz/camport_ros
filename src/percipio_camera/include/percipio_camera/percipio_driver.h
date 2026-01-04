@@ -36,7 +36,6 @@
 
 #include <ros/ros.h>
 
-#include "percipio_camera/percipio_driver.h"
 #include <nodelet/nodelet.h>
 
 namespace percipio_wrapper
@@ -71,6 +70,7 @@ private:
   bool resolveDeviceResolution(const std::string& resolution_, int& width, int& height);
   void setupDevice();
   void initDevice();
+  void DeviceEvent(const char* event);
 
   void advertiseROSTopics();
 
@@ -140,6 +140,8 @@ private:
   
   sensor_msgs::PointCloud2 pub_point3d_cloud;
   ros::Publisher pub_point3d_;
+
+  ros::Publisher device_event_pub_;
 
   std::vector<geometry_msgs::TransformStamped> static_tf_msgs_;
   tf2_ros::StaticTransformBroadcaster static_tf_broadcaster_;

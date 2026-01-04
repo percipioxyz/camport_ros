@@ -499,10 +499,16 @@ void PercipioDevice::setPoint3DFrameCallback(boost::shared_ptr<FrameCallbackFunc
   point3d_frame_listener->setCallback(callback);
 }
 
-void PercipioDevice::setDeviceInitCallback(boost::shared_ptr<percipio::initDeviceCallbackFunction>& callback)
+void PercipioDevice::setDeviceInitCallback(boost::shared_ptr<percipio::DeviceInitCallbackFunction>& callback)
 {
   percipio_device_->DevicePtr()->setDeviceInitCallback(callback);
 }
+
+void PercipioDevice::setDeviceEventCallback(boost::shared_ptr<percipio::DeviceEventCallbackFunction>& callback)
+{
+  percipio_device_->DevicePtr()->setDeviceEventCallback(callback);
+}
+
 
 boost::shared_ptr<percipio::VideoStream> PercipioDevice::getIRVideoStream() const
 {

@@ -106,7 +106,9 @@ public:
   void setDepthFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
   void setPoint3DFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
 
-  void setDeviceInitCallback(boost::shared_ptr<percipio::initDeviceCallbackFunction>& callback);
+  void setDeviceInitCallback(boost::shared_ptr<percipio::DeviceInitCallbackFunction>& callback);
+
+  void setDeviceEventCallback(boost::shared_ptr<percipio::DeviceEventCallbackFunction>& callback);
 
   void setUseDeviceTimer(bool enable);
 

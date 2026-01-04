@@ -173,8 +173,6 @@ public:
 
   PercipioDepthCam::PercipioDepthCam() : _M_IFACE(0), _M_DEVICE(0), mIDS(0)
   {
-    frameBuffer[0] = NULL;
-    frameBuffer[1] = NULL;
     isRuning = false;
 
     current_rgb_width = 0;
@@ -191,43 +189,45 @@ public:
 
   void PercipioDepthCam::GetDeviceList(DeviceInfo** device_info_ptr, int* cnt)
   {
+    device_list.clear();
+
     std::vector<TY_DEVICE_BASE_INFO> selected;
     TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", "", 100, selected);
-    if(rc == TY_STATUS_OK && selected.size()) {
-      device_list.clear();
-      for(size_t i = 0; i < selected.size(); i++) {
+    if(rc != TY_STATUS_OK || selected.size() == 0) {
+       *cnt = 0;
+       *device_info_ptr = nullptr;
+       ROS_ERROR("not found any device");
+       return;
+    }
 
-        if (TYIsNetworkInterface(selected[i].iface.type)) {
-          device_list.push_back(DeviceInfo(selected[i].id, selected[i].vendorName, selected[i].modelName, selected[i].netInfo.ip));
-        } else {
-          TY_INTERFACE_HANDLE hIface;
-          rc = TYOpenInterface(selected[i].iface.id, &hIface);
-          if(rc == TY_STATUS_OK) {
-            TY_DEV_HANDLE handle;
-            int32_t ret = TYOpenDevice(hIface, selected[i].id, &handle);
-            if (ret == 0) {
-              TY_DEVICE_BASE_INFO dev;
-              memset(&dev, 0, sizeof(TY_DEVICE_BASE_INFO));
+    for(size_t i = 0; i < selected.size(); i++) {
+      if (TYIsNetworkInterface(selected[i].iface.type)) {
+        device_list.push_back(DeviceInfo(selected[i].id, selected[i].vendorName, selected[i].modelName, selected[i].netInfo.ip));
+      } else {
+        TY_INTERFACE_HANDLE hIface;
+        rc = TYOpenInterface(selected[i].iface.id, &hIface);
+        if(rc == TY_STATUS_OK) {
+          TY_DEV_HANDLE handle;
+          int32_t ret = TYOpenDevice(hIface, selected[i].id, &handle);
+          if (ret == 0) {
+            TY_DEVICE_BASE_INFO dev;
+            memset(&dev, 0, sizeof(TY_DEVICE_BASE_INFO));
 
-              TYGetDeviceInfo(handle, &dev);
-              TYCloseDevice(handle);
+            TYGetDeviceInfo(handle, &dev);
+            TYCloseDevice(handle);
 
-              if (strlen(dev.userDefinedName) != 0) {
-                device_list.push_back(DeviceInfo(selected[i].id, dev.userDefinedName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID));
-              } else {
-                //LOGD("          vendor     : %s", dev.vendorName);
-                device_list.push_back(DeviceInfo(selected[i].id, dev.vendorName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID));
-              }
+            if (strlen(dev.userDefinedName) != 0) {
+              device_list.push_back(DeviceInfo(selected[i].id, dev.userDefinedName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID));
+            } else {
+              //LOGD("          vendor     : %s", dev.vendorName);
+              device_list.push_back(DeviceInfo(selected[i].id, dev.vendorName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID));
             }
-            TYCloseInterface(hIface);
-
           }
+          TYCloseInterface(hIface);
         }
       }
-    } else {
-      ROS_ERROR("not found any device");
     }
-    
+
     *cnt = device_list.size();
     *device_info_ptr = new DeviceInfo[device_list.size()];
     for(size_t i = 0; i < device_list.size(); i++)
@@ -398,9 +398,14 @@ public:
     b_trigger_mode_en = trigger_mode_en;
   }
 
-  void PercipioDepthCam::setDeviceInitCallback(boost::shared_ptr<initDeviceCallbackFunction>& callback)
+  void PercipioDepthCam::setDeviceInitCallback(boost::shared_ptr<DeviceInitCallbackFunction>& callback)
   {
     ptrFuncDeviceInit = callback;
+  }
+
+  void PercipioDepthCam::setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback)
+  {
+    ptrFuncDeviceEvent = callback;
   }
 
   const DeviceInfo& PercipioDepthCam::get_current_device_info()
@@ -417,7 +422,7 @@ public:
   {
     if (event_info->eventId == TY_EVENT_DEVICE_OFFLINE) 
     {
-      LOGD("=== Event Callback: Device Offline!");
+      ROS_WARN("=== Event Callback: Device Offline!");
       for(size_t i = 0; i < cb_list.size(); i++) 
       {
         if(cb_list[i].cb == NULL) 
@@ -427,12 +432,13 @@ public:
           continue;
 
         cb_list[i].cb->deviceDisconnected(&((PercipioDepthCam*)userdata)->current_device_info, cb_list[i].pListener);
-
-        PercipioDepthCam::isOffline = true;
-
-        std::unique_lock<std::mutex> lck( ((PercipioDepthCam*)userdata)->detect_mutex);
-        ((PercipioDepthCam*)userdata)->detect_cond.notify_one();
       }
+
+      std::unique_lock<std::mutex> lck( ((PercipioDepthCam*)userdata)->detect_mutex);
+      PercipioDepthCam::isOffline = true;
+      ((PercipioDepthCam*)userdata)->send_device_event(DEVICE_EVENT_OFFLINE);
+      ((PercipioDepthCam*)userdata)->detect_cond.notify_one();
+
     }
   }
 
@@ -861,6 +867,28 @@ public:
   bool PercipioDepthCam::isOffline = false;
   bool PercipioDepthCam::b_device_opened = false;
 
+  void PercipioDepthCam::send_device_event(DeviceEvent eventID)
+  {
+    std::string event_string;
+    std::string device_info = std::string("<") + std::string(current_device_info.getUri()) + std::string(">");
+    if(ptrFuncDeviceEvent) {
+      switch (eventID)
+      {
+      case DEVICE_EVENT_OFFLINE:
+        event_string = "DeviceOffline" + device_info;
+        break;
+      case DEVICE_EVENT_AUTO_RECONNECTED:
+        event_string = "DeviceConnect" + device_info;
+        break;
+      default:
+        event_string = "DeviceUnknownEvent" + device_info;
+        break;
+      }
+
+      (*ptrFuncDeviceEvent)(event_string.c_str());
+    }
+  }
+
   void* PercipioDepthCam::device_offline_reconnect(void* ptr)
   {
     PercipioDepthCam* cam = (PercipioDepthCam*)ptr;
@@ -872,6 +900,8 @@ public:
       cam->close();
       while(true) {
         if(!cam->openWithSN(cam->m_current_device_sn.c_str())) {
+          cam->send_device_event(DEVICE_EVENT_AUTO_RECONNECTED);
+
           ROS_INFO("camera: %s  opened!", cam->m_current_device_sn.c_str());
           break;
         }
@@ -1158,13 +1188,10 @@ public:
     
     uint32_t frameSize;
     TYGetFrameBufferSize(_M_DEVICE, &frameSize);
-    if(frameBuffer[0]) delete []frameBuffer[0];
-    if(frameBuffer[1]) delete []frameBuffer[1];
-    frameBuffer[0] = new char[frameSize];
-    frameBuffer[1] = new char[frameSize];
-
-    TYEnqueueBuffer(_M_DEVICE, frameBuffer[0], frameSize);
-    TYEnqueueBuffer(_M_DEVICE, frameBuffer[1], frameSize);
+    frameBuffer[0].resize(frameSize);
+    frameBuffer[1].resize(frameSize);
+    TYEnqueueBuffer(_M_DEVICE, &frameBuffer[0][0], frameSize);
+    TYEnqueueBuffer(_M_DEVICE, &frameBuffer[1][0], frameSize);
 
     rc = TYStartCapture(_M_DEVICE);
     if(rc != TY_STATUS_OK) {
@@ -1192,10 +1219,6 @@ public:
     }
     TYStopCapture(_M_DEVICE);
     TYClearBufferQueue(_M_DEVICE);
-    delete []frameBuffer[0];
-    delete []frameBuffer[1];
-    frameBuffer[0] = NULL;
-    frameBuffer[1] = NULL;
   }
 
   void PercipioDepthCam::StreamStop(StreamHandle stream)
@@ -1214,10 +1237,6 @@ public:
     
     TYStopCapture(_M_DEVICE);
     TYClearBufferQueue(_M_DEVICE);
-    delete []frameBuffer[0];
-    delete []frameBuffer[1];
-    frameBuffer[0] = NULL;
-    frameBuffer[1] = NULL;
 
     if(HasStream()) {
       StreamStart();

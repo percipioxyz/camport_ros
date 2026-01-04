@@ -149,6 +149,8 @@ void PercipioDriver::advertiseROSTopics()
     pub_point3d_ = nh_.advertise<sensor_msgs::PointCloud2>("PointCloud2", 1, rssc2, rssc2);
   }
 
+  device_event_pub_ = nh_.advertise<std_msgs::String>("PercipioDeviceEvent", 10);
+
   std::string serial_number = device_->getStringID();
   std::string color_name, depth_name, ir_name;//, ;
 
@@ -806,6 +808,14 @@ void PercipioDriver::initDevice()
   }
 }
 
+void PercipioDriver::DeviceEvent(const char* event)
+{
+  ROS_INFO("DeviceEvent: %s", event);
+  std_msgs::String msg;
+  msg.data = event;
+  device_event_pub_.publish(msg);
+}
+
 void PercipioDriver::SoftTriggerCb(const std_msgs::EmptyConstPtr& msg)
 {
   if (device_ && trigger_mode_)
@@ -855,8 +865,11 @@ void PercipioDriver::setupDevice()
       device_ = device_manager_->getDevice(device_URI, reconnection_flag_);
       initDevice();
 
-      auto cb = boost::make_shared<percipio::initDeviceCallbackFunction>(boost::bind(&PercipioDriver::initDevice, this));
-      device_->setDeviceInitCallback(cb);
+      auto init_cb = boost::make_shared<percipio::DeviceInitCallbackFunction>(boost::bind(&PercipioDriver::initDevice, this));
+      device_->setDeviceInitCallback(init_cb);
+
+      auto event_cb = boost::make_shared<percipio::DeviceEventCallbackFunction>(boost::bind(&PercipioDriver::DeviceEvent, this, _1));
+      device_->setDeviceEventCallback(event_cb);
     }
     catch (const PercipioException& exception)
     {

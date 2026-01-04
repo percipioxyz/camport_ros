@@ -79,15 +79,9 @@ public:
     boost::mutex::scoped_lock l(device_mutex_);
 
     if(strlen(pInfo->getIp()))
-      ROS_WARN("Device \"%s\" IP:%s disconnected\n", pInfo->getUri(), pInfo->getIp());
+      ROS_WARN("Device \"%s\" IP:%s disconnected", pInfo->getUri(), pInfo->getIp());
     else
-      ROS_WARN("Device \"%s\" disconnected\n", pInfo->getUri());
-
-    //const PercipioDeviceInfo device_info_wrapped = percipio_convert(pInfo);
-    //device_set_.erase(device_info_wrapped);
-
-    //kill node
-    //system("rosnode kill /camera/driver");
+      ROS_WARN("Device \"%s\" disconnected", pInfo->getUri());
   }
 
   boost::shared_ptr<std::vector<std::string> > getConnectedDeviceURIs()

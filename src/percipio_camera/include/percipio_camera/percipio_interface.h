@@ -47,6 +47,12 @@ namespace percipio
     IMAGE_REGISTRATION_DEPTH_TO_COLOR	= 1,
     IMAGE_REGISTRATION_COLOR_TO_DEPTH	= 2,
   } ImageRegistrationMode;
+
+  typedef enum
+  {
+    DEVICE_EVENT_OFFLINE = 0,
+    DEVICE_EVENT_AUTO_RECONNECTED,
+  } DeviceEvent;
   
   typedef enum
   {
@@ -93,7 +99,8 @@ namespace percipio
   typedef void (*DeviceInfoCallback)(const DeviceInfo* pInfo, void* pCookie);
   typedef void (*DeviceStateCallback)(const DeviceInfo* pInfo, DeviceState deviceState, void* pCookie);
 
-  typedef boost::function<void(void)> initDeviceCallbackFunction;
+  typedef boost::function<void(void)> DeviceInitCallbackFunction;
+  typedef boost::function<void(const char*)> DeviceEventCallbackFunction;
   typedef struct
   {
     DeviceInfoCallback    deviceConnected;
@@ -192,8 +199,11 @@ namespace percipio
 
       int parse_xml_parameters(const std::string& xml);
 
-      boost::shared_ptr<initDeviceCallbackFunction> ptrFuncDeviceInit;
-      void setDeviceInitCallback(boost::shared_ptr<initDeviceCallbackFunction>& callback);
+      boost::shared_ptr<DeviceInitCallbackFunction> ptrFuncDeviceInit;
+      void setDeviceInitCallback(boost::shared_ptr<DeviceInitCallbackFunction>& callback);
+
+      boost::shared_ptr<DeviceEventCallbackFunction> ptrFuncDeviceEvent;
+      void setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback);
 
       const DeviceInfo& get_current_device_info();
 
@@ -263,6 +273,8 @@ namespace percipio
 
       static void* device_offline_reconnect(void* ptr);
 
+      void send_device_event(DeviceEvent eventID);
+
       bool HasStream();
 
       void StreamEnable(StreamHandle stream);
@@ -316,7 +328,7 @@ namespace percipio
       std::vector<VideoMode> RGBVideoMode;
       std::vector<VideoMode> DepthVideoMode;
 
-      char*                  frameBuffer[2];
+      std::vector<char>      frameBuffer[2];
       pthread_t              frame_rate_ctrl_thread;
       pthread_t              frame_fetch_thread;
 
