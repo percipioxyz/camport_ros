@@ -505,6 +505,11 @@ TY_STATUS GigE_2_0::EnableRightIRStream(const bool en)
   return ret;
 }
 
+void GigE_2_0::Reset()
+{
+  TYCloseDevice(hDevice, true);
+}
+
 bool GigE_2_0::load_default_parameter()
 {
   TY_STATUS status = TY_STATUS_OK;

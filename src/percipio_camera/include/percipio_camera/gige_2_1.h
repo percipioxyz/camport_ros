@@ -49,6 +49,8 @@ class GigE_2_1 : public GigEBase {
     virtual TY_STATUS EnableLeftIRStream(const bool en);
     virtual TY_STATUS EnableRightIRStream(const bool en);
 
+    virtual void Reset();
+
   private:
     std::vector<GegE2ImageMode>       dump_source_image_mode();
     TY_STATUS getCalibData(TY_CAMERA_CALIB_INFO& calib_data);

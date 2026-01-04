@@ -767,6 +767,11 @@ TY_STATUS GigE_2_1::EnableRightIRStream(const bool en)
   return ret;
 }
 
+void GigE_2_1::Reset()
+{
+  TYCommandExec(hDevice, "DeviceReset");
+}
+
 TY_STATUS GigE_2_1::getCalibData(TY_CAMERA_CALIB_INFO& calib_data)
 {
   int64_t intrinsicWidth = 0;

@@ -156,6 +156,8 @@ namespace percipio
     virtual TY_STATUS EnableDepthStream(const bool en) = 0;
     virtual TY_STATUS EnableLeftIRStream(const bool en) = 0;
     virtual TY_STATUS EnableRightIRStream(const bool en) = 0;
+
+    virtual void Reset() = 0;
     
     TY_DEV_HANDLE hDevice;
 
@@ -183,6 +185,8 @@ namespace percipio
       TY_STATUS openWithIP(const char* ip);
 
       int send_soft_trigger();
+
+      void reset();
 
       int parse_xml_parameters(const std::string& xml);
 

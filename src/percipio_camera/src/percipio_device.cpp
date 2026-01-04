@@ -469,6 +469,11 @@ int PercipioDevice::sendSoftTrigger()
   return percipio_device_->DevicePtr()->send_soft_trigger();
 }
 
+void PercipioDevice::reset()
+{
+  return percipio_device_->DevicePtr()->reset();
+}
+
 void PercipioDevice::setIRFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
 {
   ir_frame_listener->setCallback(callback);

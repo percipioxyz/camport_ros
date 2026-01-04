@@ -112,6 +112,8 @@ void PercipioDriver::advertiseROSTopics()
     ROS_INFO("Soft trigger mode enabled, subscribe to the topic.: %s", soft_trigger_topic_.c_str());
   }
 
+  device_reset_sub_ = nh_.subscribe(device_reset_topic_, 10, &PercipioDriver::ResetCb, this);
+
   // Prevent connection callbacks from executing until we've set all the publishers. Otherwise
   // connectCb() can fire while we're advertising (say) "depth/image", but before we actually
   // assign to pub_depth_raw_. Then pub_depth_raw_.getNumSubscribers() returns 0, and we fail to start
@@ -601,7 +603,7 @@ void PercipioDriver::readConfigFromParameterServer()
 
   if (!pnh_.getParam("soft_trigger_topic", soft_trigger_topic_))
   {
-    soft_trigger_topic_ = camera_name_ + "/soft_trigger";
+    soft_trigger_topic_ = "/" + camera_name_ + "/soft_trigger";
   }
 
   if (!pnh_.getParam("rgb_resolution", rgb_resolution_))
@@ -661,6 +663,8 @@ void PercipioDriver::readConfigFromParameterServer()
   pnh_.param("rgb_camera_info_url", color_info_url_, std::string());
   pnh_.param("depth_camera_info_url", depth_info_url_, std::string());
   pnh_.param("ir_camera_info_url", ir_info_url_, std::string());
+
+  device_reset_topic_ = "/" + camera_name_ + "/reset";
 }
 
 std::string PercipioDriver::resolveDeviceURI(const std::string& device_id)
@@ -790,12 +794,6 @@ void PercipioDriver::initDevice()
 
   device_->setDeviceWorkMode(frame_rate_control_, frame_rate_, trigger_mode_);
 
-  //frame_rate_control_;
-  //frame_rate_;
-  
-  //trigger_mode_;
-  //soft_trigger_topic_;
-
   if(xml_content.length()) {
     device_->init_parameters_from_xml(xml_content);
   }
@@ -806,12 +804,21 @@ void PercipioDriver::softTriggerCb(const std_msgs::EmptyConstPtr& msg)
   if (device_ && trigger_mode_)
   {
     device_->sendSoftTrigger();
-    ROS_DEBUG("Received soft trigger signal, sent trigger command to device");
+    ROS_INFO("Received soft trigger signal, sent trigger command to device");
   } else {
     if (!device_)
       ROS_WARN("Device not initialized, unable to send soft trigger command");
     else if (!trigger_mode_)
       ROS_WARN("Device not in trigger mode, ignoring soft trigger signal");
+  }
+}
+
+void PercipioDriver::ResetCb(const std_msgs::EmptyConstPtr& msg)
+{
+  if(device_) {
+    device_->reset();
+  } else {
+    ROS_WARN("Device not initialized, unable to send reset command");
   }
 }
 

@@ -114,6 +114,8 @@ public:
 
   int sendSoftTrigger();
 
+  void reset();
+
   //PERCIPIO
   float getDepthScale();
   bool getDepthCalibIntristic(void* data, const size_t size);

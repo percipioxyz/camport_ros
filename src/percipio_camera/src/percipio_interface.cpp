@@ -169,23 +169,6 @@ public:
   std::unique_ptr<FPSCounter::State> FPSCounter::state_ = nullptr;
   static FPSCounter fps_counter;
 
-
-  int PercipioDepthCam::send_soft_trigger()
-  {
-    TY_STATUS ret = 0;
-    if(b_trigger_mode_en) {
-      ret = m_gige_dev->send_soft_trigger_signal();
-      if(ret) {
-        ROS_ERROR("Failed to send trigger command, error: %d", ret);
-        return -1;
-      }
-    } else {
-      ROS_ERROR("Device not in trigger mode, ignoring soft trigger signal");
-      return -1;
-    }
-    return 0;
-  }
-
   PercipioDepthCam::PercipioDepthCam() : _M_IFACE(0), _M_DEVICE(0), mIDS(0)
   {
     frameBuffer[0] = NULL;
@@ -501,6 +484,44 @@ public:
     }
     _M_DEVICE = NULL;
   }
+
+
+  int PercipioDepthCam::send_soft_trigger()
+  {
+    TY_STATUS ret = 0;
+    if(b_trigger_mode_en) {
+      ret = m_gige_dev->send_soft_trigger_signal();
+      if(ret) {
+        ROS_ERROR("Failed to send trigger command, error: %d", ret);
+        return -1;
+      }
+    } else {
+      ROS_ERROR("Device not in trigger mode, ignoring soft trigger signal");
+      return -1;
+    }
+    return 0;
+  }
+
+  void PercipioDepthCam::reset()
+  {
+    m_gige_dev->Reset();
+    for(size_t i = 0; i < cb_list.size(); i++) 
+    {
+      if(cb_list[i].cb == NULL) 
+        continue;
+        
+      if(cb_list[i].cb->deviceDisconnected == NULL)
+        continue;
+
+      cb_list[i].cb->deviceDisconnected(&current_device_info, cb_list[i].pListener);
+
+      PercipioDepthCam::isOffline = true;
+
+      std::unique_lock<std::mutex> lck(detect_mutex);
+      detect_cond.notify_one();
+    }
+  }
+
 
   const uint32_t&  PercipioDepthCam::get_components() const 
   {

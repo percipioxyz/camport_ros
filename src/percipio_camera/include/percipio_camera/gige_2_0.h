@@ -41,6 +41,8 @@ class GigE_2_0 : public GigEBase {
     virtual TY_STATUS EnableLeftIRStream(const bool en);
     virtual TY_STATUS EnableRightIRStream(const bool en);
 
+    virtual void Reset();
+
   private:
     TY_COMPONENT_ID ids;
     bool load_default_parameter();
