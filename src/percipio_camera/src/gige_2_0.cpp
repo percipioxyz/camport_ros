@@ -18,6 +18,8 @@ extern std::map<SensorType, std::string> SensorDesc;
 extern bool MatchPixelFormat(const std::string& fmt_desc, const TYPixFmt& m_fmt);
 
 static std::map<std::string, TY_FEATURE_ID> m_gige_2_0_feature_map = {
+    {"TriggerDelay",                              TY_INT_TRIGGER_DELAY_US},
+
     {"ExposureAuto",                              TY_BOOL_AUTO_EXPOSURE},
     {"ExposureTime",                              TY_INT_EXPOSURE_TIME},
     {"ExposureTargetBrightness",                  TY_INT_AE_TARGET_Y},
@@ -27,6 +29,11 @@ static std::map<std::string, TY_FEATURE_ID> m_gige_2_0_feature_map = {
     {"DigitalGreen",                              TY_INT_G_GAIN},
     {"DigitalBlue",                               TY_INT_B_GAIN},
     {"BalanceWhiteAuto",                          TY_BOOL_AUTO_AWB},
+
+    {"AutoFunctionAOIOffsetX",                    TY_STRUCT_AEC_ROI},
+    {"AutoFunctionAOIOffsetY",                    TY_STRUCT_AEC_ROI},
+    {"AutoFunctionAOIWidth",                      TY_STRUCT_AEC_ROI},
+    {"AutoFunctionAOIHeight",                     TY_STRUCT_AEC_ROI},
 
     {"DepthScaleUnit",                            TY_FLOAT_SCALE_UNIT},
     {"DepthSgbmImageNumber",                      TY_INT_SGBM_IMAGE_NUM},
@@ -75,14 +82,6 @@ static std::map<std::string, TY_FEATURE_ID> m_gige_2_0_feature_map = {
     {"DepthStreamTofSpeckleSize",                 TY_INT_MAX_SPECKLE_SIZE},
     {"DepthStreamTofSpeckleDiff",                 TY_INT_MAX_SPECKLE_DIFF}
 };
- 
-static bool isValidJsonString(const char* code)
-{
-  std::string err;
-  const auto json = Json::parse(code, err);
-  if(json.is_null()) return false;
-  return true;
-}
 
 #define INVALID_COMPONENT  0xFFFFFFFF
 static TY_COMPONENT_ID SensorTypeToPercipComonentID(const SensorType& type)
@@ -299,6 +298,11 @@ TY_STATUS GigE_2_0::AcquisitionInit()
 {
   if(!(ids & TY_COMPONENT_DEVICE))
     return TY_STATUS_OK;
+
+  TY_STATUS status = TYSetEnum(hDevice, TY_COMPONENT_DEVICE, TY_ENUM_TIME_SYNC_TYPE, TY_TIME_SYNC_TYPE_HOST);
+  if(status) {
+    ROS_WARN("Failed to set time sync tpye to host, error: %d", status);
+  }
 
   bool hasTrigger = false;
   TYHasFeature(hDevice, TY_COMPONENT_DEVICE, TY_STRUCT_TRIGGER_PARAM, &hasTrigger);
@@ -586,7 +590,7 @@ bool GigE_2_0::load_default_parameter()
     return false;
   }
 
-  bool ret = json_parse(hDevice, js_string.c_str());
+  bool ret = gige_2_0_load_default_parameters(hDevice, js_string.c_str());
   if(ret)  
     ROS_INFO("Loading default parameters successfully!");
   else
@@ -598,16 +602,20 @@ bool GigE_2_0::load_default_parameter()
 
 bool GigE_2_0::try_xml_parameter(const std::string& source, const std::string& feat, const std::string& str_val)
 {
-  TY_STATUS status;
+  TY_STATUS status = TY_STATUS_OK;
   TY_COMPONENT_ID comp = 0;
-  if(source == "Range")
+  if(source == "Depth")
     comp = TY_COMPONENT_DEPTH_CAM;
-  else if(source == "Intensity")
+  else if(source == "Texture")
     comp = TY_COMPONENT_RGB_CAM;
-  else if(source == "BinocularLeft")
+  else if(source == "Left")
     comp = TY_COMPONENT_IR_CAM_LEFT;
-  else if(source == "BinocularRight")
+  else if(source == "Right")
     comp = TY_COMPONENT_IR_CAM_RIGHT;
+  else if(source == "Device")
+    comp = TY_COMPONENT_DEVICE;
+  else if(source == "Laser")
+    comp = TY_COMPONENT_LASER;
   else {
     ROS_WARN("Incorrect source name: %s", source.c_str());
     return false;
@@ -658,6 +666,28 @@ bool GigE_2_0::try_xml_parameter(const std::string& source, const std::string& f
     case TY_FEATURE_STRING:
     {
       status = TYSetString(hDevice, comp, feat_id, str_val.c_str());
+      break;
+    }
+    case TY_FEATURE_STRUCT:
+    {
+      if(feat_id == TY_STRUCT_AEC_ROI) {
+        if(feat == "AutoFunctionAOIOffsetX") {
+          aec_roi.x = static_cast<uint32_t>(atoi(str_val.c_str()));
+        } else if(feat == "AutoFunctionAOIOffsetY") {
+          aec_roi.y = static_cast<uint32_t>(atoi(str_val.c_str()));
+        } else if(feat == "AutoFunctionAOIWidth") {
+          aec_roi.w = static_cast<uint32_t>(atoi(str_val.c_str()));
+        } else if(feat == "AutoFunctionAOIHeight") {
+          aec_roi.h = static_cast<uint32_t>(atoi(str_val.c_str()));
+          status = TYSetStruct(hDevice, comp, feat_id, &aec_roi, sizeof(aec_roi));
+        } else {
+          status = TY_STATUS_INVALID_FEATURE;
+          ROS_WARN("Unsupported feature type: %s(%d)", feat.c_str(), feat_id);
+        }
+      } else {
+        status = TY_STATUS_INVALID_FEATURE;
+        ROS_WARN("Unsupported feature type: %s(%d)", feat.c_str(), feat_id);
+      }
       break;
     }
     default:

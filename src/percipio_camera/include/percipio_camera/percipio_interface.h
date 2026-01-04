@@ -188,6 +188,8 @@ namespace percipio
 
       void reset();
 
+      void dynamic_configure(const std::string& str);
+
       int parse_xml_parameters(const std::string& xml);
 
       boost::shared_ptr<initDeviceCallbackFunction> ptrFuncDeviceInit;

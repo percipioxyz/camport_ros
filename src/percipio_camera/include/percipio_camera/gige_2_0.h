@@ -45,6 +45,8 @@ class GigE_2_0 : public GigEBase {
 
   private:
     TY_COMPONENT_ID ids;
+    TY_AEC_ROI_PARAM aec_roi;
+
     bool load_default_parameter();
     bool try_xml_parameter(const std::string& source, const std::string& feat, const std::string& val_str);
 };

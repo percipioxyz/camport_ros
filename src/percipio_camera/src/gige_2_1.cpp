@@ -344,6 +344,11 @@ TY_STATUS GigE_2_1::AcquisitionInit()
     }
   }
 
+  status = TYEnumSetString(hDevice, "DeviceTimeSyncMode", "SyncTypeHost");
+  if(status != TY_STATUS_OK) {
+    ROS_WARN("Failed to set DeviceTimeSyncMode, Error: %d", status);
+  }
+
   status = TYEnumSetString(hDevice, "AcquisitionMode", "Continuous");
   if(status != TY_STATUS_OK) {
     ROS_WARN("Failed to set AcquisitionMode, Error: %d", status);
@@ -522,20 +527,30 @@ TY_STATUS GigE_2_1::LoadParametersFromXML(const percipio_feat& cfg)
   TY_STATUS status;
   std::string  m_current_source;
   for(auto& iter : cfg) {
-    for(auto& feat : iter.second) {
-      const std::string& source = iter.first;
-      const std::string& feature = feat.node_desc;
-      const std::string& feat_val = feat.node_info;
+    static std::set<std::string> source_list = {
+        "Depth", "Texture", "Left", "Right"
+    };
+    const std::string& source = iter.first;
+    auto target_source = source_list.find(source);
+    if(target_source != source_list.end()) {
+
+      char szSourceString[200];
+      TYEnumGetString(hDevice, "SourceSelector", szSourceString, sizeof(szSourceString));
+      m_current_source = std::string(szSourceString);
 
       if(m_current_source != source) {
         status = TYEnumSetString(hDevice, "SourceSelector", source.c_str());
         if(status) {
-          ROS_WARN("Xml parameter(%s %s) init err( SourceSelector set failed: %d )!", source.c_str(), feature.c_str(), status);
+          ROS_WARN("Xml parameter(%s) init err( SourceSelector set failed: %d )!", source.c_str(), status);
           continue;
         }
-
         m_current_source = source;
       }
+    }
+
+    for(auto& feat : iter.second) {
+      const std::string& feature = feat.node_desc;
+      const std::string& feat_val = feat.node_info;
 
       ParamType type;
       status = TYParamGetType(hDevice, feature.c_str(), &type);

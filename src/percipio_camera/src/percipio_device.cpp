@@ -474,6 +474,11 @@ void PercipioDevice::reset()
   return percipio_device_->DevicePtr()->reset();
 }
 
+void PercipioDevice::dynamic_configure(const std::string& str)
+{
+  return percipio_device_->DevicePtr()->dynamic_configure(str);
+}
+
 void PercipioDevice::setIRFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
 {
   ir_frame_listener->setCallback(callback);

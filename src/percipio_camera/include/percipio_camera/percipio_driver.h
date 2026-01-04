@@ -8,6 +8,7 @@
 
 #include <sensor_msgs/Image.h>
 #include <std_msgs/Empty.h>
+#include <std_msgs/String.h>
 
 #include <dynamic_reconfigure/server.h>
 #include <percipio_camera/PercipioConfig.h>
@@ -54,8 +55,9 @@ private:
   void newDepthFrameCallback(sensor_msgs::ImagePtr image);
   void newPoint3DFrameCallback(sensor_msgs::ImagePtr image);
   
-  void softTriggerCb(const std_msgs::EmptyConstPtr& msg);
+  void SoftTriggerCb(const std_msgs::EmptyConstPtr& msg);
   void ResetCb(const std_msgs::EmptyConstPtr& msg);
+  void DynamicConfigureCb(const std_msgs::String::ConstPtr& msg);
 
   // Methods to get calibration parameters for the various cameras
   sensor_msgs::CameraInfoPtr getDefaultCameraInfo(int width, int height, double f);
@@ -111,6 +113,8 @@ private:
 
   std::string device_reset_topic_;
 
+  std::string dynamic_configure_topic_;
+
   bool device_log_enable_;
   std::string device_log_level_;
   int device_log_server_port_;
@@ -142,6 +146,7 @@ private:
   
   ros::Subscriber soft_trigger_sub_;
   ros::Subscriber device_reset_sub_;
+  ros::Subscriber device_dynamic_sub_;
 
   /** \brief Camera info manager objects. */
   boost::shared_ptr<camera_info_manager::CameraInfoManager> color_info_manager_, depth_info_manager_, ir_info_manager;

@@ -6,6 +6,7 @@
  * @LastEditTime: 2024-05-30 14:59:24
  */
 #include "percipio_camera/percipio_interface.h"
+#include "percipio_camera/ParametersParse.hpp"
 #include "percipio_camera/percipio_log_server.h"
 #include "percipio_camera/image_process.hpp"
 
@@ -104,6 +105,7 @@ namespace percipio
           }
         }
     }
+
     return m_gige_dev->LoadParametersFromXML(cfg);
   }
 
@@ -485,7 +487,6 @@ public:
     _M_DEVICE = NULL;
   }
 
-
   int PercipioDepthCam::send_soft_trigger()
   {
     TY_STATUS ret = 0;
@@ -522,6 +523,10 @@ public:
     }
   }
 
+  void PercipioDepthCam::dynamic_configure(const std::string& str)
+  {
+    parse_xml_parameters(str);
+  }
 
   const uint32_t&  PercipioDepthCam::get_components() const 
   {

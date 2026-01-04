@@ -63,6 +63,7 @@ add_library(percipio_wrapper
    src/percipio_log_server.cpp
    src/huffman.cpp
    src/percipio_xml.cpp
+   src/ParametersParse.cpp
 )
 
 target_link_libraries(percipio_wrapper ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${TYCam_LIBS})

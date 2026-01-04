@@ -108,11 +108,13 @@ void PercipioDriver::advertiseROSTopics()
 
   // Advertise all published topics
   if (trigger_mode_) {
-    soft_trigger_sub_ = nh_.subscribe(soft_trigger_topic_, 10, &PercipioDriver::softTriggerCb, this);
+    soft_trigger_sub_ = nh_.subscribe(soft_trigger_topic_, 10, &PercipioDriver::SoftTriggerCb, this);
     ROS_INFO("Soft trigger mode enabled, subscribe to the topic.: %s", soft_trigger_topic_.c_str());
   }
 
   device_reset_sub_ = nh_.subscribe(device_reset_topic_, 10, &PercipioDriver::ResetCb, this);
+
+  device_dynamic_sub_ = nh_.subscribe(dynamic_configure_topic_, 10, &PercipioDriver::DynamicConfigureCb, this);
 
   // Prevent connection callbacks from executing until we've set all the publishers. Otherwise
   // connectCb() can fire while we're advertising (say) "depth/image", but before we actually
@@ -606,6 +608,11 @@ void PercipioDriver::readConfigFromParameterServer()
     soft_trigger_topic_ = "/" + camera_name_ + "/soft_trigger";
   }
 
+  if (!pnh_.getParam("dynamic_configure_topic", dynamic_configure_topic_))
+  {
+    dynamic_configure_topic_ = "/" + camera_name_ + "/dynamic_config";
+  }
+
   if (!pnh_.getParam("rgb_resolution", rgb_resolution_))
   {
     ROS_WARN ("~rgb_resolution is not set! Try using default.");
@@ -799,7 +806,7 @@ void PercipioDriver::initDevice()
   }
 }
 
-void PercipioDriver::softTriggerCb(const std_msgs::EmptyConstPtr& msg)
+void PercipioDriver::SoftTriggerCb(const std_msgs::EmptyConstPtr& msg)
 {
   if (device_ && trigger_mode_)
   {
@@ -817,6 +824,15 @@ void PercipioDriver::ResetCb(const std_msgs::EmptyConstPtr& msg)
 {
   if(device_) {
     device_->reset();
+  } else {
+    ROS_WARN("Device not initialized, unable to send reset command");
+  }
+}
+
+void PercipioDriver::DynamicConfigureCb(const std_msgs::String::ConstPtr& msg)
+{
+  if(device_) {
+    device_->dynamic_configure(msg->data);
   } else {
     ROS_WARN("Device not initialized, unable to send reset command");
   }

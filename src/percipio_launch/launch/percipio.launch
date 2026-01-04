@@ -40,6 +40,9 @@
   <!-- Topic path for publishing soft trigger signals to the device --> 
   <arg name="soft_trigger_topic" default="/$(arg camera)/soft_trigger" />
 
+  <!-- Subscription Topic for User Dynamic Configuration Parameters -->
+  <arg name="dynamic_configure_topic" default="/$(arg camera)/dynamic_config" />
+
   <!-- Driver parameters -->
   <arg name="rgb_resolution" default="640x480" />
   <arg name="depth_resolution" default="640x480" />
@@ -159,6 +162,8 @@
       <arg name="frame_rate" value="$(arg frame_rate)" />
       <arg name="trigger_mode" value="$(arg trigger_mode)" />
       <arg name="soft_trigger_topic" value="$(arg soft_trigger_topic)" />
+
+      <arg name="dynamic_configure_topic" value="$(arg dynamic_configure_topic)" />
 
       <!--<arg name="auto_exposure"                   value="$(arg auto_exposure)" /> -->
       <!--<arg name="auto_white_balance"              value="$(arg auto_white_balance)" /> -->

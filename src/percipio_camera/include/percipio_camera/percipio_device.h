@@ -114,6 +114,8 @@ public:
 
   int sendSoftTrigger();
 
+  void dynamic_configure(const std::string& str);
+
   void reset();
 
   //PERCIPIO
