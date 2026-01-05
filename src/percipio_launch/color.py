@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import rospy
+import sys
 import message_filters
 from sensor_msgs.msg import Image
 from sensor_msgs.msg import Image, CameraInfo
@@ -8,10 +9,9 @@ from cv_bridge import CvBridge, CvBridgeError
 
 
 class ImageConverter:
-    def __init__(self):
+    def __init__(self, camera_name: str = "camera"):
         self.bridge = CvBridge()
-
-        self.image_sub = rospy.Subscriber("/camera/rgb/image", Image, self.callback)
+        rospy.Subscriber(f'/{camera_name}/rgb/image', Image, self.callback)
         #self.info_sub = message_filters.Subscriber('/camera/depth/camera_info', CameraInfo)
 
     def callback(self, msg):
@@ -25,8 +25,12 @@ class ImageConverter:
             rospy.logerr("convert failed: %s", e)
 
 def main():
+    camera_name = "camera"  # default camera name
+    if len(sys.argv) > 1:
+        camera_name = sys.argv[1]
+
     rospy.init_node('color_converter')
-    ic = ImageConverter()
+    ic = ImageConverter(camera_name)
     try:
         rospy.spin()
     except KeyboardInterrupt:
