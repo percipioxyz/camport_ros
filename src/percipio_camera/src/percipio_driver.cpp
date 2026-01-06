@@ -27,7 +27,8 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   config_init_(false),
   depth_registration_(false),
   use_device_time_(false),
-
+  ir_enhancement_(percipio::IREnhanceOFF),
+  ir_enhancement_coefficient_(6),
   ir_subscribers_(false),
   color_subscribers_(false),
   point3d_subscribers_(false),
@@ -658,6 +659,27 @@ void PercipioDriver::readConfigFromParameterServer()
   pnh_.getParam("depth_time_domain_filter",         depth_time_domain_filter_);
   pnh_.getParam("depth_time_domain_num",            depth_time_domain_num_);
 
+  static std::map<std::string, percipio::IREnhanceModel> ir_enhancement_list = {
+    {"off",           percipio::IREnhanceOFF},
+    {"linear",        percipio::IREnhanceLinearStretch},
+    {"multi_linear",  percipio::IREnhanceLinearStretch_Multi},
+    {"std_linear",    percipio::IREnhanceLinearStretch_STD},
+    {"log",           percipio::IREnhanceLinearStretch_LOG2},
+    {"hist",          percipio::IREnhanceLinearStretch_Hist}
+  };
+
+  std::string ir_enhancement_string;
+  if (!pnh_.getParam("ir_enhancement", ir_enhancement_string)) {
+    ir_enhancement_string = "off";
+  }
+
+  auto iter = ir_enhancement_list.find(ir_enhancement_string);
+  if(iter != ir_enhancement_list.end()) 
+    ir_enhancement_ = ir_enhancement_list[ir_enhancement_string];
+  else
+    ir_enhancement_ = percipio::IREnhanceOFF;
+  pnh_.getParam("ir_enhancement_coefficient",       ir_enhancement_coefficient_);
+
   pnh_.getParam("use_device_time",                  use_device_time_);
 
   // Camera TF frames
@@ -798,6 +820,8 @@ void PercipioDriver::initDevice()
 
   device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
   device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
+
+  device_->setIREnhancement(ir_enhancement_, ir_enhancement_coefficient_);
 
   device_->setUseDeviceTimer(use_device_time_);
 

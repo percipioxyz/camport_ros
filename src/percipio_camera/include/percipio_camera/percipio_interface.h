@@ -43,6 +43,16 @@ namespace percipio
 
   typedef enum
   {
+    IREnhanceOFF    = 0,
+    IREnhanceLinearStretch       = 1,
+    IREnhanceLinearStretch_Multi = 2, //2-20;  Def:8
+    IREnhanceLinearStretch_STD   = 3, //2-20;  Def:6
+    IREnhanceLinearStretch_LOG2  = 4, //5-50;  Def:20
+    IREnhanceLinearStretch_Hist  = 5
+  }IREnhanceModel;
+
+  typedef enum
+  {
     IMAGE_REGISTRATION_OFF				    = 0,
     IMAGE_REGISTRATION_DEPTH_TO_COLOR	= 1,
     IMAGE_REGISTRATION_COLOR_TO_DEPTH	= 2,
@@ -242,6 +252,8 @@ namespace percipio
       bool DepthStreamSetTimeDomainFilterFCnt(int frameCnt);
       int  DepthStreamGetTimeDomainFilterFCnt();
 
+      void IRStreamEnhancementConfig(IREnhanceModel model, int coeff);
+
       bool DeviceIsImageRegistrationModeSupported() const;
 
       //bool load_default_parameter();
@@ -251,6 +263,8 @@ namespace percipio
       TY_STATUS MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS MapXYZ48FrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS FrameDecoder(VideoFrameData& src, VideoFrameData& dst);
+      TY_STATUS IREnhancement(VideoFrameData& IR);
+
       TY_STATUS parseIrStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseColorStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseDepthStream(VideoFrameData* src, VideoFrameData* dst);
@@ -322,6 +336,9 @@ namespace percipio
       TY_INTERFACE_HANDLE _M_IFACE;
       TY_DEV_HANDLE       _M_DEVICE;
       TY_COMPONENT_ID     mIDS;
+
+      IREnhanceModel      mEnhanceModel = IREnhanceOFF;
+      int32_t             mEnhanceCoeff = 1; //coefficient
 
       GigEVersion         gige_version = GigeE_2_0;
 
@@ -760,6 +777,8 @@ namespace percipio
   
       bool setDepthTimeDomainFilterNum(int frames);
       int getDepthTimeDomainFilterNum();
+
+      void setIREnhancement(IREnhanceModel model, int coeff);
 
       bool isImageRegistrationModeSupported(ImageRegistrationMode mode) const;
       TY_STATUS setImageRegistrationMode(ImageRegistrationMode mode);

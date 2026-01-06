@@ -73,6 +73,35 @@
   <!-- Time-domain filtering frame count：2 - 10 -->
   <arg name="depth_time_domain_num"             default="3" />
 
+  <!-- IR image enhancement method selection. Choose from:-->
+  <!--    'off'           - Disable IR image enhancement-->
+  <!--    'linear'        - Linear stretch (excludes 10% borders, stretches to full 0-255 range)-->
+  <!--    'multi_linear'  - Multiplicative linear stretch (scales by coefficient, different for 8/16-bit)-->
+  <!--    'std_linear'    - Standard deviation-based stretch (uses image statistics for dynamic range adjustment)-->
+  <!--    'log'           - Logarithmic stretch (enhances low-intensity regions using log2 transformation)-->
+  <!--    'hist'          - Histogram equalization (redistributes intensities for maximum contrast)-->
+  <!-- Note: Only 'multi_linear', 'std_linear', and 'log' methods use the coefficient parameter.-->
+  <!-- Default: 'off' (no enhancement applied)."-->
+  <arg name="ir_enhancement" default="off"/>
+
+  <!-- "Coefficient parameter for specific IR enhancement methods. -->
+  <!--    This parameter affects three enhancement methods:-->
+  <!--      1. 'multi_linear' method:-->
+  <!--         - For 8-bit images: pixel_value x coefficient-->
+  <!--         - For 16-bit images: pixel_value x (coefficient / 255.0)-->
+  <!--         - Recommended range: 1-20 (values > 1 increase brightness)-->
+  <!--      2. 'std_linear' method:-->
+  <!--         - Normalization factor = (std_dev x coefficient) + 1.0-->
+  <!--         - Higher values create more aggressive stretching-->
+  <!--         - Recommended range: 3-10-->
+  <!--      3. 'log' method:-->
+  <!--         - Output = coefficient x log2(pixel_value + 1)-->
+  <!--         - Higher values increase contrast in low-intensity regions-->
+  <!--         - Recommended range: 10-30-->
+  <!--    This parameter is ignored for 'linear', 'hist', and 'off' modes.-->
+  <!--    Default: 6 (balanced value for most applications)."-->
+  <arg name="ir_enhancement_coefficient" default="6"/>
+
   <!--  Use internal timer of device -->
   <arg name="use_device_time"                   default="true" />
   
@@ -151,6 +180,9 @@
 
       <arg name="depth_time_domain_filter"          value="$(arg depth_time_domain_filter)" />
       <arg name="depth_time_domain_num"             value="$(arg depth_time_domain_num)" />
+
+      <arg name="ir_enhancement"                    value="$(arg ir_enhancement)" />
+      <arg name="ir_enhancement_coefficient"        value="$(arg ir_enhancement_coefficient)" />
 
       <arg name="use_device_time"                   value="$(arg use_device_time)" />
 

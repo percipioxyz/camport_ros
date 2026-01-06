@@ -168,6 +168,9 @@ private:
   bool depth_time_domain_filter_;
   int  depth_time_domain_num_;
 
+  percipio::IREnhanceModel ir_enhancement_;
+  int ir_enhancement_coefficient_;
+
   void publishStaticTF(const ros::Time &t, const tf2::Vector3 &trans,
     const tf2::Quaternion &q, const std::string &from,
     const std::string &to);

@@ -619,6 +619,12 @@ public:
     }
   }
 
+  void PercipioDepthCam::IRStreamEnhancementConfig(IREnhanceModel model, int coeff)
+  {
+    mEnhanceModel = model;
+    mEnhanceCoeff = coeff;
+  }
+
   int  PercipioDepthCam::DepthStreamGetTimeDomainFilterFCnt()
   {
     return depth_time_domain_frame_cnt;
@@ -689,6 +695,19 @@ public:
     else
       dst->clone(*src);
     return status;
+  }
+
+  TY_STATUS PercipioDepthCam::IREnhancement(VideoFrameData& IR)
+  {
+    switch(mEnhanceModel) {
+      case IREnhanceOFF:                  return TY_STATUS_OK;
+      case IREnhanceLinearStretch:        return ImgProc::GrayIR_linearStretch(IR);
+      case IREnhanceLinearStretch_Multi:  return ImgProc::GrayIR_linearStretch_multi(IR, mEnhanceCoeff);
+      case IREnhanceLinearStretch_STD:    return ImgProc::GrayIR_linearStretch_std(IR, mEnhanceCoeff);
+      case IREnhanceLinearStretch_LOG2:   return ImgProc::GrayIR_nonlinearStretch_log2(IR, mEnhanceCoeff);
+      case IREnhanceLinearStretch_Hist:   return ImgProc::GrayIR_nonlinearStretch_hist(IR);
+      default: return TY_STATUS_INVALID_PARAMETER;
+    }
   }
 
   TY_STATUS PercipioDepthCam::FrameDecoder(VideoFrameData& src, VideoFrameData& dst)
@@ -1498,10 +1517,12 @@ public:
         break;
       case TY_COMPONENT_IR_CAM_LEFT:
       case TY_COMPONENT_IR_CAM_RIGHT:
-        if(img->pixelFormat == TYPixelFormatMono8) {
+        if(img->pixelFormat == TYPixelFormatMono8 || img->pixelFormat == TYPixelFormatMono16) {
+          g_Context->IREnhancement(vframe);
           frame.clone(vframe);
         } else {
           g_Context->FrameDecoder(vframe, tframe);
+          g_Context->IREnhancement(tframe);
           g_Context->parseIrStream(&tframe, &frame);
         }
         break;
@@ -1781,6 +1802,11 @@ public:
   bool Device::setDepthTimeDomainFilterNum(int frames)
   {
     return g_Context->DepthStreamSetTimeDomainFilterFCnt(frames);
+  }
+
+  void Device::setIREnhancement(IREnhanceModel model, int coeff)
+  {
+    g_Context->IRStreamEnhancementConfig(model, coeff);
   }
 
   int  Device::getDepthTimeDomainFilterNum()

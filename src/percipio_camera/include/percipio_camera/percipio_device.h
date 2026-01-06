@@ -93,6 +93,8 @@ public:
   bool setDepthTimeDomainFilterNum(int frames);
   int  getDepthTimeDomainFilterNum();
 
+  void setIREnhancement(percipio::IREnhanceModel model, int coeff);
+
   bool isImageRegistrationModeSupported() const;
   void setImageRegistrationMode(bool enabled);
   percipio::ImageRegistrationMode getImageRegistrationMode() const;

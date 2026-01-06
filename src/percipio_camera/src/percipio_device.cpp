@@ -410,6 +410,11 @@ bool PercipioDevice::setDepthTimeDomainFilterNum(int frames)
   return percipio_device_->setDepthTimeDomainFilterNum(frames);
 }
 
+void PercipioDevice::setIREnhancement(percipio::IREnhanceModel model, int coeff)
+{
+  percipio_device_->setIREnhancement(model, coeff);
+}
+
 int  PercipioDevice::getDepthTimeDomainFilterNum()
 {
   return percipio_device_->getDepthTimeDomainFilterNum();

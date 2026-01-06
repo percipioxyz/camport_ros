@@ -24,6 +24,9 @@
   <arg name="depth_time_domain_filter" />
   <arg name="depth_time_domain_num" />
 
+  <arg name="ir_enhancement" />
+  <arg name="ir_enhancement_coefficient" />
+
   <arg name="use_device_time" />
 
   <arg name="device_log_enable" default="false" />
@@ -90,6 +93,9 @@
     <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
     <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />
 
+    <param name="ir_enhancement" value="$(arg ir_enhancement)" />
+    <param name="ir_enhancement_coefficient" value="$(arg ir_enhancement_coefficient)" />
+
     <param name="use_device_time" value="$(arg use_device_time)" />
 
     <remap from="ir" to="$(arg ir)" />
@@ -137,6 +143,9 @@
 
     <param name="depth_time_domain_filter" value="$(arg depth_time_domain_filter)" />
     <param name="depth_time_domain_num" value="$(arg depth_time_domain_num)" />
+
+    <param name="ir_enhancement" value="$(arg ir_enhancement)" />
+    <param name="ir_enhancement_coefficient" value="$(arg ir_enhancement_coefficient)" />
 
     <param name="use_device_time" value="$(arg use_device_time)" />
     
