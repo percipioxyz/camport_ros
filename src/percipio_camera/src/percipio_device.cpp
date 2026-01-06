@@ -174,6 +174,7 @@ void PercipioDevice::startIRStream()
   boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
   if (stream)
   {
+    percipio_device_->ir_stream_topic_enable(true);
     stream->addNewFrameListener(ir_frame_listener.get());
     stream->start();
     ir_video_started_ = true;
@@ -186,6 +187,7 @@ void PercipioDevice::startColorStream()
   boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
   if (stream)
   {
+    percipio_device_->color_stream_topic_enable(true);
     stream->addNewFrameListener(color_frame_listener.get());
     stream->start();
     color_video_started_ = true;
@@ -196,6 +198,7 @@ void PercipioDevice::startDepthStream()
   boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
   if (stream)
   {
+    percipio_device_->depth_stream_topic_enable(true);
     stream->addNewFrameListener(depth_frame_listener.get());
     stream->start();
     depth_video_started_ = true;
@@ -211,6 +214,7 @@ void PercipioDevice::startPoint3DStream()
   boost::shared_ptr<percipio::VideoStream> stream = getPoint3DVideoStream();
   if(stream)
   {
+    percipio_device_->pointcloud_stream_topic_enable(true);
     stream->addNewFrameListener(point3d_frame_listener.get());
     stream->start();
     point3d_video_started_ = true;
@@ -234,6 +238,7 @@ void PercipioDevice::stopIRStream()
   if (ir_video_stream_)
   {
     ir_video_started_ = false;
+    percipio_device_->ir_stream_topic_enable(false);
     ir_video_stream_->stop();
     //ir_video_stream_->destroy();
   }
@@ -244,6 +249,7 @@ void PercipioDevice::stopColorStream()
   if (color_video_stream_)
   {
     color_video_started_ = false;
+    percipio_device_->color_stream_topic_enable(false);
     color_video_stream_->stop();
     //color_video_stream_->destroy();
   }
@@ -254,6 +260,7 @@ void PercipioDevice::stopDepthStream()
   if (depth_video_stream_)
   {
     depth_video_started_ = false;
+    percipio_device_->depth_stream_topic_enable(false);
     depth_video_stream_->stop();
     //depth_video_stream_->destroy();
   }
@@ -264,6 +271,7 @@ void PercipioDevice::stopPoint3DStream()
   if(point3d_video_stream_)
   {
     point3d_video_started_ = false;
+    percipio_device_->pointcloud_stream_topic_enable(false);
     point3d_video_stream_->stop();
     //point3d_video_stream_->destroy();
   }

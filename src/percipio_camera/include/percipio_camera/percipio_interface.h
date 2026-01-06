@@ -275,6 +275,16 @@ namespace percipio
 
       void send_device_event(DeviceEvent eventID);
 
+      void EnableIRTopic(bool en) { enable_ir_topic = en; }
+      void EnableColorTopic(bool en) { enable_color_topic = en; }
+      void EnableDepthTopic(bool en) { enable_depth_topic = en; }
+      void EnableP3DTopic(bool en) { enable_cloud_topic = en; }
+
+      bool ir_topic_swicth() { return enable_ir_topic; }
+      bool color_topic_swicth() { return enable_color_topic; }
+      bool depth_topic_swicth() { return enable_depth_topic; }
+      bool pointcloud_topic_swicth() { return enable_cloud_topic; }
+
       bool HasStream();
 
       void StreamEnable(StreamHandle stream);
@@ -337,6 +347,11 @@ namespace percipio
       boost::shared_ptr<NewFrameCallbackManager> ColorStream;
       boost::shared_ptr<NewFrameCallbackManager> DepthStream;
       boost::shared_ptr<NewFrameCallbackManager> Point3DStream;
+
+      bool enable_color_topic = false;
+      bool enable_depth_topic = false;
+      bool enable_cloud_topic = false;
+      bool enable_ir_topic = false;
 
       boost::shared_ptr<DepthTimeDomainMgr> DepthDomainTimeFilterMgrPtr;
 
@@ -749,6 +764,11 @@ namespace percipio
       bool isImageRegistrationModeSupported(ImageRegistrationMode mode) const;
       TY_STATUS setImageRegistrationMode(ImageRegistrationMode mode);
       ImageRegistrationMode getImageRegistrationMode() const;
+
+      void ir_stream_topic_enable(bool enabled);
+      void color_stream_topic_enable(bool enabled);
+      void depth_stream_topic_enable(bool enabled);
+      void pointcloud_stream_topic_enable(bool enabled);
 
       TY_STATUS PropertyGet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
       TY_STATUS PropertySet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);

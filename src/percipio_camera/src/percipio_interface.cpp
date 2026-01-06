@@ -997,22 +997,22 @@ public:
                 }
               }
             }
-
-            if(cam->DepthStream->isValid()) {
+            
+            if(cam->DepthStream->isValid() && cam->depth_topic_swicth()) {
               cam->DepthStream->cb(cam->DepthStream.get(), cam->DepthStream->frame_listener, &frame.image[i]);
             }
             
-            if(cam->Point3DStream->isValid()) {
+            if(cam->Point3DStream->isValid() && cam->pointcloud_topic_swicth()) {
               cam->Point3DStream->cb(cam->Point3DStream.get(), cam->Point3DStream->frame_listener, &frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_RGB_CAM){
-            if(cam->ColorStream->isValid()) {
+            if(cam->ColorStream->isValid() && cam->color_topic_swicth()) {
               cam->ColorStream->cb(cam->ColorStream.get(), cam->ColorStream->frame_listener, &frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_LEFT){
-            if(cam->leftIRStream->isValid()) {
+            if(cam->leftIRStream->isValid() && cam->ir_topic_swicth()) {
               cam->leftIRStream->cb(cam->leftIRStream.get(), cam->leftIRStream->frame_listener, &frame.image[i]);
             }
           }
@@ -1799,6 +1799,26 @@ public:
   ImageRegistrationMode Device::getImageRegistrationMode() const
   {
     return g_Context->DeviceGetImageRegistrationMode();
+  }
+
+  void Device::ir_stream_topic_enable(bool enabled)
+  {
+    g_Context->EnableIRTopic(enabled);
+  }
+
+  void Device::color_stream_topic_enable(bool enabled)
+  {
+    g_Context->EnableColorTopic(enabled);
+  }
+  
+  void Device::depth_stream_topic_enable(bool enabled)
+  {
+    g_Context->EnableDepthTopic(enabled);
+  }
+
+  void Device::pointcloud_stream_topic_enable(bool enabled)
+  {
+    g_Context->EnableP3DTopic(enabled);
   }
 
   TY_STATUS Device::PropertyGet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size)
