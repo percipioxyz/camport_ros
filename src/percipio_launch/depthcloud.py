@@ -16,7 +16,8 @@ f_depth_scale_unit = 1.0
 
 class DepthCloudViewer3D:
     def __init__(self, camera_name: str = "camera"):
-        rospy.init_node('depthcloud_3d_viewer', anonymous=True)
+        self.camera_name = camera_name
+        rospy.init_node(f'depthcloud_3d_viewer_{camera_name}', anonymous=True)
         
         # 创建OpenCV转换器
         self.bridge = CvBridge()
@@ -155,7 +156,7 @@ class DepthCloudViewer3D:
         # 创建可视化窗口
         vis = o3d.visualization.Visualizer()
         vis.create_window(
-            window_name='ROS DepthCloud Viewer',
+            window_name=f'ROS DepthCloud Viewer-{self.camera_name}',
             width=1280,
             height=720,
             visible=True

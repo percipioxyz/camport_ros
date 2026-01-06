@@ -12,7 +12,8 @@ from datetime import datetime
 
 class PointCloudViewer3D:
     def __init__(self, camera_name: str = "camera"):
-        rospy.init_node('pointcloud_3d_viewer', anonymous=True)
+        self.camera_name=camera_name
+        rospy.init_node(f'pointcloud_3d_viewer_{camera_name}', anonymous=True)
         
         # 点云可视化参数
         self.point_size = rospy.get_param('~point_size', 1.0)
@@ -102,7 +103,7 @@ class PointCloudViewer3D:
         # 创建可视化窗口
         vis = o3d.visualization.Visualizer()
         vis.create_window(
-            window_name='ROS PointCloud2 Viewer',
+            window_name=f'ROS PointCloud2 Viewer-{self.camera_name}',
             width=1280,
             height=720,
             visible=True
