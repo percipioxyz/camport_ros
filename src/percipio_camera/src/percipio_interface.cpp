@@ -184,6 +184,11 @@ public:
 
     TY_STATUS rc;
     rc = TYInitLib();
+
+    TY_VERSION_INFO vesion;
+    TYLibVersion(&vesion);
+    ROS_INFO("TYCam Lib Versio: %d.%d.%d", vesion.major, vesion.minor, vesion.patch);
+
     TYImageProcesAcceEnable(false);
   }
 

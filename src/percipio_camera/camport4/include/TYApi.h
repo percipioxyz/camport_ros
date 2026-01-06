@@ -262,7 +262,7 @@ TY_CAPI TYCfgLogFile         (const char* filePath, uint32_t max_size = 10 * 102
 ///          Suggestions:
 ///            Unsupported protocol, please use tcp or udp
 ///          
-TY_CAPI TYCfgLogServer       (TY_SERVER_TYPE prot_type, char* ip, uint16_t port);
+TY_CAPI TYCfgLogServer       (TY_SERVER_TYPE prot_type, const char* ip, uint16_t port);
 
 ///@brief  Update current interfaces.
 ///        call before TYGetInterfaceList

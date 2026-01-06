@@ -11,8 +11,9 @@
 // Error code definitions
 typedef enum TYDecodeError {
     TY_DECODE_SUCCESS = 0,
-    TY_DECODE_ERROR_INVALID_PARAM,
     TY_DECODE_NO_DECODE_NEEDED,
+
+    TY_DECODE_ERROR_INVALID_PARAM,
     TY_DECODE_ERROR_FORMAT_MISMATCH,
     TY_DECODE_ERROR_UNSUPPORTED_FORMAT,
     TY_DECODE_ERROR_BUFFER_TOO_SMALL,
@@ -59,13 +60,44 @@ TY_CAPI TYGetImageAlgorithmVersion(TY_VERSION_INFO* version);
 /// @param  [in] en          Enable image process acceleration switch
 TY_CAPI TYImageProcesAcceEnable(bool en);
 
+
+/**
+ * @brief Get the target pixel format for image decoding
+ * 
+ * This function determines the target pixel format for decoding based on the input image 
+ * format and the specified output configuration. It can be used to query the pixel format
+ * that will be produced by the decode operation before actually performing the decode.
+ * 
+ * @param input Pointer to input image information
+ * @param outFmt Output parameter for the target pixel format
+ * @param config Decode configuration parameters, defaults to TY_OUTPUT_FORMAT_AUTO
+ * @return TYDecodeError
+ *   - TY_DECODE_SUCCESS: Successfully determined target format
+ *   - TY_DECODE_NO_DECODE_NEEDED: No decoding needed, output format same as input
+ *   - TY_DECODE_ERROR_INVALID_PARAM: Invalid input parameters
+ *   - TY_DECODE_ERROR_UNSUPPORTED_FORMAT: Unsupported output format
+ *   - TY_DECODE_ERROR_FORMAT_MISMATCH: Incompatible input and output formats
+ */
+TY_DECODE_API TYGetDecodeTargetPixFmt(const TYImageInfo* input, TYPixFmt* outFmt,
+                               const TYOutputFormat config = TY_OUTPUT_FORMAT_AUTO);
+
 /**
  * @brief Calculate the required buffer size for image decoding
+ * 
+ * This function calculates the required buffer size (in bytes) for storing the decoded image
+ * based on the input image format, dimensions, and the specified output configuration. 
+ * The calculation takes into account the target pixel format, image dimensions, and 
+ * memory alignment requirements (4-byte aligned stride).
  * 
  * @param input Pointer to input image information
  * @param totalSize Output parameter for required buffer size in bytes
  * @param config Decode configuration parameters, defaults to TY_OUTPUT_FORMAT_AUTO
- * @return TYDecodeError Error code indicating operation success or failure
+ * @return TYDecodeError 
+ *   - TY_DECODE_SUCCESS: Successfully calculated buffer size
+ *   - TY_DECODE_ERROR_INVALID_PARAM: Invalid input parameters (null pointers, zero dimensions, etc.)
+ *   - TY_DECODE_ERROR_UNSUPPORTED_FORMAT: Unsupported output format or unable to determine format
+ *   - TY_DECODE_ERROR_FORMAT_MISMATCH: Incompatible input and output formats
+ *   - TY_DECODE_NO_DECODE_NEEDED: No decoding needed, output format same as input
  */
 TY_DECODE_API TYGetDecodeBufferSize(const TYImageInfo* input, uint32_t* totalSize,
                                const TYOutputFormat config = TY_OUTPUT_FORMAT_AUTO);

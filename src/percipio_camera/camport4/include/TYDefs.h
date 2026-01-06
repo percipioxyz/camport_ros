@@ -1233,7 +1233,7 @@ typedef struct TY_IMAGE_DATA
     void*           buffer;         ///< Pointer to data buffer
     int32_t         width;          ///< Image width in pixels
     int32_t         height;         ///< Image height in pixels
-    TYPixFmt        pixelFormat;    ///< Pixel format, see TY_PIXEL_FORMAT_LIST
+    TYPixFmt        pixelFormat;    ///< Pixel format, see TYPixFmtList
     int32_t         reserved[9];    ///< Reserved
 }TY_IMAGE_DATA;
 
