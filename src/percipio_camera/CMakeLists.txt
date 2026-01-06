@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(percipio_camera)
 
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_C_STANDARD 11)
+
 find_package(catkin REQUIRED camera_info_manager std_msgs tf2 tf2_eigen tf2_msgs tf2_ros cv_bridge pcl_conversions pcl_ros dynamic_reconfigure image_transport  nodelet sensor_msgs roscpp message_generation)
 
 find_package(Boost REQUIRED COMPONENTS system thread)

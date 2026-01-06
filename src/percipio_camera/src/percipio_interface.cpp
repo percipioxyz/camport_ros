@@ -122,7 +122,7 @@ private:
         }
     };
     
-    static std::unique_ptr<State> state_;
+    static std::shared_ptr<State> state_;
 
     static long timeval_to_ms(const struct timeval& tv) {
         return tv.tv_sec * 1000 + tv.tv_usec / 1000;
@@ -131,7 +131,7 @@ private:
 public:
     static float get_fps() {
         if (!state_) {
-            state_ = std::make_unique<State>();
+            state_ = std::make_shared<State>();
         }
         
         struct timeval current_time;
@@ -160,7 +160,7 @@ public:
     
     static void reset() {
         if (!state_) {
-            state_ = std::make_unique<State>();
+            state_ = std::make_shared<State>();
         } else {
             state_->counter = 0;
             state_->initialized = false;
@@ -168,7 +168,7 @@ public:
     }
   };
 
-  std::unique_ptr<FPSCounter::State> FPSCounter::state_ = nullptr;
+  std::shared_ptr<FPSCounter::State> FPSCounter::state_ = nullptr;
   static FPSCounter fps_counter;
 
   PercipioDepthCam::PercipioDepthCam() : _M_IFACE(0), _M_DEVICE(0), mIDS(0)
@@ -1016,11 +1016,13 @@ public:
               cam->leftIRStream->cb(cam->leftIRStream.get(), cam->leftIRStream->frame_listener, &frame.image[i]);
             }
           }
+          #if 0
           else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_RIGHT){
             if(cam->rightIRStream->isValid()) {
               cam->leftIRStream->cb(cam->rightIRStream.get(), cam->leftIRStream->frame_listener, &frame.image[i]);
             }
           }
+          #endif
         }
 
         TYEnqueueBuffer(handle, frame.userBuffer, frame.bufferSize);
