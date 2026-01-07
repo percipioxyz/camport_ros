@@ -289,9 +289,76 @@ TY_STATUS GigE_2_0::getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
   return TYGetStruct(hDevice, TY_COMPONENT_DEPTH_CAM, TY_STRUCT_CAM_INTRINSIC, &Intrinsic, sizeof(Intrinsic));
 }
 
+TY_STATUS GigE_2_0::getIRLensType(TYLensOpticalType& type)
+{
+  type = TY_LENS_PINHOLE;
+  bool has_lens_type = false;
+  TYHasFeature(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_ENUM_LENS_OPTICAL_TYPE, &has_lens_type);
+  if(!has_lens_type) return TY_STATUS_OK;
+
+  return TYGetEnum(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_ENUM_LENS_OPTICAL_TYPE, (uint32_t*)&type);
+}
+
+TY_STATUS GigE_2_0::getIRRectificationMode(IRImageRectificationMode& mode)
+{
+  mode = DISTORTION_CORRECTION;
+
+  bool rotation = false;
+  bool rectified_intr = false;  
+  TYHasFeature(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_STRUCT_CAM_RECTIFIED_ROTATION, &rotation);
+  TYHasFeature(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_STRUCT_CAM_RECTIFIED_INTRI, &rectified_intr);
+  if(rotation && rectified_intr) mode = EPIPOLAR_RECTIFICATION;
+  return TY_STATUS_OK;
+}
+
+TY_STATUS GigE_2_0::getLeftIRCalibData(TY_CAMERA_CALIB_INFO& calib_data)
+{
+  if(!(ids & TY_COMPONENT_IR_CAM_LEFT)) return TY_STATUS_INVALID_COMPONENT;
+  return TYGetStruct(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_STRUCT_CAM_CALIB_DATA, &calib_data, sizeof(TY_CAMERA_CALIB_INFO));
+}
+
+TY_STATUS GigE_2_0::getLeftIRRotation(TY_CAMERA_ROTATION& rotation)
+{
+  if(!(ids & TY_COMPONENT_IR_CAM_LEFT)) return TY_STATUS_INVALID_COMPONENT;
+  return TYGetStruct(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_STRUCT_CAM_RECTIFIED_ROTATION, &rotation, sizeof(TY_CAMERA_ROTATION));
+}
+
+TY_STATUS GigE_2_0::getLeftIRRectifiedIntr(TY_CAMERA_INTRINSIC& rectified_intr)
+{
+  if(!(ids & TY_COMPONENT_IR_CAM_LEFT)) return TY_STATUS_INVALID_COMPONENT;
+  return TYGetStruct(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_STRUCT_CAM_RECTIFIED_INTRI, &rectified_intr, sizeof(TY_CAMERA_INTRINSIC));
+}
+
+TY_STATUS GigE_2_0::getRightIRCalibData(TY_CAMERA_CALIB_INFO& calib_data)
+{
+  if(!(ids & TY_COMPONENT_IR_CAM_RIGHT)) return TY_STATUS_INVALID_COMPONENT;
+  return TYGetStruct(hDevice, TY_COMPONENT_IR_CAM_RIGHT, TY_STRUCT_CAM_CALIB_DATA, &calib_data, sizeof(TY_CAMERA_CALIB_INFO));
+}
+
+TY_STATUS GigE_2_0::getRightIRRotation(TY_CAMERA_ROTATION& rotation)
+{
+  if(!(ids & TY_COMPONENT_IR_CAM_RIGHT)) return TY_STATUS_INVALID_COMPONENT;
+  return TYGetStruct(hDevice, TY_COMPONENT_IR_CAM_RIGHT, TY_STRUCT_CAM_RECTIFIED_ROTATION, &rotation, sizeof(TY_CAMERA_ROTATION));
+} 
+
+TY_STATUS GigE_2_0::getRightIRRectifiedIntr(TY_CAMERA_INTRINSIC& rectified_intr)
+{
+  if(!(ids & TY_COMPONENT_IR_CAM_RIGHT)) return TY_STATUS_INVALID_COMPONENT;
+  return TYGetStruct(hDevice, TY_COMPONENT_IR_CAM_RIGHT, TY_STRUCT_CAM_RECTIFIED_INTRI, &rectified_intr, sizeof(TY_CAMERA_INTRINSIC));
+}
+
 TY_STATUS GigE_2_0::getDepthScaleUnit(float& f_depth_scale)
 {
   return TYGetFloat(hDevice, TY_COMPONENT_DEPTH_CAM, TY_FLOAT_SCALE_UNIT, &f_depth_scale);
+}
+
+TY_STATUS GigE_2_0::EnableHwIRUndistortion()
+{
+  bool has = false;
+  TY_STATUS status = TYHasFeature(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_BOOL_UNDISTORTION, &has);
+  if(status) return status;
+  if(!has) return TY_STATUS_NOT_PERMITTED;
+  return TYSetBool(hDevice, TY_COMPONENT_IR_CAM_LEFT, TY_BOOL_UNDISTORTION, true);
 }
 
 TY_STATUS GigE_2_0::AcquisitionInit()

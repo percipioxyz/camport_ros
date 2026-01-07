@@ -21,7 +21,20 @@ class GigE_2_0 : public GigEBase {
     virtual TY_STATUS getColorIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic);
     virtual TY_STATUS getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic);
 
+    virtual TY_STATUS getIRLensType(TYLensOpticalType& type);
+    virtual TY_STATUS getIRRectificationMode(IRImageRectificationMode& mode);
+
+    virtual TY_STATUS getLeftIRCalibData(TY_CAMERA_CALIB_INFO& calib_data);
+    virtual TY_STATUS getLeftIRRotation(TY_CAMERA_ROTATION& rotation);
+    virtual TY_STATUS getLeftIRRectifiedIntr(TY_CAMERA_INTRINSIC& rectified_intr);
+
+    virtual TY_STATUS getRightIRCalibData(TY_CAMERA_CALIB_INFO& calib_data);
+    virtual TY_STATUS getRightIRRotation(TY_CAMERA_ROTATION& rotation);
+    virtual TY_STATUS getRightIRRectifiedIntr(TY_CAMERA_INTRINSIC& rectified_intr);
+
     virtual TY_STATUS getDepthScaleUnit(float& f_depth_scale);
+
+    virtual TY_STATUS EnableHwIRUndistortion();
 
     virtual TY_STATUS AcquisitionInit();
     virtual TY_STATUS SetImageMode(const SensorType sensorType, const int width, const int height, const std::string& fmt);

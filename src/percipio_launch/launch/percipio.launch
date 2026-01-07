@@ -59,6 +59,14 @@
   <!-- Software color undistortion -->
   <arg name="color_undistortion" default="true" />
 
+  <!-- IR Image Rectification Switch
+        Note: The rectification logic for IR images varies across different camera models:
+            1. For binocular stereo 3D cameras, IR image rectification is automatically performed by the camera's internal hardware.
+            2. For TOF cameras, IR image rectification requires reading distortion parameters from the camera and performing distortion correction processing on the host computer.
+            3. For line-scan 3D cameras, IR image rectification requires reading calibration data from the camera and performing epipolar rectification processing on the host computer.  
+  -->
+  <arg name="ir_undistortion"  default="true" />
+
   <!-- Speckle filtering enable/disable switch-->
   <arg name="depth_speckle_filter"              default="false" />
   <!-- Blob size smaller than this will be removed-->
@@ -172,6 +180,8 @@
 
       <arg name="color_undistortion"              value="$(arg color_undistortion)" />
       <arg name="depth_registration"              value="$(arg depth_registration)" />
+
+      <arg name="ir_undistortion"                 value="$(arg ir_undistortion)" />
 
       <arg name="depth_speckle_filter"              value="$(arg depth_speckle_filter)" />
       <arg name="max_speckle_size"                  value="$(arg max_speckle_size)" />

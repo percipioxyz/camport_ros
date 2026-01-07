@@ -125,6 +125,8 @@ private:
 
   bool depth_registration_;
 
+  bool ir_undistortion_;
+
   /** \brief get_serial server*/
   ros::ServiceServer get_serial_server;
 

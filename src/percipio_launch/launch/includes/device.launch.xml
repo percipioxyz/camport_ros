@@ -15,6 +15,7 @@
   <arg name="depth_frame_id" />
   <arg name="color_undistortion" default="true" />
   <arg name="depth_registration" default="true" />
+  <arg name="ir_undistortion"    default="true" />
 
   <arg name="depth_speckle_filter" />
   <arg name="max_speckle_size" />
@@ -69,6 +70,8 @@
     <param name="color_undistortion" type="bool" value="$(arg color_undistortion)" />
     <param name="depth_registration" type="bool" value="$(arg depth_registration)" />
 
+    <param name="ir_undistortion" type="bool" value="$(arg ir_undistortion)" />
+
     <param name="device_log_enable" value="$(arg device_log_enable)" />
     <param name="device_log_level" value="$(arg device_log_level)" />
     <param name="device_log_server_port" value="$(arg device_log_server_port)" />
@@ -119,6 +122,8 @@
 
     <param name="color_undistortion" type="bool" value="$(arg color_undistortion)" />
     <param name="depth_registration" type="bool" value="$(arg depth_registration)" />
+
+    <param name="ir_undistortion" type="bool" value="$(arg ir_undistortion)" />
 
     <param name="device_log_enable" value="$(arg device_log_enable)" />
     <param name="device_log_level" value="$(arg device_log_level)" />

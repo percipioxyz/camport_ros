@@ -74,6 +74,7 @@ public:
   bool isPoint3DStreamStarted();
 
   void setColorUndistortion(bool enabled);
+  void setIRUndistortion(bool enabled);
 
   bool setDepthSpecFilterEn(bool en);
   bool getDepthSpecFilterEn();

@@ -355,6 +355,11 @@ void PercipioDevice::setColorUndistortion(bool enabled)
   percipio_device_->setColorUndistortion(enabled);
 }
 
+void PercipioDevice::setIRUndistortion(bool enabled)
+{
+  percipio_device_->setIRUndistortion(enabled);
+}
+
 bool PercipioDevice::setDepthSpecFilterEn(bool en)
 {
   return percipio_device_->setDepthSpecFilterEn(en);

@@ -58,6 +58,11 @@ namespace percipio
     IMAGE_REGISTRATION_COLOR_TO_DEPTH	= 2,
   } ImageRegistrationMode;
 
+  typedef enum {
+    DISTORTION_CORRECTION,
+    EPIPOLAR_RECTIFICATION
+  } IRImageRectificationMode;
+
   typedef enum
   {
     DEVICE_EVENT_OFFLINE = 0,
@@ -153,7 +158,20 @@ namespace percipio
     virtual TY_STATUS getColorIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic) = 0;
     virtual TY_STATUS getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic) = 0;
 
+    virtual TY_STATUS getIRLensType(TYLensOpticalType& type) = 0;
+    virtual TY_STATUS getIRRectificationMode(IRImageRectificationMode& mode) = 0;
+
+    virtual TY_STATUS getLeftIRCalibData(TY_CAMERA_CALIB_INFO& calib_data) = 0;
+    virtual TY_STATUS getLeftIRRotation(TY_CAMERA_ROTATION& rotation) = 0;
+    virtual TY_STATUS getLeftIRRectifiedIntr(TY_CAMERA_INTRINSIC& rectified_intr) = 0;
+
+    virtual TY_STATUS getRightIRCalibData(TY_CAMERA_CALIB_INFO& calib_data) = 0;
+    virtual TY_STATUS getRightIRRotation(TY_CAMERA_ROTATION& rotation) = 0;
+    virtual TY_STATUS getRightIRRectifiedIntr(TY_CAMERA_INTRINSIC& rectified_intr) = 0;
+
     virtual TY_STATUS getDepthScaleUnit(float& f_depth_scale) = 0;
+
+    virtual TY_STATUS EnableHwIRUndistortion() = 0;
 
     virtual TY_STATUS AcquisitionInit() = 0;
 
@@ -235,6 +253,8 @@ namespace percipio
 
       bool DeviceSetColorUndistortionEnable(bool enable);
 
+      bool DeviceSetIRUndistortionEnable(bool enable);
+
       bool DepthStreamSetSpeckFilterEn(bool enabled);
       bool DepthStreamGetSpeckFilterEn();
 
@@ -263,6 +283,7 @@ namespace percipio
       TY_STATUS MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS MapXYZ48FrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS FrameDecoder(VideoFrameData& src, VideoFrameData& dst);
+      TY_STATUS DoIRUndistortion(VideoFrameData& IR);
       TY_STATUS IREnhancement(VideoFrameData& IR);
 
       TY_STATUS parseIrStream(VideoFrameData* src, VideoFrameData* dst);
@@ -387,8 +408,22 @@ namespace percipio
       TY_CAMERA_INTRINSIC depth_intr;
       TY_CAMERA_INTRINSIC color_intr;
 
+      IRImageRectificationMode ir_rectificatio_mode = DISTORTION_CORRECTION;
+      TYLensOpticalType    ir_len_type = TY_LENS_PINHOLE;
+
+      TY_CAMERA_CALIB_INFO left_ir_calib;
+      TY_CAMERA_ROTATION   left_ir_rotation;
+      TY_CAMERA_INTRINSIC  left_ir_rectified_intr;
+
+      TY_CAMERA_CALIB_INFO right_ir_calib;
+      TY_CAMERA_ROTATION   right_ir_rotation;
+      TY_CAMERA_INTRINSIC  right_ir_rectified_intr;
+
       bool color_undistortion = false;
       bool depth_distortion = false;
+
+      bool ir_undistortion = false;
+      bool enable_sw_ir_undistortion = false;
 
       bool depth_stream_spec_enable = false;
       int  depth_stream_spec_size = 150; //default
@@ -759,6 +794,8 @@ namespace percipio
       void setStreamResendEnable(bool enabled);
 
       void setColorUndistortion(bool enabled);
+
+      void setIRUndistortion(bool enabled);
 
       bool setDepthSpecFilterEn(bool enabled);
       bool getDepthSpecFilterEn();

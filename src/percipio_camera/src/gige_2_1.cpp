@@ -81,13 +81,13 @@ TYPixFmt P3d[] = {
 
 extern std::map<SensorType, std::string> SensorDesc;
 
-const static int32_t m_Source_Range = 0;
-const static int32_t m_Source_Color = 1;
-const static int32_t m_Source_LeftIR = 2;
-const static int32_t m_Source_RightIR = 3;
-static inline int SensorTypeToSourceIdx(const SensorType type)
+const static int64_t m_Source_Range = 0;
+const static int64_t m_Source_Color = 1;
+const static int64_t m_Source_LeftIR = 2;
+const static int64_t m_Source_RightIR = 3;
+static inline int64_t SensorTypeToSourceIdx(const SensorType type)
 {
-    int32_t index = -1;
+    int64_t index = -1;
     switch(type) {
     case SENSOR_DEPTH:
         index = m_Source_Range;
@@ -163,7 +163,7 @@ bool MatchPixelFormat(const std::string& fmt_desc, const TYPixFmt& m_fmt)
 
 GigE_2_1::GigE_2_1(const TY_DEV_HANDLE dev) : GigEBase(dev) 
 {
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Range);
+  TY_STATUS ret = source_init(m_Source_Range);
   if(ret) {
     need_depth_undistortion = false;
     return;
@@ -185,7 +185,7 @@ GigE_2_1::GigE_2_1(const TY_DEV_HANDLE dev) : GigEBase(dev)
 std::vector<VideoMode> GigE_2_1::getLeftIRVideoModeList()
 {
   videos[SENSOR_IR_LEFT].clear();
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_LeftIR);
+  TY_STATUS ret = source_init(m_Source_LeftIR);
   if(ret) return videos[SENSOR_IR_LEFT];
 
   auto modes = dump_source_image_mode();
@@ -201,7 +201,7 @@ std::vector<VideoMode> GigE_2_1::getLeftIRVideoModeList()
 std::vector<VideoMode> GigE_2_1::getRightIRVideoModeList()
 {
   videos[SENSOR_IR_RIGHT].clear();
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_RightIR);
+  TY_STATUS ret = source_init(m_Source_RightIR);
   if(ret) return videos[SENSOR_IR_RIGHT];
 
   auto modes = dump_source_image_mode();
@@ -217,7 +217,7 @@ std::vector<VideoMode> GigE_2_1::getRightIRVideoModeList()
 std::vector<VideoMode> GigE_2_1::getColorVideoModeList()
 {
   videos[SENSOR_COLOR].clear();
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Color);
+  TY_STATUS ret = source_init(m_Source_Color);
   if(ret) return videos[SENSOR_COLOR];
 
   auto modes = dump_source_image_mode();
@@ -233,7 +233,7 @@ std::vector<VideoMode> GigE_2_1::getColorVideoModeList()
 std::vector<VideoMode> GigE_2_1::getDepthVideoModeList()
 {
   videos[SENSOR_DEPTH].clear();
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Range);
+  TY_STATUS ret = source_init(m_Source_Range);
   if(ret) return videos[SENSOR_DEPTH];
 
   auto modes = dump_source_image_mode();
@@ -248,7 +248,7 @@ std::vector<VideoMode> GigE_2_1::getDepthVideoModeList()
 
 TY_STATUS GigE_2_1::getColorCalibData(TY_CAMERA_CALIB_INFO& calib_data)
 {
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Color);
+  TY_STATUS ret = source_init(m_Source_Color);
   if(ret) return ret;
 
   return getCalibData(calib_data);
@@ -256,7 +256,7 @@ TY_STATUS GigE_2_1::getColorCalibData(TY_CAMERA_CALIB_INFO& calib_data)
 
 TY_STATUS GigE_2_1::getDepthCalibData(TY_CAMERA_CALIB_INFO& calib_data)
 {
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Range);
+  TY_STATUS ret = source_init(m_Source_Range);
   if(ret) return ret;
 
   return getCalibData(calib_data);
@@ -264,7 +264,7 @@ TY_STATUS GigE_2_1::getDepthCalibData(TY_CAMERA_CALIB_INFO& calib_data)
 
 TY_STATUS GigE_2_1::getColorIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
 {
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Color);
+  TY_STATUS ret = source_init(m_Source_Color);
   if(ret) return ret;
   
   int64_t binning = 0;
@@ -300,9 +300,18 @@ TY_STATUS GigE_2_1::getDepthScaleUnit(float& f_depth_scale)
   return ret;
 }
 
+TY_STATUS GigE_2_1::EnableHwIRUndistortion()
+{
+  bool exist = false;
+  TY_STATUS ret = TYParamExist(hDevice, "IRUndistortion", &exist);
+  if(ret) return ret;
+  if(!exist) return TY_STATUS_NOT_PERMITTED;
+  return TYBooleanSetValue(hDevice, "IRUndistortion", true);
+}
+
 TY_STATUS GigE_2_1::getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
 {
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", m_Source_Range);
+  TY_STATUS ret = source_init(m_Source_Range);
   if(ret) return ret;
 
   int64_t binning = 0;
@@ -323,6 +332,127 @@ TY_STATUS GigE_2_1::getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic)
       Intrinsic.data[6] = 0;
       Intrinsic.data[7] = 0;
       Intrinsic.data[8] = 1;
+  }
+  return ret;
+}
+
+TY_STATUS GigE_2_1::getIRLensType(TYLensOpticalType& type)
+{
+  type = TY_LENS_PINHOLE;
+  return TY_STATUS_OK;
+}
+
+TY_STATUS GigE_2_1::getIRRectificationMode(IRImageRectificationMode& mode)
+{
+  mode = DISTORTION_CORRECTION;
+
+  TY_STATUS ret = source_init(m_Source_LeftIR);
+  if(ret) return ret;
+
+  bool rotation = false;
+  bool rectified_intr = false;  
+  TYParamExist(hDevice, "Rotation", &rotation);
+  TYParamExist(hDevice, "Intrinsic2", &rectified_intr);
+  if(rotation && rectified_intr) mode = EPIPOLAR_RECTIFICATION;
+  return TY_STATUS_OK;
+}
+
+TY_STATUS GigE_2_1::getLeftIRCalibData(TY_CAMERA_CALIB_INFO& calib_data)
+{
+  TY_STATUS ret = source_init(m_Source_LeftIR);
+  if(ret) return ret;
+
+  return getCalibData(calib_data);
+}
+
+TY_STATUS GigE_2_1::getLeftIRRotation(TY_CAMERA_ROTATION& Rotation)
+{
+  TY_STATUS ret = source_init(m_Source_LeftIR);
+  if(ret) return ret;
+
+  double rotation[9];
+  ret = TYByteArrayGetValue(hDevice, "Rotation", reinterpret_cast<uint8_t*>(rotation), sizeof(rotation));
+  if(TY_STATUS_OK == ret) {
+    for(size_t i = 0; i < 9; i++) {
+      Rotation.data[i] = static_cast<float>(rotation[i]);
+    }
+  }
+  return ret;
+}
+
+TY_STATUS GigE_2_1::getLeftIRRectifiedIntr(TY_CAMERA_INTRINSIC& Rectified_intr)
+{
+  TY_STATUS ret = source_init(m_Source_LeftIR);
+  if(ret) return ret;
+
+  int64_t binning = 0;
+  ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
+  if(ret) binning = 1;
+
+  double intrinsic[9];
+  ret = TYByteArrayGetValue(hDevice, "Intrinsic2", reinterpret_cast<uint8_t*>(intrinsic), sizeof(intrinsic));
+  if(TY_STATUS_OK == ret) {
+    Rectified_intr.data[0] = static_cast<float>(intrinsic[0] / binning);
+    Rectified_intr.data[1] = 0;
+    Rectified_intr.data[2] = static_cast<float>(intrinsic[2] / binning);
+
+    Rectified_intr.data[3] = 0;
+    Rectified_intr.data[4] = static_cast<float>(intrinsic[4] / binning);
+    Rectified_intr.data[5] = static_cast<float>(intrinsic[5] / binning);
+
+    Rectified_intr.data[6] = 0;
+    Rectified_intr.data[7] = 0;
+    Rectified_intr.data[8] = 1;
+  }
+  return ret;
+}
+
+TY_STATUS GigE_2_1::getRightIRCalibData(TY_CAMERA_CALIB_INFO& calib_data)
+{
+  TY_STATUS ret = source_init(m_Source_RightIR);
+  if(ret) return ret;
+
+  return getCalibData(calib_data);
+}
+
+TY_STATUS GigE_2_1::getRightIRRotation(TY_CAMERA_ROTATION& Rotation)
+{
+  TY_STATUS ret = source_init(m_Source_RightIR);
+  if(ret) return ret;
+
+  double rotation[9];
+  ret = TYByteArrayGetValue(hDevice, "Rotation", reinterpret_cast<uint8_t*>(rotation), sizeof(rotation));
+  if(TY_STATUS_OK == ret) {
+    for(size_t i = 0; i < 9; i++) {
+      Rotation.data[i] = static_cast<float>(rotation[i]);
+    }
+  }
+  return ret;
+}
+
+TY_STATUS GigE_2_1::getRightIRRectifiedIntr(TY_CAMERA_INTRINSIC& Rectified_intr)
+{
+  TY_STATUS ret = source_init(m_Source_RightIR);
+  if(ret) return ret;
+
+  int64_t binning = 0;
+  ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
+  if(ret) binning = 1;
+
+  double intrinsic[9];
+  ret = TYByteArrayGetValue(hDevice, "Intrinsic2", reinterpret_cast<uint8_t*>(intrinsic), sizeof(intrinsic));
+  if(TY_STATUS_OK == ret) {
+    Rectified_intr.data[0] = static_cast<float>(intrinsic[0] / binning);
+    Rectified_intr.data[1] = 0;
+    Rectified_intr.data[2] = static_cast<float>(intrinsic[2] / binning);
+
+    Rectified_intr.data[3] = 0;
+    Rectified_intr.data[4] = static_cast<float>(intrinsic[4] / binning);
+    Rectified_intr.data[5] = static_cast<float>(intrinsic[5] / binning);
+
+    Rectified_intr.data[6] = 0;
+    Rectified_intr.data[7] = 0;
+    Rectified_intr.data[8] = 1;
   }
   return ret;
 }
@@ -370,15 +500,15 @@ TY_STATUS GigE_2_1::SetImageMode(SensorType sensorType, int width, int height, c
   if (it == videos.end())
     return TY_STATUS_INVALID_COMPONENT;
   
-  int sel = SensorTypeToSourceIdx(sensorType);
+  int64_t sel = SensorTypeToSourceIdx(sensorType);
   if(sel < 0) {
-    ROS_WARN("Invalid stream source id : %d", sel);
+    ROS_WARN("Invalid stream source id : %" PRId64 "", sel);
     return TY_STATUS_INVALID_COMPONENT;
   }
 
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", sel);
+  TY_STATUS ret = source_init(sel);
   if(ret) {
-    ROS_WARN("Invalid source id : %d, error code : %d", sel, ret);
+    ROS_WARN("Invalid source id : %" PRId64 ", error code : %d", sel, ret);
     return ret;
   }
 
@@ -484,37 +614,37 @@ TY_STATUS GigE_2_1::PreSetting()
   }
 
   for(size_t i = 0; i < cnt; i++) {
-    if(std::string(entrys[i].name) == std::string("Intensity")) {
+    if(std::string(entrys[i].name) == std::string("Texture")) {
       ret = TYEnumSetValue(hDevice, "SourceSelector", entrys[i].value);
       if(!ret) {
-        int64_t m_intensity_w, m_intensity_h;
-        ret = TYIntegerGetValue(hDevice, "SensorWidth", &m_intensity_w);
+        int64_t m_texture_w, m_texture_h;
+        ret = TYIntegerGetValue(hDevice, "SensorWidth", &m_texture_w);
         if(ret) {
-          ROS_WARN("Read intensity sensor width failed, error code : %d", ret);
+          ROS_WARN("Read texture sensor width failed, error code : %d", ret);
           return ret;
         }
 
-        ret = TYIntegerGetValue(hDevice, "SensorHeight", &m_intensity_h);
+        ret = TYIntegerGetValue(hDevice, "SensorHeight", &m_texture_h);
         if(ret) {
-          ROS_WARN("Read intensity sensor height failed, error code : %d", ret);
+          ROS_WARN("Read texture sensor height failed, error code : %d", ret);
           return ret;
         }
 
         int64_t default_fmt = 0;
         ret = TYEnumGetValue(hDevice, "PixelFormat", &default_fmt);
         if(ret) {
-          ROS_WARN("Read intensity pixel format failed, error code : %d", ret);
+          ROS_WARN("Read texture pixel format failed, error code : %d", ret);
           return ret;
         }
 
         int64_t binning = 0;
         ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
         if(ret) {
-          ROS_WARN("Read intensity image bining failed, error code : %d", ret);
+          ROS_WARN("Read texture image bining failed, error code : %d", ret);
           return ret;
         }
 
-        current_video_mode[SENSOR_COLOR] = VideoMode(default_fmt, m_intensity_w / binning, m_intensity_h / binning);
+        current_video_mode[SENSOR_COLOR] = VideoMode(default_fmt, m_texture_w / binning, m_texture_h / binning);
       }
     }
   }
@@ -688,7 +818,7 @@ TY_STATUS GigE_2_1::send_soft_trigger_signal()
 
 TY_STATUS GigE_2_1::EnableColorStream(const bool en)
 {
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", 1);
+  TY_STATUS ret = source_init(m_Source_Color);
   if(ret) {
     ROS_WARN("SourceSelector set failed: %d(%d)", ret, __LINE__);
     return ret;
@@ -712,7 +842,7 @@ TY_STATUS GigE_2_1::EnableColorStream(const bool en)
 
 TY_STATUS GigE_2_1::EnableDepthStream(const bool en)
 {
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", 0);
+  TY_STATUS ret = source_init(m_Source_Range);
   if(ret) {
     ROS_WARN("SourceSelector set failed: %d(%d)", ret, __LINE__);
     return ret;
@@ -736,7 +866,7 @@ TY_STATUS GigE_2_1::EnableDepthStream(const bool en)
 
 TY_STATUS GigE_2_1::EnableLeftIRStream(const bool en)
 {
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", 2);
+  TY_STATUS ret = source_init(m_Source_LeftIR);
   if(ret) {
     ROS_WARN("SourceSelector set failed: %d(%d)", ret, __LINE__);
     return ret;
@@ -760,7 +890,7 @@ TY_STATUS GigE_2_1::EnableLeftIRStream(const bool en)
 
 TY_STATUS GigE_2_1::EnableRightIRStream(const bool en)
 {
-  TY_STATUS ret = TYEnumSetValue(hDevice, "SourceSelector", 2);
+  TY_STATUS ret = source_init(m_Source_RightIR);
   if(ret) {
     ROS_WARN("SourceSelector set failed: %d(%d)", ret, __LINE__);
     return ret;
@@ -819,6 +949,19 @@ TY_STATUS GigE_2_1::getCalibData(TY_CAMERA_CALIB_INFO& calib_data)
   }
 
   return TY_STATUS_OK;
+}
+
+TY_STATUS GigE_2_1::source_init(int64_t source)
+{
+  int64_t m_current_source;
+  TY_STATUS status = TYEnumGetValue(hDevice, "SourceSelector", &m_current_source);
+  if(status) {
+      ROS_ERROR("SourceSelector read failed: %d", status);
+      return status;
+  }
+
+  if(source == m_current_source) return TY_STATUS_OK;
+  return TYEnumSetValue(hDevice, "SourceSelector", source);
 }
 
 std::vector<GegE2ImageMode> GigE_2_1::dump_source_image_mode()

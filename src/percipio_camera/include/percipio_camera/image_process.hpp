@@ -234,6 +234,57 @@ public:
       return TYDecodeImage(&src_img,  TY_OUTPUT_FORMAT_AUTO, (void*)dst.getData(), totalSize, &retInfo);
     }
 
+    static int IRUndistortion(percipio::VideoFrameData& IR, const TY_CAMERA_CALIB_INFO *calib_info, const TY_CAMERA_ROTATION *cameraRotation, const TY_CAMERA_INTRINSIC *cameraNewIntrinsic, const TYLensOpticalType type = TY_LENS_PINHOLE)
+    {
+        if (!calib_info ) {
+            ROS_WARN("IRUndistortion Invalid parameters: calib_info is null");
+            return TY_STATUS_INVALID_PARAMETER;
+        }
+        
+        //Check if IR data is valid
+        if (!IR.getData() || IR.getWidth() <= 0 || IR.getHeight() <= 0 || IR.getDataSize() <= 0) {
+            ROS_WARN("IRUndistortion Invalid IR image data");
+            return TY_STATUS_INVALID_PARAMETER;
+        }
+        
+        //Get current image properties
+        int32_t width = IR.getWidth();
+        int32_t height = IR.getHeight();
+        int32_t dataSize = IR.getDataSize();
+        uint32_t pixelFormat = IR.getPixelFormat();
+        
+        //Allocate buffer for rectified image (same size as original)
+        std::vector<uint8_t> rectifiedBuffer(dataSize);
+        
+        //Prepare source image data structure
+        TY_IMAGE_DATA srcImage;
+        srcImage.width = width;
+        srcImage.height = height;
+        srcImage.size = dataSize;
+        srcImage.pixelFormat = pixelFormat;
+        srcImage.buffer = IR.getData();
+        
+        //Prepare destination image data structure
+        TY_IMAGE_DATA dstImage;
+        dstImage.width = width;
+        dstImage.height = height;
+        dstImage.size = dataSize;
+        dstImage.pixelFormat = pixelFormat;
+        dstImage.buffer = rectifiedBuffer.data();
+        
+        //Apply distortion correction
+        TY_STATUS status = TYUndistortImage2(calib_info, &srcImage, cameraRotation, 
+                                            cameraNewIntrinsic, &dstImage, type);
+        if (status != TY_STATUS_OK) {
+            ROS_WARN("TYUndistortImage2 failed with status: %d", status);
+            return status;
+        }
+        
+        // Copy rectified data to VideoFrameData buffer
+        memcpy(IR.getData(), rectifiedBuffer.data(), dataSize);
+        return TY_STATUS_OK;
+    }
+
     static int GrayIR_linearStretch(percipio::VideoFrameData& grayIR)
     {
         uint32_t pixelFormat = grayIR.getPixelFormat();

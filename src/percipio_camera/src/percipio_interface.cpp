@@ -281,16 +281,34 @@ public:
     TYGetComponentIDs(_M_DEVICE, &mIDS);
     if(mIDS & TY_COMPONENT_IR_CAM_LEFT) {
       leftIRVideoMode = m_gige_dev->getLeftIRVideoModeList();
+/*
+      m_gige_dev->getIRLensType(ir_len_type);
+      m_gige_dev->getIRRectificationMode(ir_rectificatio_mode);
+
+      m_gige_dev->getLeftIRCalibData(left_ir_calib);
+      if(ir_rectificatio_mode == EPIPOLAR_RECTIFICATION) {
+        m_gige_dev->getLeftIRRotation(left_ir_rotation);
+        m_gige_dev->getLeftIRRectifiedIntr(left_ir_rectified_intr);
+      }
+*/
     }
 
     if(mIDS & TY_COMPONENT_IR_CAM_RIGHT) {
       rightIRVideoMode = m_gige_dev->getRightIRVideoModeList();
+/*
+      m_gige_dev->getRightIRCalibData(right_ir_calib);
+      if(ir_rectificatio_mode == EPIPOLAR_RECTIFICATION) {
+        m_gige_dev->getRightIRRotation(right_ir_rotation);
+        m_gige_dev->getRightIRRectifiedIntr(right_ir_rectified_intr);
+      }
+*/
     }
 
     if(mIDS & TY_COMPONENT_RGB_CAM) {
       RGBVideoMode = m_gige_dev->getColorVideoModeList();
       m_gige_dev->getColorCalibData(color_calib);
     }
+
     if(mIDS & TY_COMPONENT_DEPTH_CAM) {
       DepthVideoMode = m_gige_dev->getDepthVideoModeList();
       m_gige_dev->getDepthCalibData(depth_calib);
@@ -550,6 +568,12 @@ public:
     return true;
   }
 
+  bool PercipioDepthCam::DeviceSetIRUndistortionEnable(bool enable)
+  {
+    ir_undistortion = enable;
+    return true;
+  }
+
   bool PercipioDepthCam::DepthStreamSetSpeckFilterEn(bool enabled)
   {
     depth_stream_spec_enable = enabled;
@@ -695,6 +719,32 @@ public:
     else
       dst->clone(*src);
     return status;
+  }
+
+  TY_STATUS PercipioDepthCam::DoIRUndistortion(VideoFrameData& IR)//, const TY_CAMERA_CALIB_INFO *calib_info, const TY_CAMERA_ROTATION *cameraRotation, const TY_CAMERA_INTRINSIC *cameraNewIntrinsic, const TYLensOpticalType type)
+  {
+    if(!enable_sw_ir_undistortion) return TY_STATUS_OK;
+    auto comp = IR.getComponentID();
+    if(comp == TY_COMPONENT_IR_CAM_LEFT) {
+      switch(ir_rectificatio_mode) {
+        case DISTORTION_CORRECTION:
+          return ImgProc::IRUndistortion(IR, &left_ir_calib, nullptr, nullptr, ir_len_type);
+        case EPIPOLAR_RECTIFICATION:
+          return ImgProc::IRUndistortion(IR, &left_ir_calib, &left_ir_rotation, &left_ir_rectified_intr, ir_len_type);
+        default:
+          return TY_STATUS_INVALID_PARAMETER;
+      }
+    } else if(comp == TY_COMPONENT_IR_CAM_RIGHT) {
+      switch(ir_rectificatio_mode) {
+        case DISTORTION_CORRECTION:
+          return ImgProc::IRUndistortion(IR, &right_ir_calib, nullptr, nullptr, ir_len_type);
+        case EPIPOLAR_RECTIFICATION:
+          return ImgProc::IRUndistortion(IR, &right_ir_calib, &right_ir_rotation, &right_ir_rectified_intr, ir_len_type);
+        default:
+          return TY_STATUS_INVALID_PARAMETER;
+      }
+    } else
+      return TY_STATUS_INVALID_PARAMETER;
   }
 
   TY_STATUS PercipioDepthCam::IREnhancement(VideoFrameData& IR)
@@ -1130,6 +1180,36 @@ public:
       }
     }
 
+    if(mIDS & (TY_COMPONENT_IR_CAM_LEFT | TY_COMPONENT_IR_CAM_RIGHT)) {
+      if(ir_undistortion) {
+        rc = m_gige_dev->EnableHwIRUndistortion();
+        if(rc != TY_STATUS_OK) {
+          ROS_INFO("The device does not support self-rectification of IR images.");
+
+          m_gige_dev->getIRLensType(ir_len_type);
+          m_gige_dev->getIRRectificationMode(ir_rectificatio_mode);
+
+          m_gige_dev->getLeftIRCalibData(left_ir_calib);
+          if(ir_rectificatio_mode == EPIPOLAR_RECTIFICATION) {
+            m_gige_dev->getLeftIRRotation(left_ir_rotation);
+            m_gige_dev->getLeftIRRectifiedIntr(left_ir_rectified_intr);
+          }
+
+          m_gige_dev->getRightIRCalibData(right_ir_calib);
+          if(ir_rectificatio_mode == EPIPOLAR_RECTIFICATION) {
+            m_gige_dev->getRightIRRotation(right_ir_rotation);
+            m_gige_dev->getRightIRRectifiedIntr(right_ir_rectified_intr);
+          }
+
+          enable_sw_ir_undistortion = true;
+        } else {
+          enable_sw_ir_undistortion = false;
+        }
+      } else {
+        enable_sw_ir_undistortion = false;
+      }
+    }
+
     if(mIDS & TY_COMPONENT_RGB_CAM) {
       if(ColorStream && ColorStream->isValid()) {
         auto it = m_gige_dev->current_video_mode.find(SENSOR_COLOR);
@@ -1518,10 +1598,12 @@ public:
       case TY_COMPONENT_IR_CAM_LEFT:
       case TY_COMPONENT_IR_CAM_RIGHT:
         if(img->pixelFormat == TYPixelFormatMono8 || img->pixelFormat == TYPixelFormatMono16) {
+          g_Context->DoIRUndistortion(vframe);
           g_Context->IREnhancement(vframe);
           frame.clone(vframe);
         } else {
           g_Context->FrameDecoder(vframe, tframe);
+          g_Context->DoIRUndistortion(vframe);
           g_Context->IREnhancement(tframe);
           g_Context->parseIrStream(&tframe, &frame);
         }
@@ -1747,6 +1829,11 @@ public:
   void Device::setColorUndistortion(bool enabled)
   {
     g_Context->DeviceSetColorUndistortionEnable(enabled);
+  }
+
+  void Device::setIRUndistortion(bool enabled)
+  {
+    g_Context->DeviceSetIRUndistortionEnable(enabled);
   }
 
   bool Device::setDepthSpecFilterEn(bool enabled)

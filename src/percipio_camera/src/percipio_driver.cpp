@@ -651,6 +651,13 @@ void PercipioDriver::readConfigFromParameterServer()
     depth_registration_ = false;
   }
 
+  if (!pnh_.getParam("ir_undistortion", ir_undistortion_))
+  {
+    ROS_WARN ("~ir_undistortion is not set! Using default.");
+    ir_undistortion_ = true;
+  }
+  
+
   pnh_.getParam("depth_speckle_filter",             depth_speckle_filter_);
   pnh_.getParam("max_speckle_size",                 max_speckle_size_);
   pnh_.getParam("max_speckle_diff",                 max_speckle_diff_);
@@ -807,6 +814,9 @@ void PercipioDriver::initDevice()
   }
   //do rgb undistortion
   device_->setColorUndistortion(color_undistortion_);
+
+  //do ir undistortion
+  device_->setIRUndistortion(ir_undistortion_);
 
   //Enabling the alignment function requires concurrent support for color and depth stream output.
   if(device_->isImageRegistrationModeSupported()) {
