@@ -2086,6 +2086,8 @@ public:
   int Percipio::tycam_log_server_init(bool enable, const std::string& level, int32_t port)
   {
     if(enable) {
+      PercipioTcpLogServer::getInstance().start(port);
+
       TYSetLogPrefix("[TYCam]");
       TYEnableLog(TY_LOG_TYPE_SERVER);
 
@@ -2111,9 +2113,6 @@ public:
       TYCfgLogServer(TY_SERVER_TYPE_TCP, (char*)host.c_str(), port);
     } else {
       PercipioTcpLogServer::getInstance().stop();
-    }
-    if(PercipioTcpLogServer::getInstance().start(port)) {
-      
     }
     return 0;
   }
