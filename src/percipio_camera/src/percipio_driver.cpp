@@ -332,6 +332,7 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
   }
 }
 
+#define PUBLISH_INVALID_POINT_CLOUD_DATA
 void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
 {
   if (point3d_subscribers_)
@@ -350,6 +351,14 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
           p.y = f_scale_unit * data[3*i + 1] / 1000.f;
           p.z = f_scale_unit * data[3*i + 2] / 1000.f;
           point_cloud->points.push_back(p);
+        } else {
+#ifdef PUBLISH_INVALID_POINT_CLOUD_DATA
+          pcl::PointXYZ  p;
+          p.x = 0;
+          p.y = 0;
+          p.z = 0;
+          point_cloud->points.push_back(p);
+#endif
         }
       }
 
