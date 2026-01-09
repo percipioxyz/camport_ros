@@ -79,7 +79,7 @@ def main() -> None:
     Main execution block for the camera configuration client.
     
     Usage:
-        python percipio_config_client.py [camera_name]
+        python dynamic_config.py [camera_name]
     
     Arguments:
         camera_name (optional): ROS namespace of the camera to configure
@@ -87,10 +87,10 @@ def main() -> None:
     
     Examples:
         # Configure default camera with basic parameters
-        python percipio_config_client.py
+        python dynamic_config.py
         
         # Configure camera named "camera_1" with basic parameters
-        python percipio_config_client.py camera_1
+        python dynamic_config.py camera_1
     """
     
     # Default camera name if no command-line argument provided
