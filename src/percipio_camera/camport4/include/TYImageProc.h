@@ -117,7 +117,7 @@ TY_DECODE_API TYDecodeImage(const TYImageInfo* input, const TYOutputFormat confi
                        TYDecodeResult* result);
 
 
-/// @brief Do image undistortion, only support TY_PIXEL_FORMAT_MONO ,TY_PIXEL_FORMAT_RGB,TY_PIXEL_FORMAT_BGR.
+/// @brief Do image undistortion, only support TYPixelFormatMono8, TYPixelFormatMono16, TYPixelFormatRGB8, TYPixelFormatBGR8, TYPixelFormatCoord3D_C16.
 /// @param  [in]  srcCalibInfo          Image calibration data.
 /// @param  [in]  srcImage              Source image.
 /// @param  [in]  cameraNewIntrinsic    Expected new image intrinsic, will use srcCalibInfo for new image intrinsic if set to NULL.
@@ -132,7 +132,7 @@ TY_CAPI TYUndistortImage (const TY_CAMERA_CALIB_INFO *srcCalibInfo
         , const TYLensOpticalType type = TY_LENS_PINHOLE
         );
 
-/// @brief Do image undistortion, only support TY_PIXEL_FORMAT_MONO ,TY_PIXEL_FORMAT_RGB,TY_PIXEL_FORMAT_BGR.
+/// @brief Do image undistortion, only support TYPixelFormatMono8, TYPixelFormatMono16, TYPixelFormatRGB8, TYPixelFormatBGR8, TYPixelFormatCoord3D_C16.
 /// @param  [in]  srcCalibInfo          Image calibration data.
 /// @param  [in]  srcImage              Source image.
 /// @param  [in]  cameraRotation        Camera rotation parameter for image orientation adjustment.

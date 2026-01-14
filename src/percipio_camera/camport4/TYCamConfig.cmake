@@ -25,8 +25,8 @@
 # ======================================================
 SET(TYCam_VERSION_MAJOR  4)
 SET(TYCam_VERSION_MINOR  2)
-SET(TYCam_VERSION_PATCH  8)
-SET(TYCam_VERSION 4.2.8)
+SET(TYCam_VERSION_PATCH  10)
+SET(TYCam_VERSION 4.2.10)
 
 include(FindPackageHandleStandardArgs)
 

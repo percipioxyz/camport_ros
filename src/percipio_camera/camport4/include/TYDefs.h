@@ -374,6 +374,12 @@ typedef enum TY_FEATURE_ID_LIST :uint32_t
     
     TY_ENUM_LENS_OPTICAL_TYPE       = 0x0909 | TY_FEATURE_ENUM, /// Types of optical distortion of lenses, see TYLensOpticalType
 
+    TY_INT_TRANSMIT_ROI_OFFSET_X    = 0x0910 | TY_FEATURE_INT, ///Offset in pixels from image origin.
+    TY_INT_TRANSMIT_ROI_OFFSET_Y    = 0x0911 | TY_FEATURE_INT, ///Offset in lines from image origin.
+    TY_INT_TRANSMIT_ROI_WIDTH       = 0x0912 | TY_FEATURE_INT, ///ROI Image Width
+    TY_INT_TRANSMIT_ROI_HEIGHT      = 0x0913 | TY_FEATURE_INT, ///ROI Image Height
+    TY_BOOL_TRANSMIT_ROI_ENABLE     = 0x0914 | TY_FEATURE_BOOL, ///< TRANSMIT_ROI enable/disable
+
 }TY_FEATURE_ID_LIST;
 typedef uint32_t TY_FEATURE_ID;///< feature unique id @see TY_FEATURE_ID_LIST
 
