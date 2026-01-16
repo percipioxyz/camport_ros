@@ -25,6 +25,7 @@ PercipioDevice::PercipioDevice(const std::string& device_URI, const bool auto_re
     ir_video_started_(false),
     color_video_started_(false),
     depth_video_started_(false),
+    point3d_video_started_(false),
     image_registration_activated_(false),
     percipio_device_time_(false)
 {
