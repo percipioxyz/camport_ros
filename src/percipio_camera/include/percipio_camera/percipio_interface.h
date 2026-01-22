@@ -134,8 +134,6 @@ namespace percipio
   } DeviceNodeInfo;
   typedef std::map<std::string, std::vector<DeviceNodeInfo>> percipio_feat;
 
-  static std::vector<DeviceCallback_t> cb_list;
-
   class VideoFrameData;
   class Percipio;
   class DeviceDisconnectedListener;

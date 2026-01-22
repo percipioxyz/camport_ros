@@ -21,6 +21,7 @@
 namespace percipio
 {
   static tinyxml2::XMLDocument m_doc;
+  static std::vector<DeviceCallback_t> cb_list;
 
   std::map<SensorType, std::string> SensorDesc = {
     {SENSOR_IR_LEFT, "Left-IR"},
