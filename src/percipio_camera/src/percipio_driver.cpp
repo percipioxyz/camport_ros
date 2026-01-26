@@ -337,10 +337,12 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
 {
   if (point3d_subscribers_)
   {
+    size_t valid_count = 0;
     if(image->encoding == sensor_msgs::image_encodings::TYPE_16SC3)
     {
       //TODO
       pcl::PointCloud<pcl::PointXYZ>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+      point_cloud->points.resize(image->width * image->height);
 
       float f_scale_unit = device_->getDepthScale();
       int16_t* data = reinterpret_cast<int16_t*>(&image->data[0]);
@@ -350,20 +352,27 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
           p.x = f_scale_unit * data[3*i] / 1000.f;
           p.y = f_scale_unit * data[3*i + 1] / 1000.f;
           p.z = f_scale_unit * data[3*i + 2] / 1000.f;
-          point_cloud->points.push_back(p);
+          point_cloud->points[valid_count++] = p;
         } else {
 #ifdef PUBLISH_INVALID_POINT_CLOUD_DATA
           pcl::PointXYZ  p;
           p.x = 0;
           p.y = 0;
           p.z = 0;
-          point_cloud->points.push_back(p);
+          point_cloud->points[valid_count++] = p;
 #endif
         }
       }
 
+#ifdef PUBLISH_INVALID_POINT_CLOUD_DATA
+      point_cloud->width = image->width;
+      point_cloud->height = image->height;
+
+#else
+      point_cloud->points.resize(valid_count);
       point_cloud->width = 1;
       point_cloud->height = point_cloud->points.size();
+#endif
     
       pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
       pub_point3d_cloud.header.frame_id = depth_frame_id_;
@@ -387,6 +396,8 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
       }
 
       pcl::PointCloud<pcl::PointXYZ>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+      point_cloud->points.resize(image->width * image->height);
+
       float f_scale_unit = device_->getDepthScale();
       uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
       float fx = cam_info->K[0]; //fx
@@ -402,13 +413,27 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
           p.x = f_scale_unit * (m_pix_x - cx) * data[i] / (1000.f * fx);
           p.y = f_scale_unit * (m_pix_y - cy) * data[i] / (1000.f * fy);
           p.z = f_scale_unit * data[i] / 1000.f;
-          point_cloud->points.push_back(p);
+          point_cloud->points[valid_count++] = p;
+        } else {
+#ifdef PUBLISH_INVALID_POINT_CLOUD_DATA
+          pcl::PointXYZ  p;
+          p.x = 0;
+          p.y = 0;
+          p.z = 0;
+          point_cloud->points[valid_count++] = p;
+#endif
         }
       }
 
+#ifdef PUBLISH_INVALID_POINT_CLOUD_DATA
+      point_cloud->width = image->width;
+      point_cloud->height = image->height;
+#else
+      point_cloud->points.resize(valid_count);
       point_cloud->width = 1;
       point_cloud->height = point_cloud->points.size();
-    
+#endif
+
       pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
       pub_point3d_cloud.header.frame_id = image->header.frame_id;
       pub_point3d_cloud.header.stamp = image->header.stamp;
