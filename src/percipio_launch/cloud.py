@@ -11,8 +11,9 @@ import time
 from datetime import datetime
 
 class PointCloudViewer3D:
-    def __init__(self):
-        rospy.init_node('pointcloud_3d_viewer', anonymous=True)
+    def __init__(self, camera_name: str = "camera"):
+        self.camera_name=camera_name
+        rospy.init_node(f'pointcloud_3d_viewer_{camera_name}', anonymous=True)
         
         # 点云可视化参数
         self.point_size = rospy.get_param('~point_size', 1.0)
@@ -26,7 +27,7 @@ class PointCloudViewer3D:
         rospy.loginfo(f"点云将保存至: {self.save_path}")
         
         # 设置PointCloud2订阅器
-        pointcloud_topic = rospy.get_param('~pointcloud_topic', '/camera/PointCloud2')
+        pointcloud_topic = f'/{camera_name}/PointCloud2'
         self.sub = rospy.Subscriber(pointcloud_topic, PointCloud2, self.pointcloud_callback)
         rospy.loginfo(f"订阅点云话题: {pointcloud_topic}")
         
@@ -51,14 +52,6 @@ class PointCloudViewer3D:
                 # 提取坐标
                 x, y, z = point[0], point[1], point[2]
                 points.append([x, y, z])
-                
-                # 提取颜色（如果存在）
-                #if len(point) > 3:
-                #    rgb = point[3]
-                    # 解析RGB（32位浮点数转RGB）
-                #    r = 1.0
-                #    g = 1.0
-                #    b = 1.0
                 colors.append([1.0, 1.0, 1.0])
             
             if not points:
@@ -72,12 +65,6 @@ class PointCloudViewer3D:
             # 如果有颜色信息则添加
             if colors and len(colors) == len(points):
                 pcd.colors = o3d.utility.Vector3dVector(np.array(colors))
-                
-            
-            # 下采样提高性能
-            #if len(points) > 100000:
-            #    pcd = pcd.voxel_down_sample(voxel_size=0.01)
-            #    rospy.loginfo(f"点云下采样后点数: {len(pcd.points)}")
             
             self.latest_cloud = pcd
             self.update_view = True
@@ -116,7 +103,7 @@ class PointCloudViewer3D:
         # 创建可视化窗口
         vis = o3d.visualization.Visualizer()
         vis.create_window(
-            window_name='ROS PointCloud2 Viewer',
+            window_name=f'ROS PointCloud2 Viewer-{self.camera_name}',
             width=1280,
             height=720,
             visible=True
@@ -189,6 +176,10 @@ class PointCloudViewer3D:
         return False
 
 if __name__ == '__main__':
+    camera_name = "camera"  # 默认相机名称
+    if len(sys.argv) > 1:
+        camera_name = sys.argv[1]
+    
     try:
         # 解决Open3D在ROS环境中的初始化问题
         import platform
@@ -197,7 +188,7 @@ if __name__ == '__main__':
                 rospy.logwarn("未设置DISPLAY环境变量，尝试设置为 ':0'")
                 os.environ['DISPLAY'] = ':0'
         
-        viewer = PointCloudViewer3D()
+        viewer = PointCloudViewer3D(camera_name)
         rospy.spin()
     except rospy.ROSInterruptException:
         rospy.loginfo("节点已关闭")

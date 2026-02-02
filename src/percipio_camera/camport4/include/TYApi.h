@@ -191,9 +191,10 @@ TY_CAPI TYDeinitLib               (void);
 TY_CAPI TYLibVersion              (TY_VERSION_INFO* version);
 
 ///@brief  Set log level.
+///@param  [in]  type           Logger type.
 ///@param  [in]  lvl           Log level.
 ///@retval TY_STATUS_OK                     Succeed.
-TY_CAPI TYSetLogLevel             (TY_LOG_LEVEL lvl);
+TY_CAPI TYSetLogLevel             (TY_LOG_TYPE type, TY_LOG_LEVEL lvl);
 
 ///@brief  set log prefix
 ///@param  [in]  prefix        Prefix string.
@@ -208,32 +209,48 @@ TY_CAPI TYSetLogLevel             (TY_LOG_LEVEL lvl);
 ///          
 TY_CAPI TYSetLogPrefix            (const char* prefix);
 
-///@brief  Append log to specified file.
+///@brief  Enable logger by type.
+///@param  [in]  type           Logger type.
+///@retval TY_STATUS_OK                     Succeed.
+///@retval TY_STATUS_ERROR                  Failed to enable the selected logger 
+///          
+///          Suggestions:
+///            Please call TYCfgLogFile or TYCfgLogServer before enable log to file or log to server
+///          
+TY_CAPI TYEnableLog         (TY_LOG_TYPE type);
+
+///@brief  Disable logger by type.
+///@param  [in]  type           Logger type.
+///@retval TY_STATUS_OK                     Succeed.
+///@retval TY_STATUS_ERROR                  Failed to disable the selected logger 
+///          
+///          Suggestions:
+///            Please check if the selected logger is disabled
+///          
+TY_CAPI TYDisableLog         (TY_LOG_TYPE type);
+
+///@brief  Append log to specified file(s), max_size must not be 0.
+///        If max_files Not 0, it will use rotation files.
+///        Rotate files as:
+///        	log.txt -> log.1.txt
+///        	log.1.txt -> log.2.txt
+///        	log.2.txt -> log.3.txt
+///        	log.3.txt -> delete
 ///@param  [in]  filePath      Path to the log file.
-///@param  [in]  lvl           Log level.
+///@param  [in]  max_size      max single files size, can't be 0, default is 10M.
+///@param  [in]  max_files     Max files to keep, default is 10.
 ///@retval TY_STATUS_OK                     Succeed.
 ///@retval TY_STATUS_ERROR                  Failed to add file
 ///          
 ///          Suggestions:
 ///            Please check if the file path is correct and if you have permission to write to the file
 ///          
-TY_CAPI TYAppendLogToFile         (const char* filePath, TY_LOG_LEVEL lvl);
-
-///@brief  Remove log file.
-///@param  [in]  filePath      Path to the log file.
-///@retval TY_STATUS_OK                     Succeed.
-///@retval TY_STATUS_ERROR                  Failed to remove file
-///          
-///          Suggestions:
-///            Please check if the file path is correct
-///          
-TY_CAPI TYRemoveLogFile           (const char* filePath);
+TY_CAPI TYCfgLogFile         (const char* filePath, uint32_t max_size = 10 * 1024 * 1024, uint32_t max_files = 10);
 
 ///@brief  Append log to Tcp/Udp server.
-///@param  [in]  protocol      Protocol of the server, "tcp" or "udp".
+///@param  [in]  prot_type      Protocol of the server, "tcp" or "udp".
 ///@param  [in]  ip            IP address of the server.
 ///@param  [in]  port          Port of the server.
-///@param  [in]  lvl           Log level.
 ///@retval TY_STATUS_OK                     Succeed.
 ///@retval TY_STATUS_ERROR                  Failed to add server
 ///          
@@ -245,24 +262,7 @@ TY_CAPI TYRemoveLogFile           (const char* filePath);
 ///          Suggestions:
 ///            Unsupported protocol, please use tcp or udp
 ///          
-TY_CAPI TYAppendLogToServer       (const char* protocol, const char* ip, uint16_t port, TY_LOG_LEVEL lvl);
-
-///@brief  Remove log server.
-///@param  [in]  protocol      Protocol of the server, "tcp" or "udp".
-///@param  [in]  ip            IP address of the server.
-///@param  [in]  port          Port of the server.
-///@retval TY_STATUS_OK                     Succeed.
-///@retval TY_STATUS_ERROR                  Failed to remove server
-///          
-///          Suggestions:
-///            Please check if the ip and port are correct
-///          
-///@retval TY_STATUS_INVALID_PARAMETER      Unsupported protocol
-///          
-///          Suggestions:
-///            Unsupported protocol, please use tcp or udp
-///          
-TY_CAPI TYRemoveLogServer         (const char* protocol, const char* ip, uint16_t port);
+TY_CAPI TYCfgLogServer       (TY_SERVER_TYPE prot_type, const char* ip, uint16_t port);
 
 ///@brief  Update current interfaces.
 ///        call before TYGetInterfaceList

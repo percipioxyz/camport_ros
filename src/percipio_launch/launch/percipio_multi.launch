@@ -1,0 +1,164 @@
+<?xml version="1.0"?>
+<launch>
+  <!--
+     Example launch file for starting multiple Percipio cameras
+     Start multiple cameras by including percipio.launch with different parameters
+  -->
+
+  <!-- =========================================== -->
+  <!-- Global parameters shared by all cameras -->
+  <!-- =========================================== -->
+  
+  <!-- Use ROS nodelet (shared by all cameras) -->
+  <arg name="global_use_ros_nodelet" default="true" />
+  
+  <!-- Number of worker threads for node manager (shared by all cameras) -->
+  <arg name="global_num_worker_threads" default="4" />
+  
+  <!-- Device reconnection settings (shared by all cameras) -->
+  <arg name="global_device_reconnection" default="true" />
+  
+  <!-- Device log settings (shared by all cameras) -->
+  <arg name="global_device_log_enable" default="false" />
+  <arg name="global_device_log_level" default="ERROR" />
+  
+  <!-- Depth registration settings (shared by all cameras) -->
+  <arg name="global_depth_registration" default="true" />
+  
+  <!-- Color undistortion settings (shared by all cameras) -->
+  <arg name="global_color_undistortion" default="true" />
+  
+  <!-- Use device time (shared by all cameras) -->
+  <arg name="global_use_device_time" default="true" />
+  
+  <!-- Speckle filter settings (shared by all cameras) -->
+  <arg name="global_depth_speckle_filter" default="false" />
+  <arg name="global_max_speckle_size" default="150" />
+  <arg name="global_max_speckle_diff" default="64" />
+  <arg name="global_max_physical_size" default="20.0" />
+  
+  <!-- Time domain filter settings (shared by all cameras) -->
+  <arg name="global_depth_time_domain_filter" default="false" />
+  <arg name="global_depth_time_domain_num" default="3" />
+  
+  <!-- First camera configuration -->
+  <arg name="camera1_name" default="camera1" />
+  <arg name="camera1_device_id" default="207000113334" />
+  <arg name="camera1_frame_rate" default="10.0" />
+  <arg name="camera1_rgb_resolution" default="640x480" />
+  <arg name="camera1_depth_resolution" default="640x480" />
+  <arg name="camera1_rgb_format" default="" />
+  <!-- Overridable: mono/bayer/bgr/yuv/jpeg -->
+  <arg name="camera1_depth_format" default="" />
+  <!-- Overridable: depth16/xyz48 -->
+  <arg name="camera1_frame_rate_control" default="true" />
+  <arg name="camera1_trigger_mode" default="false" />
+  
+  <!-- Second camera configuration -->
+  <arg name="camera2_name" default="camera2" />
+  <arg name="camera2_device_id" default="207000159193" />
+  <arg name="camera2_frame_rate" default="10.0" />
+  <arg name="camera2_rgb_resolution" default="640x480" />
+  <arg name="camera2_depth_resolution" default="640x400" />
+  <arg name="camera2_rgb_format" default="" />
+  <arg name="camera2_depth_format" default="" />
+  <arg name="camera2_frame_rate_control" default="true" />
+  <arg name="camera2_trigger_mode" default="false" />
+  
+  <!-- =========================================== -->
+  <!-- First camera node -->
+  <!-- =========================================== -->
+  <include file="$(find percipio_launch)/launch/percipio.launch">
+    <!-- Camera namespace -->
+    <arg name="camera" value="$(arg camera1_name)" />
+
+    <!-- Device ID -->
+    <arg name="device_id" value="$(arg camera1_device_id)" />
+
+    <!-- TF frame IDs, based on camera name -->
+    <arg name="rgb_frame_id" value="$(arg camera1_name)_rgb_optical_frame" />
+    <arg name="depth_frame_id" value="$(arg camera1_name)_depth_optical_frame" />
+    <arg name="ir_frame_id" value="$(arg camera1_name)_ir_optical_frame" />
+
+    <!-- Shared parameters -->
+    <arg name="use_ros_nodelet" value="$(arg global_use_ros_nodelet)" />
+    <arg name="num_worker_threads" value="$(arg global_num_worker_threads)" />
+    <arg name="device_reconnection" value="$(arg global_device_reconnection)" />
+    <arg name="device_log_enable" value="$(arg global_device_log_enable)" />
+    <arg name="device_log_level" value="$(arg global_device_log_level)" />
+    <arg name="depth_registration" value="$(arg global_depth_registration)" />
+    <arg name="color_undistortion" value="$(arg global_color_undistortion)" />
+    <arg name="use_device_time" value="$(arg global_use_device_time)" />
+
+    <arg name="depth_speckle_filter" value="$(arg global_depth_speckle_filter)" />
+    <arg name="max_speckle_size" value="$(arg global_max_speckle_size)" />
+    <arg name="max_speckle_diff" value="$(arg global_max_speckle_diff)" />
+    <arg name="max_physical_size" value="$(arg global_max_physical_size)" />
+    <arg name="depth_time_domain_filter" value="$(arg global_depth_time_domain_filter)" />
+    <arg name="depth_time_domain_num" value="$(arg global_depth_time_domain_num)" />
+
+    <!-- Camera-specific parameters -->
+    <arg name="frame_rate_control" value="$(arg camera1_frame_rate_control)" />
+    <arg name="frame_rate" value="$(arg camera1_frame_rate)" />
+    <arg name="trigger_mode" value="$(arg camera1_trigger_mode)" />
+    <arg name="rgb_resolution" value="$(arg camera1_rgb_resolution)" />
+    <arg name="depth_resolution" value="$(arg camera1_depth_resolution)" />
+    <arg name="rgb_format" value="$(arg camera1_rgb_format)" />
+    <arg name="depth_format" value="$(arg camera1_depth_format)" />
+
+    <!-- Soft trigger topic (based on camera name) -->
+    <arg name="soft_trigger_topic" value="/$(arg camera1_name)/soft_trigger" />
+
+    <!-- Dynamic configure topic (based on camera name) -->
+    <arg name="dynamic_configure_topic" value="/$(arg camera1_name)/dynamic_config" />
+  </include>
+  
+  <!-- =========================================== -->
+  <!-- Second camera node -->
+  <!-- =========================================== -->
+  <include file="$(find percipio_launch)/launch/percipio.launch">
+    <!-- Camera namespace -->
+    <arg name="camera" value="$(arg camera2_name)" />
+
+    <!-- Device ID -->
+    <arg name="device_id" value="$(arg camera2_device_id)" />
+
+    <!-- TF frame IDs, based on camera name -->
+    <arg name="rgb_frame_id" value="$(arg camera2_name)_rgb_optical_frame" />
+    <arg name="depth_frame_id" value="$(arg camera2_name)_depth_optical_frame" />
+    <arg name="ir_frame_id" value="$(arg camera2_name)_ir_optical_frame" />
+
+    <!-- Shared parameters -->
+    <arg name="use_ros_nodelet" value="$(arg global_use_ros_nodelet)" />
+    <arg name="num_worker_threads" value="$(arg global_num_worker_threads)" />
+    <arg name="device_reconnection" value="$(arg global_device_reconnection)" />
+    <arg name="device_log_enable" value="$(arg global_device_log_enable)" />
+    <arg name="device_log_level" value="$(arg global_device_log_level)" />
+    <arg name="depth_registration" value="$(arg global_depth_registration)" />
+    <arg name="color_undistortion" value="$(arg global_color_undistortion)" />
+    <arg name="use_device_time" value="$(arg global_use_device_time)" />
+
+    <arg name="depth_speckle_filter" value="$(arg global_depth_speckle_filter)" />
+    <arg name="max_speckle_size" value="$(arg global_max_speckle_size)" />
+    <arg name="max_speckle_diff" value="$(arg global_max_speckle_diff)" />
+    <arg name="max_physical_size" value="$(arg global_max_physical_size)" />
+    <arg name="depth_time_domain_filter" value="$(arg global_depth_time_domain_filter)" />
+    <arg name="depth_time_domain_num" value="$(arg global_depth_time_domain_num)" />
+
+    <!-- Camera-specific parameters -->
+    <arg name="frame_rate_control" value="$(arg camera2_frame_rate_control)" />
+    <arg name="frame_rate" value="$(arg camera2_frame_rate)" />
+    <arg name="trigger_mode" value="$(arg camera2_trigger_mode)" />
+    <arg name="rgb_resolution" value="$(arg camera2_rgb_resolution)" />
+    <arg name="depth_resolution" value="$(arg camera2_depth_resolution)" />
+    <arg name="rgb_format" value="$(arg camera2_rgb_format)" />
+    <arg name="depth_format" value="$(arg camera2_depth_format)" />
+
+    <!-- Soft trigger topic (based on camera name) -->
+    <arg name="soft_trigger_topic" value="/$(arg camera2_name)/soft_trigger" />
+
+    <!-- Dynamic configure topic (based on camera name) -->
+    <arg name="dynamic_configure_topic" value="/$(arg camera2_name)/dynamic_config" />
+  </include>
+
+</launch>

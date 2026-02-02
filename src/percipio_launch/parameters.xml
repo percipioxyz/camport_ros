@@ -1,0 +1,83 @@
+<source name="Depth">
+    <feature name="DepthScaleUnit"></feature>
+    <feature name="DepthSgbmImageNumber"></feature>
+    <feature name="DepthSgbmDisparityNumber"></feature>
+    <feature name="DepthSgbmDisparityOffset"></feature>
+    <feature name="DepthSgbmMatchWinHeight"></feature>
+    <feature name="DepthSgbmSemiParamP1"></feature>
+    <feature name="DepthSgbmSemiParamP2"></feature>
+    <feature name="DepthSgbmUniqueFactor"></feature>
+    <feature name="DepthSgbmUniqueAbsDiff"></feature>
+    <feature name="DepthSgbmUniqueMaxCost"></feature>
+    <feature name="DepthSgbmHFilterHalfWin"></feature>
+    <feature name="DepthSgbmMatchWinWidth"></feature>
+    <feature name="DepthSgbmMedFilter"></feature>
+    <feature name="DepthSgbmLRC"></feature>
+    <feature name="DepthSgbmLRCDiff"></feature>
+    <feature name="DepthSgbmMedFilterThresh"></feature>
+    <feature name="DepthSgbmSemiParamP1Scale"></feature>
+    <feature name="DepthSgpmPhaseNumber"></feature>
+    <feature name="DepthSgpmPhaseScale"></feature>
+    <feature name="DepthSgpmPhaseOffset"></feature>
+    <feature name="DepthSgpmReferencePhaseScale"></feature>
+    <feature name="DepthSgpmReferencePhaseOffset"></feature>
+    <feature name="DepthSgpmEpipolarConstraintPatternScale"></feature>
+    <feature name="DepthSgpmEpipolarConstraintPatternOffset"></feature>
+    <feature name="DepthSgpmEpipolarConstraintEnable"></feature>
+    <feature name="DepthSgpmEpipolarConstraintChan0"></feature>
+    <feature name="DepthSgpmEpipolarConstraintChan1"></feature>
+    <feature name="DepthSgpmEpipolarConstraintThresh"></feature>
+    <feature name="DepthSgpmPhaseOrderFilterEnable"></feature>
+    <feature name="DepthSgpmPhaseOrderFilterChannel"></feature>
+    <feature name="DepthRangeMin"></feature>
+    <feature name="DepthRangeMax"></feature>
+    <feature name="DepthSgbmTextureFilterValueOffset"></feature>
+    <feature name="DepthSgbmTextureFilterThreshold"></feature>
+    <feature name="DepthStreamTofFilterThreshold"></feature>
+    <feature name="DepthStreamTofChannel"></feature>
+    <feature name="DepthStreamTofModulationThreshold"></feature>
+    <feature name="DepthStreamTofDepthQuality"></feature>
+    <feature name="DepthStreamTofHdrRatio"></feature>
+    <feature name="DepthStreamTofJitterThreshold"></feature>
+
+    <feature name="DepthStreamTofAntiSunlightIndex"></feature>
+    <feature name="DepthStreamTofAntiInterference"></feature>
+    <feature name="DepthStreamTofSpeckleSize"></feature>
+    <feature name="DepthStreamTofSpeckleDiff"></feature>
+</source>
+
+<source name="Texture">
+    <feature name="ExposureAuto"></feature>
+    <feature name="ExposureTime"></feature>
+    <feature name="ExposureTargetBrightness"></feature>
+    <feature name="AnalogAll"></feature>
+    <feature name="DigitalAll"></feature>
+    <feature name="DigitalRed"></feature>
+    <feature name="DigitalGreen"></feature>
+    <feature name="DigitalBlue"></feature>
+    <feature name="BalanceWhiteAuto"></feature>
+</source>
+
+<source name="Left">
+    <feature name="ExposureAuto"></feature>
+    <feature name="ExposureTime"></feature>
+    <feature name="ExposureTargetBrightness"></feature>
+    <feature name="AnalogAll"></feature>
+    <feature name="DigitalAll"></feature>
+</source>
+
+<source name="Right">
+    <feature name="ExposureAuto"></feature>
+    <feature name="ExposureTime"></feature>
+    <feature name="AnalogAll"></feature>
+    <feature name="DigitalAll"></feature>
+</source>
+
+<source name="Device">
+</source>
+
+<source name="Laser">
+</source>
+
+<source name="Others">
+</source>

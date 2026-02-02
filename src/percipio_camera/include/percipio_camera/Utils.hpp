@@ -1,10 +1,6 @@
 #ifndef SAMPLE_COMMON_UTILS_HPP_
 #define SAMPLE_COMMON_UTILS_HPP_
 
-/**
- * This file excludes opencv for sample_raw.
- */
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -252,7 +248,7 @@ static inline TY_STATUS selectDevice(TY_INTERFACE_TYPE iface
     }
 
     if(out.size() == 0){
-      LOGE("not found any device");
+      //LOGE("not found any device");
       return TY_STATUS_ERROR;
     }
 

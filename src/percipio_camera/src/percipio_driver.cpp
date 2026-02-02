@@ -10,9 +10,6 @@
 #include <boost/date_time/posix_time/posix_time.hpp>
 #include <boost/thread/thread.hpp>
 
-//#include <opencv2/opencv.hpp>
-//#include <opencv2/highgui/highgui.hpp>
-
 namespace percipio_wrapper
 {
 
@@ -30,7 +27,8 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   config_init_(false),
   depth_registration_(false),
   use_device_time_(false),
-
+  ir_enhancement_(percipio::IREnhanceOFF),
+  ir_enhancement_coefficient_(6),
   ir_subscribers_(false),
   color_subscribers_(false),
   point3d_subscribers_(false),
@@ -85,9 +83,9 @@ void PercipioDriver::publishStaticTransforms() {
   for(size_t i = 0; i < sizeof(stream_name) / sizeof(std::string); i++) {
     auto timestamp = ros::Time::now();//node_->now();
     
-    std::string camera_link_frame_id_ = "camera_link"; //camera_name_ + "_link";
-    std::string frame_id_ = "camera_" + stream_name[i] + "_frame";//camera_name_ + "_" + stream_name[index] + "_frame";
-    std::string optical_frame_id_ = "camera_" + stream_name[i] + "_optical_frame";//camera_name_ + "_" + stream_name[index] + "_optical_frame";
+    std::string camera_link_frame_id_ = camera_name_ + "_link";
+    std::string frame_id_ = camera_name_ + "_" + stream_name[i] + "_frame";
+    std::string optical_frame_id_ = camera_name_ + "_" + stream_name[i] + "_optical_frame";
     publishStaticTF(timestamp, trans,      Q,                  camera_link_frame_id_,   frame_id_);
     publishStaticTF(timestamp, zero_trans, quaternion_optical, frame_id_,               optical_frame_id_);
   }
@@ -110,6 +108,15 @@ void PercipioDriver::advertiseROSTopics()
   image_transport::ImageTransport depth_it(depth_nh);
 
   // Advertise all published topics
+  if (trigger_mode_) {
+    soft_trigger_sub_ = nh_.subscribe(soft_trigger_topic_, 10, &PercipioDriver::SoftTriggerCb, this);
+    ROS_INFO("Soft trigger mode enabled, subscribe to the topic.: %s", soft_trigger_topic_.c_str());
+  }
+
+  device_reset_sub_ = nh_.subscribe(device_reset_topic_, 10, &PercipioDriver::ResetCb, this);
+
+  device_dynamic_sub_ = nh_.subscribe(dynamic_configure_topic_, 10, &PercipioDriver::DynamicConfigureCb, this);
+
   // Prevent connection callbacks from executing until we've set all the publishers. Otherwise
   // connectCb() can fire while we're advertising (say) "depth/image", but before we actually
   // assign to pub_depth_raw_. Then pub_depth_raw_.getNumSubscribers() returns 0, and we fail to start
@@ -143,6 +150,8 @@ void PercipioDriver::advertiseROSTopics()
     pub_point3d_ = nh_.advertise<sensor_msgs::PointCloud2>("PointCloud2", 1, rssc2, rssc2);
   }
 
+  device_event_pub_ = nh_.advertise<std_msgs::String>("PercipioDeviceEvent", 10);
+
   std::string serial_number = device_->getStringID();
   std::string color_name, depth_name, ir_name;//, ;
 
@@ -170,6 +179,7 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
     config.depth_speckle_filter = depth_speckle_filter_;
     config.max_speckle_size = max_speckle_size_;
     config.max_speckle_diff = max_speckle_diff_;
+    config.max_physical_size = max_physical_size_;
 
     config.depth_time_domain_filter = depth_time_domain_filter_;
     config.depth_time_domain_num = depth_time_domain_num_;
@@ -178,6 +188,7 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
     depth_speckle_filter_ = config.depth_speckle_filter;
     max_speckle_size_ = config.max_speckle_size;
     max_speckle_diff_ = config.max_speckle_diff;
+    max_physical_size_ = config.max_physical_size;
 
     depth_time_domain_filter_ = config.depth_time_domain_filter;
     depth_time_domain_num_ = config.depth_time_domain_num;
@@ -186,6 +197,7 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
       device_->setDepthSpecFilterEn(depth_speckle_filter_);
       device_->setDepthSpecFilterSpecSize(max_speckle_size_);
       device_->setDepthSpeckFilterDiff(max_speckle_diff_);
+      device_->setDepthSpeckFilterPhySize(max_physical_size_);
 
       device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
       device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
@@ -320,14 +332,17 @@ void PercipioDriver::newDepthFrameCallback(sensor_msgs::ImagePtr image)
   }
 }
 
+#define PUBLISH_INVALID_POINT_CLOUD_DATA
 void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
 {
   if (point3d_subscribers_)
   {
+    size_t valid_count = 0;
     if(image->encoding == sensor_msgs::image_encodings::TYPE_16SC3)
     {
       //TODO
       pcl::PointCloud<pcl::PointXYZ>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+      point_cloud->points.resize(image->width * image->height);
 
       float f_scale_unit = device_->getDepthScale();
       int16_t* data = reinterpret_cast<int16_t*>(&image->data[0]);
@@ -337,19 +352,34 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
           p.x = f_scale_unit * data[3*i] / 1000.f;
           p.y = f_scale_unit * data[3*i + 1] / 1000.f;
           p.z = f_scale_unit * data[3*i + 2] / 1000.f;
-          point_cloud->points.push_back(p);
+          point_cloud->points[valid_count++] = p;
+        } else {
+#ifdef PUBLISH_INVALID_POINT_CLOUD_DATA
+          pcl::PointXYZ  p;
+          p.x = 0;
+          p.y = 0;
+          p.z = 0;
+          point_cloud->points[valid_count++] = p;
+#endif
         }
       }
 
+#ifdef PUBLISH_INVALID_POINT_CLOUD_DATA
+      point_cloud->width = image->width;
+      point_cloud->height = image->height;
+
+#else
+      point_cloud->points.resize(valid_count);
       point_cloud->width = 1;
       point_cloud->height = point_cloud->points.size();
+#endif
     
       pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
       pub_point3d_cloud.header.frame_id = depth_frame_id_;
       pub_point3d_cloud.header.stamp = image->header.stamp;
 
       pub_point3d_.publish(pub_point3d_cloud);
-      ros::spinOnce();
+      // ros::spinOnce();
     } 
     else if(image->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
     {
@@ -366,6 +396,8 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
       }
 
       pcl::PointCloud<pcl::PointXYZ>::Ptr  point_cloud (new pcl::PointCloud<pcl::PointXYZ>);
+      point_cloud->points.resize(image->width * image->height);
+
       float f_scale_unit = device_->getDepthScale();
       uint16_t* data = reinterpret_cast<uint16_t*>(&image->data[0]);
       float fx = cam_info->K[0]; //fx
@@ -381,19 +413,33 @@ void PercipioDriver::newPoint3DFrameCallback(sensor_msgs::ImagePtr image)
           p.x = f_scale_unit * (m_pix_x - cx) * data[i] / (1000.f * fx);
           p.y = f_scale_unit * (m_pix_y - cy) * data[i] / (1000.f * fy);
           p.z = f_scale_unit * data[i] / 1000.f;
-          point_cloud->points.push_back(p);
+          point_cloud->points[valid_count++] = p;
+        } else {
+#ifdef PUBLISH_INVALID_POINT_CLOUD_DATA
+          pcl::PointXYZ  p;
+          p.x = 0;
+          p.y = 0;
+          p.z = 0;
+          point_cloud->points[valid_count++] = p;
+#endif
         }
       }
 
+#ifdef PUBLISH_INVALID_POINT_CLOUD_DATA
+      point_cloud->width = image->width;
+      point_cloud->height = image->height;
+#else
+      point_cloud->points.resize(valid_count);
       point_cloud->width = 1;
       point_cloud->height = point_cloud->points.size();
-    
+#endif
+
       pcl::toROSMsg(*point_cloud, pub_point3d_cloud);
       pub_point3d_cloud.header.frame_id = image->header.frame_id;
       pub_point3d_cloud.header.stamp = image->header.stamp;
 
       pub_point3d_.publish(pub_point3d_cloud);
-      ros::spinOnce();
+      // ros::spinOnce();
     }
   }
 }
@@ -537,6 +583,32 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDepthCameraInfo(int width, int hei
 
 void PercipioDriver::readConfigFromParameterServer()
 {
+  if (!pnh_.getParam("device_log_enable", device_log_enable_))
+  {
+    device_log_enable_ = false;
+  }
+
+  if (!pnh_.getParam("device_log_level", device_log_level_))
+  {
+    device_log_level_ = "ERROR";
+  }
+
+  if (!pnh_.getParam("device_log_server_port", device_log_server_port_))
+  {
+    device_log_server_port_ = 9001;
+  }
+
+  if (!pnh_.getParam("camera", camera_name_))
+  {
+    ROS_WARN ("~camera_name_ is not set! Using first device.");
+    camera_name_ = "camera";
+  }
+
+  const std::string param_name = "/percipio_camera_parameter";
+  if (!pnh_.getParam(param_name, xml_content)) {
+      ROS_ERROR("Failed to get parameter %s after waiting", param_name.c_str());
+  }
+
   if (!pnh_.getParam("device_id", device_id_))
   {
     ROS_WARN ("~device_id is not set! Using first device.");
@@ -547,6 +619,35 @@ void PercipioDriver::readConfigFromParameterServer()
   {
     ROS_WARN ("~reconnection flag is not set! Using default.");
     reconnection_flag_ = false;
+  }
+
+  if (!pnh_.getParam("frame_rate_control", frame_rate_control_))
+  {
+    ROS_WARN ("~frame_rate_control is not set! Try using default.");
+    frame_rate_control_ = false;
+  }
+
+  
+  if (!pnh_.getParam("frame_rate", frame_rate_))
+  {
+    ROS_WARN ("~frame_rate is not set! Try using default.");
+    frame_rate_ = 5.0;
+  }
+  
+  if (!pnh_.getParam("trigger_mode", trigger_mode_))
+  {
+    ROS_WARN ("~trigger_mode is not set! Try using default.");
+    trigger_mode_ = false;
+  }
+
+  if (!pnh_.getParam("soft_trigger_topic", soft_trigger_topic_))
+  {
+    soft_trigger_topic_ = "/" + camera_name_ + "/soft_trigger";
+  }
+
+  if (!pnh_.getParam("dynamic_configure_topic", dynamic_configure_topic_))
+  {
+    dynamic_configure_topic_ = "/" + camera_name_ + "/dynamic_config";
   }
 
   if (!pnh_.getParam("rgb_resolution", rgb_resolution_))
@@ -584,12 +685,41 @@ void PercipioDriver::readConfigFromParameterServer()
     depth_registration_ = false;
   }
 
+  if (!pnh_.getParam("ir_undistortion", ir_undistortion_))
+  {
+    ROS_WARN ("~ir_undistortion is not set! Using default.");
+    ir_undistortion_ = true;
+  }
+  
+
   pnh_.getParam("depth_speckle_filter",             depth_speckle_filter_);
   pnh_.getParam("max_speckle_size",                 max_speckle_size_);
   pnh_.getParam("max_speckle_diff",                 max_speckle_diff_);
+  pnh_.getParam("max_physical_size",                max_physical_size_);
 
   pnh_.getParam("depth_time_domain_filter",         depth_time_domain_filter_);
   pnh_.getParam("depth_time_domain_num",            depth_time_domain_num_);
+
+  static std::map<std::string, percipio::IREnhanceModel> ir_enhancement_list = {
+    {"off",           percipio::IREnhanceOFF},
+    {"linear",        percipio::IREnhanceLinearStretch},
+    {"multi_linear",  percipio::IREnhanceLinearStretch_Multi},
+    {"std_linear",    percipio::IREnhanceLinearStretch_STD},
+    {"log",           percipio::IREnhanceLinearStretch_LOG2},
+    {"hist",          percipio::IREnhanceLinearStretch_Hist}
+  };
+
+  std::string ir_enhancement_string;
+  if (!pnh_.getParam("ir_enhancement", ir_enhancement_string)) {
+    ir_enhancement_string = "off";
+  }
+
+  auto iter = ir_enhancement_list.find(ir_enhancement_string);
+  if(iter != ir_enhancement_list.end()) 
+    ir_enhancement_ = ir_enhancement_list[ir_enhancement_string];
+  else
+    ir_enhancement_ = percipio::IREnhanceOFF;
+  pnh_.getParam("ir_enhancement_coefficient",       ir_enhancement_coefficient_);
 
   pnh_.getParam("use_device_time",                  use_device_time_);
 
@@ -605,6 +735,8 @@ void PercipioDriver::readConfigFromParameterServer()
   pnh_.param("rgb_camera_info_url", color_info_url_, std::string());
   pnh_.param("depth_camera_info_url", depth_info_url_, std::string());
   pnh_.param("ir_camera_info_url", ir_info_url_, std::string());
+
+  device_reset_topic_ = "/" + camera_name_ + "/reset";
 }
 
 std::string PercipioDriver::resolveDeviceURI(const std::string& device_id)
@@ -717,6 +849,9 @@ void PercipioDriver::initDevice()
   //do rgb undistortion
   device_->setColorUndistortion(color_undistortion_);
 
+  //do ir undistortion
+  device_->setIRUndistortion(ir_undistortion_);
+
   //Enabling the alignment function requires concurrent support for color and depth stream output.
   if(device_->isImageRegistrationModeSupported()) {
     device_->setImageRegistrationMode(depth_registration_);
@@ -725,15 +860,65 @@ void PercipioDriver::initDevice()
   device_->setDepthSpecFilterEn(depth_speckle_filter_);
   device_->setDepthSpecFilterSpecSize(max_speckle_size_);
   device_->setDepthSpeckFilterDiff(max_speckle_diff_);
+  device_->setDepthSpeckFilterPhySize(max_physical_size_);
 
   device_->setDepthTimeDomainFilterEn(depth_time_domain_filter_);
   device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
 
+  device_->setIREnhancement(ir_enhancement_, ir_enhancement_coefficient_);
+
   device_->setUseDeviceTimer(use_device_time_);
+
+  device_->setDeviceWorkMode(frame_rate_control_, frame_rate_, trigger_mode_);
+
+  if(xml_content.length()) {
+    device_->init_parameters_from_xml(xml_content);
+  }
+}
+
+void PercipioDriver::DeviceEvent(const char* event)
+{
+  ROS_INFO("DeviceEvent: %s", event);
+  std_msgs::String msg;
+  msg.data = event;
+  device_event_pub_.publish(msg);
+}
+
+void PercipioDriver::SoftTriggerCb(const std_msgs::EmptyConstPtr& msg)
+{
+  if (device_ && trigger_mode_)
+  {
+    device_->sendSoftTrigger();
+    ROS_INFO("Received soft trigger signal, sent trigger command to device");
+  } else {
+    if (!device_)
+      ROS_WARN("Device not initialized, unable to send soft trigger command");
+    else if (!trigger_mode_)
+      ROS_WARN("Device not in trigger mode, ignoring soft trigger signal");
+  }
+}
+
+void PercipioDriver::ResetCb(const std_msgs::EmptyConstPtr& msg)
+{
+  if(device_) {
+    device_->reset();
+  } else {
+    ROS_WARN("Device not initialized, unable to send reset command");
+  }
+}
+
+void PercipioDriver::DynamicConfigureCb(const std_msgs::String::ConstPtr& msg)
+{
+  if(device_) {
+    device_->dynamic_configure(msg->data);
+  } else {
+    ROS_WARN("Device not initialized, unable to send reset command");
+  }
 }
 
 void PercipioDriver::setupDevice()
 {
+  device_manager_->init_tycam_log_server(device_log_enable_, device_log_level_, device_log_server_port_);
   while (ros::ok() && !device_)
   {
     try
@@ -746,11 +931,13 @@ void PercipioDriver::setupDevice()
       }
 
       device_ = device_manager_->getDevice(device_URI, reconnection_flag_);
-
       initDevice();
 
-      auto cb = boost::make_shared<percipio::initDeviceCallbackFunction>(boost::bind(&PercipioDriver::initDevice, this));
-      device_->setDeviceInitCallback(cb);
+      auto init_cb = boost::make_shared<percipio::DeviceInitCallbackFunction>(boost::bind(&PercipioDriver::initDevice, this));
+      device_->setDeviceInitCallback(init_cb);
+
+      auto event_cb = boost::make_shared<percipio::DeviceEventCallbackFunction>(boost::bind(&PercipioDriver::DeviceEvent, this, _1));
+      device_->setDeviceEventCallback(event_cb);
     }
     catch (const PercipioException& exception)
     {

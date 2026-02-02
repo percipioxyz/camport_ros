@@ -15,8 +15,9 @@ from datetime import datetime  # 添加datetime用于生成时间戳文件名
 f_depth_scale_unit = 1.0
 
 class DepthCloudViewer3D:
-    def __init__(self):
-        rospy.init_node('depthcloud_3d_viewer', anonymous=True)
+    def __init__(self, camera_name: str = "camera"):
+        self.camera_name = camera_name
+        rospy.init_node(f'depthcloud_3d_viewer_{camera_name}', anonymous=True)
         
         # 创建OpenCV转换器
         self.bridge = CvBridge()
@@ -34,9 +35,9 @@ class DepthCloudViewer3D:
         rospy.loginfo(f"点云将保存至: {self.save_path}")
         
         # 设置ROS订阅器
-        depth_topic = rospy.get_param('~depth_topic', '/camera/depth/image')
-        rgb_topic = rospy.get_param('~rgb_topic', '/camera/rgb/image')
-        info_topic = rospy.get_param('~info_topic', '/camera/rgb/camera_info')
+        depth_topic = f'/{camera_name}/depth/image'
+        rgb_topic = f'/{camera_name}/rgb/image'
+        info_topic = f'/{camera_name}/rgb/camera_info'
         
         depth_sub = message_filters.Subscriber(depth_topic, Image)
         rgb_sub = message_filters.Subscriber(rgb_topic, Image)
@@ -155,7 +156,7 @@ class DepthCloudViewer3D:
         # 创建可视化窗口
         vis = o3d.visualization.Visualizer()
         vis.create_window(
-            window_name='ROS DepthCloud Viewer',
+            window_name=f'ROS DepthCloud Viewer-{self.camera_name}',
             width=1280,
             height=720,
             visible=True
@@ -228,6 +229,9 @@ class DepthCloudViewer3D:
         return False
 
 if __name__ == '__main__':
+    camera_name = "camera"  # 默认相机名称
+    if len(sys.argv) > 1:
+        camera_name = sys.argv[1]
     try:
         # 解决Open3D在ROS环境中的初始化问题
         import platform
@@ -236,7 +240,7 @@ if __name__ == '__main__':
                 rospy.logwarn("未设置DISPLAY环境变量，尝试设置为 ':0'")
                 os.environ['DISPLAY'] = ':0'
         print(o3d.__version__) 
-        viewer = DepthCloudViewer3D()
+        viewer = DepthCloudViewer3D(camera_name)
         rospy.spin()
     except rospy.ROSInterruptException:
         rospy.loginfo("节点已关闭")

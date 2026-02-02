@@ -23,12 +23,15 @@ public:
 
   static boost::shared_ptr<PercipioDeviceManager> getSingelton();
 
+  int init_tycam_log_server(bool enable, const std::string& level, int32_t port);
+
   boost::shared_ptr<std::vector<PercipioDeviceInfo> > getConnectedDeviceInfos() const;
   boost::shared_ptr<std::vector<std::string> > getConnectedDeviceURIs() const;
   std::size_t getNumOfConnectedDevices() const;
 
   boost::shared_ptr<PercipioDevice> getAnyDevice();
   boost::shared_ptr<PercipioDevice> getDevice(const std::string& device_URI, const bool reconnection = false);
+  bool setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway);
 
   std::string getSerial(const std::string& device_URI) const;
 

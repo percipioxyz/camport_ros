@@ -43,10 +43,31 @@ namespace percipio
 
   typedef enum
   {
+    IREnhanceOFF    = 0,
+    IREnhanceLinearStretch       = 1,
+    IREnhanceLinearStretch_Multi = 2, //2-20;  Def:8
+    IREnhanceLinearStretch_STD   = 3, //2-20;  Def:6
+    IREnhanceLinearStretch_LOG2  = 4, //5-50;  Def:20
+    IREnhanceLinearStretch_Hist  = 5
+  }IREnhanceModel;
+
+  typedef enum
+  {
     IMAGE_REGISTRATION_OFF				    = 0,
     IMAGE_REGISTRATION_DEPTH_TO_COLOR	= 1,
     IMAGE_REGISTRATION_COLOR_TO_DEPTH	= 2,
   } ImageRegistrationMode;
+
+  typedef enum {
+    DISTORTION_CORRECTION,
+    EPIPOLAR_RECTIFICATION
+  } IRImageRectificationMode;
+
+  typedef enum
+  {
+    DEVICE_EVENT_OFFLINE = 0,
+    DEVICE_EVENT_AUTO_RECONNECTED,
+  } DeviceEvent;
   
   typedef enum
   {
@@ -93,7 +114,8 @@ namespace percipio
   typedef void (*DeviceInfoCallback)(const DeviceInfo* pInfo, void* pCookie);
   typedef void (*DeviceStateCallback)(const DeviceInfo* pInfo, DeviceState deviceState, void* pCookie);
 
-  typedef boost::function<void(void)> initDeviceCallbackFunction;
+  typedef boost::function<void(void)> DeviceInitCallbackFunction;
+  typedef boost::function<void(const char*)> DeviceEventCallbackFunction;
   typedef struct
   {
     DeviceInfoCallback    deviceConnected;
@@ -106,7 +128,11 @@ namespace percipio
     void* pListener;
   } DeviceCallback_t;
 
-  static std::vector<DeviceCallback_t> cb_list;
+  typedef struct {
+    std::string node_desc;
+    std::string node_info;
+  } DeviceNodeInfo;
+  typedef std::map<std::string, std::vector<DeviceNodeInfo>> percipio_feat;
 
   class VideoFrameData;
   class Percipio;
@@ -130,20 +156,45 @@ namespace percipio
     virtual TY_STATUS getColorIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic) = 0;
     virtual TY_STATUS getDepthIntrinsic(TY_CAMERA_INTRINSIC& Intrinsic) = 0;
 
+    virtual TY_STATUS getIRLensType(TYLensOpticalType& type) = 0;
+    virtual TY_STATUS getIRRectificationMode(IRImageRectificationMode& mode) = 0;
+
+    virtual TY_STATUS getLeftIRCalibData(TY_CAMERA_CALIB_INFO& calib_data) = 0;
+    virtual TY_STATUS getLeftIRRotation(TY_CAMERA_ROTATION& rotation) = 0;
+    virtual TY_STATUS getLeftIRRectifiedIntr(TY_CAMERA_INTRINSIC& rectified_intr) = 0;
+
+    virtual TY_STATUS getRightIRCalibData(TY_CAMERA_CALIB_INFO& calib_data) = 0;
+    virtual TY_STATUS getRightIRRotation(TY_CAMERA_ROTATION& rotation) = 0;
+    virtual TY_STATUS getRightIRRectifiedIntr(TY_CAMERA_INTRINSIC& rectified_intr) = 0;
+
+    virtual TY_STATUS getDepthScaleUnit(float& f_depth_scale) = 0;
+
+    virtual TY_STATUS EnableHwIRUndistortion() = 0;
+
     virtual TY_STATUS AcquisitionInit() = 0;
 
     virtual TY_STATUS SetImageMode(const SensorType sensorType, const int width, const int height, const std::string& fmt) = 0;
 
     virtual TY_STATUS PreSetting() = 0;
 
+    virtual TY_STATUS LoadParametersFromXML(const percipio_feat& cfg) = 0;
+
+    virtual bool is_support_frame_rate_ctrl() = 0;
+    virtual TY_STATUS  frame_rate_init(const float fps) = 0;
+    virtual TY_STATUS  enable_trigger_mode(const bool en) = 0;
+
+    virtual TY_STATUS  send_soft_trigger_signal() = 0;
+
     virtual TY_STATUS EnableColorStream(const bool en) = 0;
     virtual TY_STATUS EnableDepthStream(const bool en) = 0;
     virtual TY_STATUS EnableLeftIRStream(const bool en) = 0;
     virtual TY_STATUS EnableRightIRStream(const bool en) = 0;
+
+    virtual void Reset() = 0;
     
     TY_DEV_HANDLE hDevice;
 
-    bool need_depth_undistortion;
+    bool need_depth_undistortion = false;
 
     std::map<SensorType, std::vector<VideoMode>> videos;
     std::map<SensorType, VideoMode> current_video_mode;
@@ -166,8 +217,19 @@ namespace percipio
       TY_STATUS openWithSN(const char* sn);
       TY_STATUS openWithIP(const char* ip);
 
-      boost::shared_ptr<initDeviceCallbackFunction> ptrFuncDeviceInit;
-      void setDeviceInitCallback(boost::shared_ptr<initDeviceCallbackFunction>& callback);
+      int send_soft_trigger();
+
+      void reset();
+
+      void dynamic_configure(const std::string& str);
+
+      int parse_xml_parameters(const std::string& xml);
+
+      boost::shared_ptr<DeviceInitCallbackFunction> ptrFuncDeviceInit;
+      void setDeviceInitCallback(boost::shared_ptr<DeviceInitCallbackFunction>& callback);
+
+      boost::shared_ptr<DeviceEventCallbackFunction> ptrFuncDeviceEvent;
+      void setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback);
 
       const DeviceInfo& get_current_device_info();
 
@@ -189,6 +251,8 @@ namespace percipio
 
       bool DeviceSetColorUndistortionEnable(bool enable);
 
+      bool DeviceSetIRUndistortionEnable(bool enable);
+
       bool DepthStreamSetSpeckFilterEn(bool enabled);
       bool DepthStreamGetSpeckFilterEn();
 
@@ -198,10 +262,15 @@ namespace percipio
       bool DepthStreamSetSpeckFilterDiff(int spec_diff);
       int DepthStreamGetSpeckFilterDiff();
 
+      bool DepthStreamSetSpeckFilterPhySize(float phy_size);
+      float DepthStreamGetSpeckFilterPhySize();
+
       bool DepthStreamSetTimeDomainFilterEn(bool enabled);
       bool DepthStreamGetTimeDomainFilterEn();
       bool DepthStreamSetTimeDomainFilterFCnt(int frameCnt);
       int  DepthStreamGetTimeDomainFilterFCnt();
+
+      void IRStreamEnhancementConfig(IREnhanceModel model, int coeff);
 
       bool DeviceIsImageRegistrationModeSupported() const;
 
@@ -212,6 +281,9 @@ namespace percipio
       TY_STATUS MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS MapXYZ48FrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS FrameDecoder(VideoFrameData& src, VideoFrameData& dst);
+      TY_STATUS DoIRUndistortion(VideoFrameData& IR);
+      TY_STATUS IREnhancement(VideoFrameData& IR);
+
       TY_STATUS parseIrStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseColorStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseDepthStream(VideoFrameData* src, VideoFrameData* dst);
@@ -229,9 +301,22 @@ namespace percipio
 
       void StreamUnregisterNewFrameCallback(StreamHandle stream);
 
-      static void* fetch_thread(void* ptr);
+      static void* soft_frame_rate_ctrl_thread(void* ptr);
+      static void* device_frame_fetch_thread(void* ptr);
 
       static void* device_offline_reconnect(void* ptr);
+
+      void send_device_event(DeviceEvent eventID);
+
+      void EnableIRTopic(bool en) { enable_ir_topic = en; }
+      void EnableColorTopic(bool en) { enable_color_topic = en; }
+      void EnableDepthTopic(bool en) { enable_depth_topic = en; }
+      void EnableP3DTopic(bool en) { enable_cloud_topic = en; }
+
+      bool ir_topic_swicth() { return enable_ir_topic; }
+      bool color_topic_swicth() { return enable_color_topic; }
+      bool depth_topic_swicth() { return enable_depth_topic; }
+      bool pointcloud_topic_swicth() { return enable_cloud_topic; }
 
       bool HasStream();
 
@@ -241,10 +326,13 @@ namespace percipio
       TY_STATUS StartCapture();
       void StopCapture(StreamHandle stream);
 
+      void set_work_mode(bool enable_rate, float frame_rate, bool trigger_mode_en);
+
       float getDepthScaleUnit() { return f_depth_scale_unit; }
-      TY_CAMERA_INTRINSIC getDepthIntr() { return depth_intr; }
-      TY_CAMERA_INTRINSIC getColorIntr() { return color_intr; }
-      TY_CAMERA_DISTORTION getColorDist() { return color_calib.distortion; }
+      const TY_CAMERA_CALIB_INFO& getDepthCalib() { return depth_calib; }
+      const TY_CAMERA_INTRINSIC&  getDepthIntr() { return depth_intr; }
+      const TY_CAMERA_INTRINSIC&  getColorIntr() { return color_intr; }
+      const TY_CAMERA_DISTORTION& getColorDist() { return color_calib.distortion; }
       
       SensorType StreamGetSensorInfo(StreamHandle stream);
 
@@ -253,6 +341,10 @@ namespace percipio
       bool                   b_auto_reconnect;
       bool                   isRuning;
       const TY_DEV_HANDLE getCurrentDeviceHandle() const;
+
+      const boost::shared_ptr<GigEBase> getCurrentGigEDevice() const;
+
+      const float get_frame_rate() const;
       
       std::mutex detect_mutex;
       std::condition_variable detect_cond;
@@ -264,16 +356,26 @@ namespace percipio
       TY_DEV_HANDLE       _M_DEVICE;
       TY_COMPONENT_ID     mIDS;
 
+      IREnhanceModel      mEnhanceModel = IREnhanceOFF;
+      int32_t             mEnhanceCoeff = 1; //coefficient
+
       GigEVersion         gige_version = GigeE_2_0;
 
       boost::shared_ptr<GigEBase> m_gige_dev;
+
+      bool enable_soft_frame_rate_ctrl = false;
+      bool b_enable_rate_ctrl;
+      float f_frame_rate;
+      
+      bool b_trigger_mode_en;
 
       std::vector<VideoMode> leftIRVideoMode;
       std::vector<VideoMode> rightIRVideoMode;
       std::vector<VideoMode> RGBVideoMode;
       std::vector<VideoMode> DepthVideoMode;
 
-      char*                  frameBuffer[2];
+      std::vector<char>      frameBuffer[2];
+      pthread_t              frame_rate_ctrl_thread;
       pthread_t              frame_fetch_thread;
 
       boost::shared_ptr<NewFrameCallbackManager> leftIRStream;
@@ -282,10 +384,17 @@ namespace percipio
       boost::shared_ptr<NewFrameCallbackManager> DepthStream;
       boost::shared_ptr<NewFrameCallbackManager> Point3DStream;
 
+      bool enable_color_topic = false;
+      bool enable_depth_topic = false;
+      bool enable_cloud_topic = false;
+      bool enable_ir_topic = false;
+
       boost::shared_ptr<DepthTimeDomainMgr> DepthDomainTimeFilterMgrPtr;
 
       //std::mutex m_mutex;
       pthread_mutex_t m_mutex = PTHREAD_MUTEX_INITIALIZER;
+      
+      percipio_feat cfg;
       
       int32_t current_rgb_width;
       int32_t current_rgb_height;
@@ -297,12 +406,27 @@ namespace percipio
       TY_CAMERA_INTRINSIC depth_intr;
       TY_CAMERA_INTRINSIC color_intr;
 
+      IRImageRectificationMode ir_rectificatio_mode = DISTORTION_CORRECTION;
+      TYLensOpticalType    ir_len_type = TY_LENS_PINHOLE;
+
+      TY_CAMERA_CALIB_INFO left_ir_calib;
+      TY_CAMERA_ROTATION   left_ir_rotation;
+      TY_CAMERA_INTRINSIC  left_ir_rectified_intr;
+
+      TY_CAMERA_CALIB_INFO right_ir_calib;
+      TY_CAMERA_ROTATION   right_ir_rotation;
+      TY_CAMERA_INTRINSIC  right_ir_rectified_intr;
+
       bool color_undistortion = false;
       bool depth_distortion = false;
+
+      bool ir_undistortion = false;
+      bool enable_sw_ir_undistortion = false;
 
       bool depth_stream_spec_enable = false;
       int  depth_stream_spec_size = 150; //default
       int  depth_stream_spec_diff = 64;
+      float depth_stream_physical_size = 20;
 
       bool depth_time_domain_enable = false;
       int  depth_time_domain_frame_cnt = 3;
@@ -486,7 +610,7 @@ namespace percipio
       void*           buffer;         ///< Pointer to data buffer
       int32_t         width;          ///< Image width in pixels
       int32_t         height;         ///< Image height in pixels
-      uint32_t        pixelFormat;    ///< Pixel format, see TY_PIXEL_FORMAT_LIST
+      uint32_t        pixelFormat;    ///< Pixel format, see TYPixFmtList
   };
 
   class VideoFrameRef
@@ -669,6 +793,8 @@ namespace percipio
 
       void setColorUndistortion(bool enabled);
 
+      void setIRUndistortion(bool enabled);
+
       bool setDepthSpecFilterEn(bool enabled);
       bool getDepthSpecFilterEn();
       
@@ -678,15 +804,25 @@ namespace percipio
       bool setDepthSpeckFilterDiff(int spec_diff);
       int getDepthSpeckFilterDiff();
 
+      bool setDepthSpeckFilterPhySize(float phy_size);
+      float getDepthSpeckFilterPhySize();
+
       bool setDepthTimeDomainFilterEn(bool enabled);
       bool getDepthTimeDomainFilterEn();
   
       bool setDepthTimeDomainFilterNum(int frames);
       int getDepthTimeDomainFilterNum();
 
+      void setIREnhancement(IREnhanceModel model, int coeff);
+
       bool isImageRegistrationModeSupported(ImageRegistrationMode mode) const;
       TY_STATUS setImageRegistrationMode(ImageRegistrationMode mode);
       ImageRegistrationMode getImageRegistrationMode() const;
+
+      void ir_stream_topic_enable(bool enabled);
+      void color_stream_topic_enable(bool enabled);
+      void depth_stream_topic_enable(bool enabled);
+      void pointcloud_stream_topic_enable(bool enabled);
 
       TY_STATUS PropertyGet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
       TY_STATUS PropertySet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
@@ -767,6 +903,10 @@ namespace percipio
       static TY_STATUS initialize();
 
       static void enumerateDevices(Array<DeviceInfo>* deviceInfoList);
+
+      static int tycam_log_server_init(bool enable, const std::string& level, int32_t port);
+
+      static bool forceDeviceIP(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway);
 
       static const char* getExtendedError(TY_STATUS status);
   };

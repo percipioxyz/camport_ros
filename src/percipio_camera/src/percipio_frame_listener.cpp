@@ -12,7 +12,8 @@
 namespace percipio_wrapper
 {
 
-PercipioFrameListener::PercipioFrameListener() :
+PercipioFrameListener::PercipioFrameListener(const std::string& desc) :
+    stream_desc(desc),
     callback_(0),
     user_device_timer_(false),
     timer_filter_(new PercipioTimerFilter(TIME_FILTER_LENGTH)),
@@ -32,13 +33,13 @@ void PercipioFrameListener::setUseDeviceTimer(bool enable)
 void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
 {
   if(TY_STATUS_OK != stream.readFrame(&m_frame)) {
-    ROS_WARN("onNewFrame : readFrame end< invalid frame>!\n");
+    ROS_WARN("onNewFrame(%s): readFrame end< invalid frame>!\n", stream_desc.c_str());
     return;
   }
 
   bool isValid = m_frame.isValid();
   if(!isValid) {
-    ROS_ERROR("invalid frame!\n");
+    ROS_ERROR("invalid frame(%s)!\n", stream_desc.c_str());
     return;
   }
 
@@ -80,7 +81,7 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       image->step = sizeof(unsigned char) * 2 * image->width;
       break;
     case TYPixelFormatRGB8:
-      image->encoding = sensor_msgs::image_encodings::RGB8;
+      image->encoding = sensor_msgs::image_encodings::BGR8;
       image->step = sizeof(unsigned char) * 3 * image->width;
       break;
     case TYPixelFormatMono8:
@@ -96,7 +97,7 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       image->step = sizeof(unsigned short) * 3 * image->width;
       break;
     default:
-      ROS_ERROR("Invalid image encoding.");
+      ROS_ERROR("Invalid image encoding(%s).", stream_desc.c_str());
       return;
   }
   (*callback_)(image);

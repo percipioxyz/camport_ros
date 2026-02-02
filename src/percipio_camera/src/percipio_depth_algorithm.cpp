@@ -1,6 +1,4 @@
 #include "percipio_camera/percipio_depth_algorithm.h"
-#include "percipio_camera/DepthStreamProc.h"
-
 namespace percipio
 {
 
@@ -32,7 +30,8 @@ bool DepthTimeDomainMgr::do_time_domain_process(TY_IMAGE_DATA& img)
     imgs.push_back( images[i].toTyImage(TY_COMPONENT_DEPTH_CAM));
   }
 
-  TY_STATUS ret = TYDepthEnhenceFilter(imgs, img);
+  static DepthEnhenceParameters def_params_ = DepthEnhenceParameters_Initializer;
+  TY_STATUS ret = TYDepthEnhenceFilter(&imgs[0], imgs.size(), nullptr, &img, &def_params_);
   return ret == TY_STATUS_OK ? true : false;
 }
 

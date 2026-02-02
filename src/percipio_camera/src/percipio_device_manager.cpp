@@ -79,15 +79,9 @@ public:
     boost::mutex::scoped_lock l(device_mutex_);
 
     if(strlen(pInfo->getIp()))
-      ROS_WARN("Device \"%s\" IP:%s disconnected\n", pInfo->getUri(), pInfo->getIp());
+      ROS_WARN("Device \"%s\" IP:%s disconnected", pInfo->getUri(), pInfo->getIp());
     else
-      ROS_WARN("Device \"%s\" disconnected\n", pInfo->getUri());
-
-    //const PercipioDeviceInfo device_info_wrapped = percipio_convert(pInfo);
-    //device_set_.erase(device_info_wrapped);
-
-    //kill node
-    //system("rosnode kill /camera/driver");
+      ROS_WARN("Device \"%s\" disconnected", pInfo->getUri());
   }
 
   boost::shared_ptr<std::vector<std::string> > getConnectedDeviceURIs()
@@ -135,8 +129,17 @@ public:
   std::size_t getNumOfConnectedDevices()
   {
     boost::mutex::scoped_lock l(device_mutex_);
-
     return device_set_.size();
+  }
+
+  int log_server_init(bool enable, const std::string& level, int32_t port)
+  {
+    return percipio::Percipio::tycam_log_server_init(enable, level, port);
+  }
+
+  bool setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
+  {
+    return percipio::Percipio::forceDeviceIP(device_URI, ip, netmask, gateway);
   }
 
   boost::mutex device_mutex_;
@@ -166,6 +169,11 @@ boost::shared_ptr<PercipioDeviceManager> PercipioDeviceManager::getSingelton()
     singelton_ = boost::make_shared<PercipioDeviceManager>();
 
   return singelton_;
+}
+
+int PercipioDeviceManager::init_tycam_log_server(bool enable, const std::string& level, int32_t port)
+{
+  return device_listener_->log_server_init(enable, level, port);
 }
 
 boost::shared_ptr<std::vector<PercipioDeviceInfo> > PercipioDeviceManager::getConnectedDeviceInfos() const
@@ -211,6 +219,10 @@ boost::shared_ptr<PercipioDevice> PercipioDeviceManager::getDevice(const std::st
   return boost::make_shared<PercipioDevice>(device_URI, reconnection);
 }
 
+bool PercipioDeviceManager::setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
+{
+  return device_listener_->setNetworkConfiguration(device_URI, ip, netmask, gateway);
+}
 
 std::ostream& operator << (std::ostream& stream, const PercipioDeviceManager& device_manager) {
 

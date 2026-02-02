@@ -25,6 +25,7 @@ PercipioDevice::PercipioDevice(const std::string& device_URI, const bool auto_re
     ir_video_started_(false),
     color_video_started_(false),
     depth_video_started_(false),
+    point3d_video_started_(false),
     image_registration_activated_(false),
     percipio_device_time_(false)
 {
@@ -48,10 +49,10 @@ PercipioDevice::PercipioDevice(const std::string& device_URI, const bool auto_re
   device_info_ = boost::make_shared<percipio::DeviceInfo>();
   *device_info_ = percipio_device_->getDeviceInfo();
 
-  ir_frame_listener = boost::make_shared<PercipioFrameListener>();
-  color_frame_listener = boost::make_shared<PercipioFrameListener>();
-  depth_frame_listener = boost::make_shared<PercipioFrameListener>();
-  point3d_frame_listener = boost::make_shared<PercipioFrameListener>();
+  ir_frame_listener = boost::make_shared<PercipioFrameListener>("IR-Stream");
+  color_frame_listener = boost::make_shared<PercipioFrameListener>("Color-Stream");
+  depth_frame_listener = boost::make_shared<PercipioFrameListener>("Depth-Stream");
+  point3d_frame_listener = boost::make_shared<PercipioFrameListener>("Point3D-Stream");
 
   //m_sensorInfo._setInternal(g_Context.get()->StreamGetSensorInfo(m_stream));
   boost::shared_ptr<percipio::VideoStream> ir_stream = getIRVideoStream();
@@ -174,6 +175,7 @@ void PercipioDevice::startIRStream()
   boost::shared_ptr<percipio::VideoStream> stream = getIRVideoStream();
   if (stream)
   {
+    percipio_device_->ir_stream_topic_enable(true);
     stream->addNewFrameListener(ir_frame_listener.get());
     stream->start();
     ir_video_started_ = true;
@@ -186,6 +188,7 @@ void PercipioDevice::startColorStream()
   boost::shared_ptr<percipio::VideoStream> stream = getColorVideoStream();
   if (stream)
   {
+    percipio_device_->color_stream_topic_enable(true);
     stream->addNewFrameListener(color_frame_listener.get());
     stream->start();
     color_video_started_ = true;
@@ -196,6 +199,7 @@ void PercipioDevice::startDepthStream()
   boost::shared_ptr<percipio::VideoStream> stream = getDepthVideoStream();
   if (stream)
   {
+    percipio_device_->depth_stream_topic_enable(true);
     stream->addNewFrameListener(depth_frame_listener.get());
     stream->start();
     depth_video_started_ = true;
@@ -211,6 +215,7 @@ void PercipioDevice::startPoint3DStream()
   boost::shared_ptr<percipio::VideoStream> stream = getPoint3DVideoStream();
   if(stream)
   {
+    percipio_device_->pointcloud_stream_topic_enable(true);
     stream->addNewFrameListener(point3d_frame_listener.get());
     stream->start();
     point3d_video_started_ = true;
@@ -234,6 +239,7 @@ void PercipioDevice::stopIRStream()
   if (ir_video_stream_)
   {
     ir_video_started_ = false;
+    percipio_device_->ir_stream_topic_enable(false);
     ir_video_stream_->stop();
     //ir_video_stream_->destroy();
   }
@@ -244,6 +250,7 @@ void PercipioDevice::stopColorStream()
   if (color_video_stream_)
   {
     color_video_started_ = false;
+    percipio_device_->color_stream_topic_enable(false);
     color_video_stream_->stop();
     //color_video_stream_->destroy();
   }
@@ -254,6 +261,7 @@ void PercipioDevice::stopDepthStream()
   if (depth_video_stream_)
   {
     depth_video_started_ = false;
+    percipio_device_->depth_stream_topic_enable(false);
     depth_video_stream_->stop();
     //depth_video_stream_->destroy();
   }
@@ -264,6 +272,7 @@ void PercipioDevice::stopPoint3DStream()
   if(point3d_video_stream_)
   {
     point3d_video_started_ = false;
+    percipio_device_->pointcloud_stream_topic_enable(false);
     point3d_video_stream_->stop();
     //point3d_video_stream_->destroy();
   }
@@ -347,6 +356,11 @@ void PercipioDevice::setColorUndistortion(bool enabled)
   percipio_device_->setColorUndistortion(enabled);
 }
 
+void PercipioDevice::setIRUndistortion(bool enabled)
+{
+  percipio_device_->setIRUndistortion(enabled);
+}
+
 bool PercipioDevice::setDepthSpecFilterEn(bool en)
 {
   return percipio_device_->setDepthSpecFilterEn(en);
@@ -377,6 +391,15 @@ int PercipioDevice::getDepthSpeckFilterDiff()
   return percipio_device_->getDepthSpeckFilterDiff();
 }
 
+bool PercipioDevice::setDepthSpeckFilterPhySize(float phy_size)
+{
+  return percipio_device_->setDepthSpeckFilterPhySize(phy_size);
+}
+
+float  PercipioDevice::getDepthSpeckFilterPhySize()
+{
+  return percipio_device_->getDepthSpeckFilterPhySize();
+}
 //
 bool PercipioDevice::setDepthTimeDomainFilterEn(bool en)
 {
@@ -391,6 +414,11 @@ bool PercipioDevice::getDepthTimeDomainFilterEn()
 bool PercipioDevice::setDepthTimeDomainFilterNum(int frames)
 {
   return percipio_device_->setDepthTimeDomainFilterNum(frames);
+}
+
+void PercipioDevice::setIREnhancement(percipio::IREnhanceModel model, int coeff)
+{
+  percipio_device_->setIREnhancement(model, coeff);
 }
 
 int  PercipioDevice::getDepthTimeDomainFilterNum()
@@ -430,6 +458,11 @@ float PercipioDevice::getDepthScale()
   return percipio_device_->DevicePtr()->getDepthScaleUnit();
 }
 
+void PercipioDevice::setDeviceWorkMode(bool enable_rate, float frame_rate, bool trigger_mode_en)
+{
+  return percipio_device_->DevicePtr()->set_work_mode(enable_rate, frame_rate, trigger_mode_en);
+}
+
 void PercipioDevice::setUseDeviceTimer(bool enable)
 {
   if (ir_frame_listener)
@@ -443,6 +476,26 @@ void PercipioDevice::setUseDeviceTimer(bool enable)
   
   if (point3d_frame_listener)
     point3d_frame_listener->setUseDeviceTimer(enable);
+}
+
+int PercipioDevice::init_parameters_from_xml(const std::string& xml)
+{
+  return percipio_device_->DevicePtr()->parse_xml_parameters(xml);
+}
+
+int PercipioDevice::sendSoftTrigger()
+{
+  return percipio_device_->DevicePtr()->send_soft_trigger();
+}
+
+void PercipioDevice::reset()
+{
+  return percipio_device_->DevicePtr()->reset();
+}
+
+void PercipioDevice::dynamic_configure(const std::string& str)
+{
+  return percipio_device_->DevicePtr()->dynamic_configure(str);
 }
 
 void PercipioDevice::setIRFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback)
@@ -465,10 +518,16 @@ void PercipioDevice::setPoint3DFrameCallback(boost::shared_ptr<FrameCallbackFunc
   point3d_frame_listener->setCallback(callback);
 }
 
-void PercipioDevice::setDeviceInitCallback(boost::shared_ptr<percipio::initDeviceCallbackFunction>& callback)
+void PercipioDevice::setDeviceInitCallback(boost::shared_ptr<percipio::DeviceInitCallbackFunction>& callback)
 {
   percipio_device_->DevicePtr()->setDeviceInitCallback(callback);
 }
+
+void PercipioDevice::setDeviceEventCallback(boost::shared_ptr<percipio::DeviceEventCallbackFunction>& callback)
+{
+  percipio_device_->DevicePtr()->setDeviceEventCallback(callback);
+}
+
 
 boost::shared_ptr<percipio::VideoStream> PercipioDevice::getIRVideoStream() const
 {

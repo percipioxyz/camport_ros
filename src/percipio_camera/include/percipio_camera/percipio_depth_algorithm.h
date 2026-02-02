@@ -76,7 +76,7 @@ typedef struct image_data {
 
   bool resize(const int sz) {
     if(buffer) 
-      delete []buffer;
+      delete []static_cast<char*>(buffer);
 
     if(sz) {
       buffer = new char[sz];
@@ -107,7 +107,7 @@ typedef struct image_data {
 
   ~image_data() {
     if(buffer) {
-      delete []buffer;
+      delete []static_cast<char*>(buffer);
       buffer = NULL;
     }
   }

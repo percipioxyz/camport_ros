@@ -74,6 +74,7 @@ public:
   bool isPoint3DStreamStarted();
 
   void setColorUndistortion(bool enabled);
+  void setIRUndistortion(bool enabled);
 
   bool setDepthSpecFilterEn(bool en);
   bool getDepthSpecFilterEn();
@@ -84,11 +85,16 @@ public:
   bool setDepthSpeckFilterDiff(int spec_diff);
   int  getDepthSpeckFilterDiff();
 
+  bool setDepthSpeckFilterPhySize(float phy_size);
+  float  getDepthSpeckFilterPhySize();
+
   bool setDepthTimeDomainFilterEn(bool en);
   bool getDepthTimeDomainFilterEn();
   
   bool setDepthTimeDomainFilterNum(int frames);
   int  getDepthTimeDomainFilterNum();
+
+  void setIREnhancement(percipio::IREnhanceModel model, int coeff);
 
   bool isImageRegistrationModeSupported() const;
   void setImageRegistrationMode(bool enabled);
@@ -103,9 +109,19 @@ public:
   void setDepthFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
   void setPoint3DFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
 
-  void setDeviceInitCallback(boost::shared_ptr<percipio::initDeviceCallbackFunction>& callback);
+  void setDeviceInitCallback(boost::shared_ptr<percipio::DeviceInitCallbackFunction>& callback);
+
+  void setDeviceEventCallback(boost::shared_ptr<percipio::DeviceEventCallbackFunction>& callback);
 
   void setUseDeviceTimer(bool enable);
+
+  void setDeviceWorkMode(bool enable_rate, float frame_rate, bool trigger_mode_en);
+
+  int sendSoftTrigger();
+
+  void dynamic_configure(const std::string& str);
+
+  void reset();
 
   //PERCIPIO
   float getDepthScale();
@@ -113,6 +129,7 @@ public:
   bool getColorCalibIntristic(void* data, const size_t size);
   bool getColorCalibDistortion(void* data, const size_t size);
 
+  int init_parameters_from_xml(const std::string& xml);
 protected:
   void shutdown();
 
