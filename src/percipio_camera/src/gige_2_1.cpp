@@ -662,6 +662,8 @@ TY_STATUS GigE_2_1::LoadParametersFromXML(const percipio_feat& cfg)
     };
     const std::string& source = iter.first;
     auto target_source = source_list.find(source);
+
+    bool skip_current_source = false;
     if(target_source != source_list.end()) {
 
       char szSourceString[200];
@@ -672,10 +674,15 @@ TY_STATUS GigE_2_1::LoadParametersFromXML(const percipio_feat& cfg)
         status = TYEnumSetString(hDevice, "SourceSelector", source.c_str());
         if(status) {
           ROS_WARN("Xml parameter(%s) init err( SourceSelector set failed: %d )!", source.c_str(), status);
-          continue;
+          skip_current_source = true;
+        } else {
+          m_current_source = source;
         }
-        m_current_source = source;
       }
+    }
+
+    if(skip_current_source) {
+      continue;
     }
 
     for(auto& feat : iter.second) {
