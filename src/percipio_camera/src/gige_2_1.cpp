@@ -699,14 +699,14 @@ TY_STATUS GigE_2_1::LoadParametersFromXML(const percipio_feat& cfg)
         
         case Float:
         {
-          double val = atoi(feat_val.c_str());
+          double val = atof(feat_val.c_str());
           status = TYFloatSetValue(hDevice, feature.c_str(), val);
           break;
         }
 
         case Boolean:
         {
-          bool val = static_cast<bool>(atof(feat_val.c_str()));
+          bool val = static_cast<bool>(atoi(feat_val.c_str()));
           status = TYBooleanSetValue(hDevice, feature.c_str(), val);
           break;
         }
