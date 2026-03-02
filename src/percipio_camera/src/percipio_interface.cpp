@@ -1056,7 +1056,10 @@ public:
 
               if(cam->depth_stream_spec_enable) {
                 DepthSpeckleFilterParameters param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff, cam->depth_stream_physical_size};
-                TYDepthSpeckleFilter(&frame.image[i], &param, &cam->getDepthCalib(), cam->getDepthScaleUnit());
+                if(cam->depth_stream_physical_size <= 0)
+                    TYDepthSpeckleFilter(&frame.image[i], &param, nullptr, cam->getDepthScaleUnit());
+                else
+                    TYDepthSpeckleFilter(&frame.image[i], &param, &cam->getDepthCalib(), cam->getDepthScaleUnit());
               }
 
               if(cam->depth_time_domain_enable) {
