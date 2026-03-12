@@ -20,7 +20,7 @@
 #define MAX_STORAGE_SIZE    (10*1024*1024)
 namespace percipio
 {
-  static tinyxml2::XMLDocument m_doc;
+  static percipio_ros1_tinyxml2::XMLDocument m_doc;
   static std::vector<DeviceCallback_t> cb_list;
 
   std::map<SensorType, std::string> SensorDesc = {
@@ -75,13 +75,13 @@ namespace percipio
     cfg.clear();
 
     std::string wrappedXML = WrapXML(xml);
-    tinyxml2::XMLError err = m_doc.Parse(wrappedXML.c_str());
-    if( err != tinyxml2::XML_SUCCESS ){
+    percipio_ros1_tinyxml2::XMLError err = m_doc.Parse(wrappedXML.c_str());
+    if( err != percipio_ros1_tinyxml2::XML_SUCCESS ){
       ROS_ERROR("xml parse failed");
       return -1;
     }
 
-    tinyxml2::XMLElement* m_root = m_doc.RootElement();
+    percipio_ros1_tinyxml2::XMLElement* m_root = m_doc.RootElement();
     if(!m_root){
       ROS_ERROR("found no root element");
       return -1;
