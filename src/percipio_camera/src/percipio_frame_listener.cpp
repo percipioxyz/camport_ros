@@ -81,6 +81,10 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       image->step = sizeof(unsigned char) * 2 * image->width;
       break;
     case TYPixelFormatRGB8:
+      image->encoding = sensor_msgs::image_encodings::RGB8;
+      image->step = sizeof(unsigned char) * 3 * image->width;
+      break;
+    case TYPixelFormatBGR8:
       image->encoding = sensor_msgs::image_encodings::BGR8;
       image->step = sizeof(unsigned char) * 3 * image->width;
       break;

@@ -1583,9 +1583,9 @@ public:
           frame.clone(vframe);
         } else {
           g_Context->FrameDecoder(vframe, tframe);
-          g_Context->DoIRUndistortion(vframe);
+          g_Context->DoIRUndistortion(tframe);
           g_Context->IREnhancement(tframe);
-          g_Context->parseIrStream(&tframe, &frame);
+          frame.clone(tframe);
         }
         break;
       default:

@@ -91,7 +91,8 @@ public:
                                 percipio::VideoFrameData* src, 
                                 percipio::VideoFrameData* dst)
     {
-      if(src->getPixelFormat() != TYPixelFormatRGB8 &&
+      if(src->getPixelFormat() != TYPixelFormatBGR8 &&
+         src->getPixelFormat() != TYPixelFormatRGB8 &&
          src->getPixelFormat() != TYPixelFormatMono8) {
         ROS_ERROR("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
         return-1;
@@ -227,11 +228,16 @@ public:
       dst.setHeight(src.getHeight());
       dst.setFrameIndex(src.getFrameIndex());
       dst.setComponentID(src.getComponentID());
-      dst.setPixelFormat(TYPixelFormatRGB8);
       dst.Resize(totalSize);
 
       TYDecodeResult retInfo;
-      return TYDecodeImage(&src_img,  TY_OUTPUT_FORMAT_AUTO, (void*)dst.getData(), totalSize, &retInfo);
+      TYDecodeError err = TYDecodeImage(&src_img,  TY_OUTPUT_FORMAT_AUTO, (void*)dst.getData(), totalSize, &retInfo);
+      if(err == TY_DECODE_SUCCESS) {
+        dst.setPixelFormat(retInfo.format);
+      } else {
+        ROS_WARN("cvtColor failed with status: %d", err);
+      }
+      return err;
     }
 
     static int IRUndistortion(percipio::VideoFrameData& IR, const TY_CAMERA_CALIB_INFO *calib_info, const TY_CAMERA_ROTATION *cameraRotation, const TY_CAMERA_INTRINSIC *cameraNewIntrinsic, const TYLensOpticalType type = TY_LENS_PINHOLE)
