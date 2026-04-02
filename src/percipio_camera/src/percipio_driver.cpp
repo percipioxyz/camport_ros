@@ -912,7 +912,7 @@ void PercipioDriver::DynamicConfigureCb(const std_msgs::String::ConstPtr& msg)
   if(device_) {
     device_->dynamic_configure(msg->data);
   } else {
-    ROS_WARN("Device not initialized, unable to send reset command");
+    ROS_WARN("Device not initialized, unable to send dynamic configure command");
   }
 }
 

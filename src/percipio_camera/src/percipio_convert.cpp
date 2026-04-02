@@ -22,7 +22,6 @@ const PercipioDeviceInfo percipio_convert(const percipio::DeviceInfo* pInfo)
   output.product_id_ = pInfo->getUsbProductId();
   output.vendor_id_  = pInfo->getUsbVendorId();
 
-
   return output;
 }
 
@@ -30,7 +29,6 @@ const PercipioDeviceInfo percipio_convert(const percipio::DeviceInfo* pInfo)
 const PercipioVideoMode percipio_convert(const percipio::VideoMode& input)
 {
   PercipioVideoMode output;
-
   output.x_resolution_ = input.getResolutionX();
   output.y_resolution_ = input.getResolutionY();
   output.frame_rate_ = input.getFps();
@@ -41,7 +39,6 @@ const PercipioVideoMode percipio_convert(const percipio::VideoMode& input)
 
 const percipio::VideoMode percipio_convert(const PercipioVideoMode& input)
 {
-
   percipio::VideoMode output;
 
   output.setResolution(input.x_resolution_, input.y_resolution_);
@@ -52,15 +49,10 @@ const percipio::VideoMode percipio_convert(const PercipioVideoMode& input)
 }
 
 
-const std::vector<PercipioVideoMode> percipio_convert(const percipio::Array<percipio::VideoMode>& input)
+const std::vector<PercipioVideoMode> percipio_convert(const std::vector<percipio::VideoMode>& input)
 {
   std::vector<PercipioVideoMode> output;
-
-  int size = input.getSize();
-
-  output.reserve(size);
-
-  for (int i=0; i<size; ++i) {
+  for (int i=0; i<input.size(); ++i) {
     output.push_back(percipio_convert(input[i]));
   }
   return output;

@@ -529,10 +529,13 @@ TY_STATUS GigE_2_1::SetImageMode(SensorType sensorType, int width, int height, c
     for(size_t i = 0; i < videos[sensorType].size(); i++) {
       int m_width = videos[sensorType][i].getResolutionX();
       int m_height = videos[sensorType][i].getResolutionY();
-      int m_pixFmt = videos[sensorType][i].getPixelFormat();
+      TYPixFmt m_pixFmt = static_cast<TYPixFmt>(videos[sensorType][i].getPixelFormat());
       if((width == m_width) && MatchPixelFormat(fmt, m_pixFmt)) {
         ret = TYEnumSetValue(hDevice, "PixelFormat", m_pixFmt);
-        if(ret != TY_STATUS_OK) continue;
+        if(ret != TY_STATUS_OK) {
+          ROS_WARN("Failed to set PixelFormat to 0x%08x, error code: %d", m_pixFmt, ret);
+          continue;
+        }
         
         ret = TYEnumSetValue(hDevice, "BinningHorizontal", m_sensor_w / m_width);
         if(ret == TY_STATUS_OK) {

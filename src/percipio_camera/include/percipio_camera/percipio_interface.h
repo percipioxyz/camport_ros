@@ -202,6 +202,21 @@ namespace percipio
     
   };
 
+  class EnumeratedDevice
+  {
+    public:
+      EnumeratedDevice(const TY_INTERFACE_HANDLE iface, const DeviceInfo& info)
+        : hIface(iface), device_info_(info) {}
+
+      ~EnumeratedDevice(){}
+
+      const TY_INTERFACE_HANDLE get_handle() const { return hIface; }
+      const DeviceInfo& get_device_info() const { return device_info_; }
+      
+    private:
+      TY_INTERFACE_HANDLE hIface;
+      DeviceInfo device_info_;
+  };
   class PercipioDepthCam
   {
     public:
@@ -212,7 +227,7 @@ namespace percipio
       }
 
       TY_STATUS initialize();
-      void GetDeviceList(DeviceInfo** device_info_ptr, int* cnt);
+      void GetDeviceList(std::vector<EnumeratedDevice>& devices);
 
       TY_STATUS openWithSN(const char* sn);
       TY_STATUS openWithIP(const char* ip);
@@ -433,9 +448,8 @@ namespace percipio
 
       float f_depth_scale_unit = 1.0f;
 
-      std::vector<DeviceInfo>  device_list;
-
-      DeviceInfo               current_device_info;
+      DeviceInfo                     current_device_info;
+      std::vector<EnumeratedDevice>  enumerated_devices;
 
       ImageRegistrationMode registration_mode = IMAGE_REGISTRATION_OFF;
 
@@ -460,98 +474,12 @@ namespace percipio
       const SensorType get_stream_type(StreamHandle stream);
 
   };
-
-  template<class T>
-  class Array
-  {
-  public:
-    /**
-      Default constructor.  Creates an empty Array and sets the element count to zero.
-    */
-    Array() : m_data(NULL), m_count(0), m_owner(false) {}
-
-    /**
-      Constructor.  Creates new Array from an existing primitive array of known size.
-
-      @tparam [in] T Object type this Array will contain.
-      @param [in] data Pointer to a primitive array of objects of type T.
-      @param [in] count Number of elements in the primitive array pointed to by data.
-    */
-    Array(const T* data, int count) : m_owner(false) { _setData(data, count); }
-
-    /**
-      Destructor.  Destroys the Array object.
-    */
-    ~Array()
-    {
-      clear();
-    }
-
-    /**
-      Getter function for the Array size.
-      @returns Current number of elements in the Array.
-    */
-    int getSize() const { return m_count; }
-
-    /**
-      Implements the array indexing operator for the Array class.
-    */
-    const T& operator[](int index) const {return m_data[index];}
-
-    /**
-      @internal
-      Setter function for data.  Causes this array to wrap an existing primitive array
-      of specified type.  The optional data ownership flag controls whether the primitive
-      array this Array wraps will be destroyed when this Array is deconstructed.
-      @param [in] T Type of objects array will contain.
-      @param [in] data Pointer to first object in list.
-      @param [in] count Number of objects in list.
-      @param [in] isOwner Optional flag to indicate data ownership
-    */
-    void _setData(const T* data, int count, bool isOwner = false)
-    {
-      clear();
-      m_count = count;
-      m_owner = isOwner;
-      if (!isOwner)
-      {
-        m_data = data;
-      }
-      else
-      {
-        m_data = new T[count];
-        memcpy((void*)m_data, data, count*sizeof(T));
-      }
-    }
-
-    const void* ptr() const
-    {
-      return (void*)m_data;
-    }
-
-  private:
-    Array(const Array<T>&);
-    Array<T>& operator=(const Array<T>&);
-
-    void clear()
-    {
-      if (m_owner && m_data != NULL)
-        delete []m_data;
-      m_owner = false;
-      m_data = NULL;
-      m_count = 0;
-    }
-
-    const T* m_data;
-    int m_count;
-    bool m_owner;
-  };
-
+  
   class SensorInfo
   {
   public:
 	  SensorType getSensorType() const;
-    const Array<VideoMode>& getSupportedVideoModes() const;
+    const std::vector<VideoMode>& getSupportedVideoModes() const;
 
   private:
     SensorInfo(const SensorInfo&);
@@ -565,7 +493,7 @@ namespace percipio
 
     SensorType m_type;
 
-    Array<VideoMode> m_videoModes;
+    std::vector<VideoMode> m_videoModes;
 
     friend class VideoStream;
     friend class Device;
@@ -763,6 +691,8 @@ namespace percipio
   };
 
   static const char* ANY_DEVICE = NULL;
+
+  
   class Device
   {
     public:
@@ -787,7 +717,7 @@ namespace percipio
 
       bool ResolutionSetting(SensorType sensorType, int width, int height, const std::string& fmt);
 
-      TY_STATUS _setHandle(TY_DEV_HANDLE deviceHandle);
+      //TY_STATUS _setHandle(TY_DEV_HANDLE deviceHandle);
 
       void setStreamResendEnable(bool enabled);
 
@@ -852,12 +782,12 @@ namespace percipio
 		{
 		}
 		
-		virtual void onDeviceConnected(const DeviceInfo*) = 0;
+		virtual void onDeviceConnected(const DeviceInfo&) = 0;
 	private:
 		static void deviceConnectedCallback(const DeviceInfo* pInfo, void* pCookie)
 		{
 			DeviceConnectedListener* pListener = (DeviceConnectedListener*)pCookie;
-			pListener->onDeviceConnected(static_cast<const DeviceInfo*>(pInfo));
+			pListener->onDeviceConnected(static_cast<const DeviceInfo&>(*pInfo));
 		}
 
  		friend class Percipio;
@@ -878,12 +808,12 @@ namespace percipio
       {
       }
 		
-      virtual void onDeviceDisconnected(const DeviceInfo*) = 0;
+      virtual void onDeviceDisconnected(const DeviceInfo&) = 0;
     private:
       static void deviceDisconnectedCallback(const DeviceInfo* pInfo, void* pCookie)
       {
         DeviceDisconnectedListener* pListener = (DeviceDisconnectedListener*)pCookie;
-        pListener->onDeviceDisconnected(pInfo);
+        pListener->onDeviceDisconnected(static_cast<const DeviceInfo&>(*pInfo));
       }
 
       friend class Percipio;
@@ -902,7 +832,7 @@ namespace percipio
 
       static TY_STATUS initialize();
 
-      static void enumerateDevices(Array<DeviceInfo>* deviceInfoList);
+      static void enumerateDevices(std::vector<EnumeratedDevice>& deviceInfoList);
 
       static int tycam_log_server_init(bool enable, const std::string& level, int32_t port);
 

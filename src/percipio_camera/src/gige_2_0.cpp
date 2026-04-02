@@ -398,7 +398,7 @@ TY_STATUS GigE_2_0::SetImageMode(const SensorType sensorType, const int width, c
     for(size_t i = 0; i < videos[sensorType].size(); i++) {
       int m_width = videos[sensorType][i].getResolutionX();
       int m_height = videos[sensorType][i].getResolutionY();
-      int m_pixFmt = videos[sensorType][i].getPixelFormat();
+      TYPixFmt m_pixFmt = static_cast<TYPixFmt>(videos[sensorType][i].getPixelFormat());
       if((width == m_width) && (height == m_height) && MatchPixelFormat(fmt, m_pixFmt)) {
         ret = TYSetEnum(hDevice, component, TY_ENUM_IMAGE_MODE, TYImageMode2(StdTYPixFmtToOldPixelFormat(m_pixFmt), width, height));
         if(ret == TY_STATUS_OK) {

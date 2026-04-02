@@ -36,8 +36,7 @@ public:
   {
     percipio::Percipio::addDeviceConnectedListener(this);
     percipio::Percipio::addDeviceDisconnectedListener(this);
-    //percipio::Percipio::addDeviceStateChangedListener(this);
-
+/*
     // get list of currently connected devices
     percipio::Array<percipio::DeviceInfo> device_info_list;
     percipio::Percipio::enumerateDevices(&device_info_list);
@@ -50,6 +49,7 @@ public:
       device_set_.erase(device_info_wrapped);
       device_set_.insert(device_info_wrapped);
     }
+*/
   }
 
   ~PercipioDeviceListener()
@@ -58,41 +58,40 @@ public:
     percipio::Percipio::removeDeviceDisconnectedListener(this);
   }
 
-  virtual void onDeviceConnected(const percipio::DeviceInfo* pInfo)
+  virtual void onDeviceConnected(const percipio::DeviceInfo& info)
   {
     boost::mutex::scoped_lock l(device_mutex_);
 
-    const PercipioDeviceInfo device_info_wrapped = percipio_convert(pInfo);
+    const PercipioDeviceInfo device_info_wrapped = percipio_convert(&info);
 
-    if(strlen(pInfo->getIp()))
-      ROS_INFO("Device \"%s\" IP:%s found.", pInfo->getUri(), pInfo->getIp());
+    if(strlen(info.getIp()))
+      ROS_INFO("Device \"%s\" IP:%s found.", info.getUri(), info.getIp());
     else
-      ROS_INFO("Device \"%s\" found.", pInfo->getUri());
+      ROS_INFO("Device \"%s\" found.", info.getUri());
 
     // make sure it does not exist in set before inserting
     device_set_.erase(device_info_wrapped);
     device_set_.insert(device_info_wrapped);
   }
 
-  virtual void onDeviceDisconnected(const percipio::DeviceInfo* pInfo)
+  virtual void onDeviceDisconnected(const percipio::DeviceInfo& info)
   {
     boost::mutex::scoped_lock l(device_mutex_);
 
-    if(strlen(pInfo->getIp()))
-      ROS_WARN("Device \"%s\" IP:%s disconnected", pInfo->getUri(), pInfo->getIp());
+    if(strlen(info.getIp()))
+      ROS_WARN("Device \"%s\" IP:%s disconnected", info.getUri(), info.getIp());
     else
-      ROS_WARN("Device \"%s\" disconnected", pInfo->getUri());
+      ROS_WARN("Device \"%s\" disconnected", info.getUri());
   }
 
   boost::shared_ptr<std::vector<std::string> > getConnectedDeviceURIs()
   {
-    percipio::Array<percipio::DeviceInfo> device_info_list;
-    percipio::Percipio::enumerateDevices(&device_info_list);
-    for (int i = 0; i < device_info_list.getSize(); ++i)
+    std::vector<percipio::EnumeratedDevice> device_info_list;
+    percipio::Percipio::enumerateDevices(device_info_list);
+    for (int i = 0; i < device_info_list.size(); ++i)
     {
-      onDeviceConnected(&device_info_list[i]);
+      onDeviceConnected(device_info_list[i].get_device_info());
     }
-
     boost::mutex::scoped_lock l(device_mutex_);
 
     boost::shared_ptr<std::vector<std::string> > result = boost::make_shared<std::vector<std::string> >();
@@ -105,10 +104,10 @@ public:
 
     for (it = device_set_.begin(); it != it_end; ++it) {
       result->push_back(it->uri_);
-      if(strlen(it->ip_.c_str()))
+      if(!it->ip_.empty()) {
         result->push_back(it->ip_);
+      }
     }
-
     return result;
   }
 

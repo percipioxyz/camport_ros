@@ -1,9 +1,0 @@
-{
-  "files.associations": {
-    "*.tcc": "cpp",
-    "deque": "cpp",
-    "list": "cpp",
-    "string": "cpp",
-    "vector": "cpp"
-  }
-}
