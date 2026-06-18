@@ -605,6 +605,24 @@ TY_CAPI TYOpenDevice              (TY_INTERFACE_HANDLE ifaceHandle, const char* 
 ///          
 TY_CAPI TYOpenDeviceWithIP        (TY_INTERFACE_HANDLE ifaceHandle, const char* IP, TY_DEV_HANDLE* deviceHandle);
 
+///@brief  Open device with specified access mode.
+///@param  [in]  ifaceHandle     Interface handle.
+///@param  [in]  deviceID       Device ID.
+///@param  [in]  accessMode     Access mode.
+///@param  [out] outDeviceHandle Handle of opened device.
+///@retval TY_STATUS_OK                     Succeed.
+///@retval TY_STATUS_NOT_INITED             TYInitLib not called.
+///@retval TY_STATUS_NULL_POINTER           Called with NULL pointer.
+TY_CAPI TYOpenDeviceWithAccessMode(TY_INTERFACE_HANDLE ifaceHandle, const char* deviceID, int accessMode, TY_DEV_HANDLE* outDeviceHandle);
+
+///@brief  Get local port of device stream.
+///@param  [in]  hDevice  Device handle.
+///@param  [out] outPort  Local port number.
+///@retval TY_STATUS_OK                     Succeed.
+///@retval TY_STATUS_NOT_INITED             TYInitLib not called.
+///@retval TY_STATUS_NULL_POINTER           Called with NULL pointer.
+TY_CAPI TYGetStreamLocalPort      (TY_DEV_HANDLE hDevice, uint16_t* outPort);
+
 ///@brief  Get interface handle by device handle.
 ///@param  [in]  hDevice       Device handle.
 ///@param  [out] pIface        Interface handle.

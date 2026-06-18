@@ -71,4 +71,8 @@ TY_CAPI  TYByteArrayGetSize             (TY_DEV_HANDLE hDevice, const char* feat
 TY_CAPI  TYByteArraySetValue            (TY_DEV_HANDLE hDevice, const char* feat, const uint8_t* pBuffer, uint32_t bufferSize);
 TY_CAPI  TYByteArrayGetValue            (TY_DEV_HANDLE hDevice, const char* feat, uint8_t* buffer, uint32_t bufferSize);
 
+//Features
+TY_CAPI  TYGetFeaturesCount             (TY_DEV_HANDLE hDevice, const char* feat, uint32_t* cnt);
+TY_CAPI  TYGetFeatures                  (TY_DEV_HANDLE hDevice, const char* feat, TY_GENI_FEATURE_NAME* features, uint32_t cnt, uint32_t* filledCnt);
+
 #endif

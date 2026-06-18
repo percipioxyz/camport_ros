@@ -830,4 +830,48 @@ static inline const char* TYGetLightSelectorName (uint32_t sel)
 }
 /**********************************************End Of Light Source Category********************************************/
 
+#define TY_REG_SEL                            "RegionSelector"
+typedef enum TY_REG_SEL_LIST :uint32_t
+{
+    REG_SEL_0,                                                                            ///< Disables the selected region
+    REG_SEL_1,
+    REG_SEL_2,
+    REG_SEL_3,
+    REG_SEL_4,
+    REG_SEL_5,
+    REG_SEL_6,
+    REG_SEL_ALL                                                                             ///< Enable the selected region
+} TY_REG_SEL_LIST;
+static inline const char* TYGetRegionSelectorName (uint32_t region)
+{
+    switch (region) 
+    {
+        case REG_SEL_0:                     return "Region0";                                                   ///< Disables the selected trigger
+        case REG_SEL_1:                     return "Region1";                                                    ///< Enable the selected trigger
+        case REG_SEL_2:                     return "Region2";
+        case REG_SEL_3:                     return "Region3";
+        case REG_SEL_4:                     return "Region4";
+        case REG_SEL_5:                     return "Region5";
+        case REG_SEL_6:                     return "Region6";
+        case REG_SEL_ALL:                   return "RegionALL";
+        default: return "Unknown";
+    }
+}
+#define TY_REG_MODE                           "RegionMode"
+typedef enum TY_REG_MODE_LIST :uint32_t
+{
+    REG_MODE_OFF,                                                                            ///< Disables the selected region
+    REG_MODE_ON,                                                                             ///< Enable the selected region
+} TY_REG_MODE_LIST;
+static inline const char* TYGetRegionModeName (uint32_t mode)
+{
+    switch (mode) 
+    {
+        case REG_MODE_OFF:                     return "Off";                                                   ///< Disables the selected trigger
+        case REG_MODE_ON:                      return "On";                                                    ///< Enable the selected trigger
+
+        default: return "Unknown";
+    }
+}
+
 #endif // TY_FEATURE_LIST_H
