@@ -91,7 +91,7 @@ private:
   ros::NodeHandle& pnh_;
 
   boost::shared_ptr<PercipioDeviceManager> device_manager_;
-  boost::shared_ptr<PercipioDevice> device_;
+  boost::shared_ptr<percipio::PercipioDevice> device_;
 
   boost::shared_ptr<FrameCallbackFunction> color_frame_callback;
   boost::shared_ptr<FrameCallbackFunction> depth_frame_callback;

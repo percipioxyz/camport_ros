@@ -1,13 +1,10 @@
 #include "TYApi.h"
 
 #include "percipio_camera/percipio_frame_listener.h"
-#include "percipio_camera/percipio_timer_filter.h"
 
 #include <sensor_msgs/image_encodings.h>
 
 #include <ros/ros.h>
-
-#define TIME_FILTER_LENGTH 15
 
 namespace percipio_wrapper
 {
@@ -15,19 +12,9 @@ namespace percipio_wrapper
 PercipioFrameListener::PercipioFrameListener(const std::string& desc) :
     stream_desc(desc),
     callback_(0),
-    user_device_timer_(false),
-    timer_filter_(new PercipioTimerFilter(TIME_FILTER_LENGTH)),
     prev_time_stamp_(0.0)
 {
   ros::Time::init();
-}
-
-void PercipioFrameListener::setUseDeviceTimer(bool enable)
-{
-  user_device_timer_ = enable;
-
-  if (user_device_timer_)
-    timer_filter_->clear();
 }
 
 void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
@@ -49,21 +36,10 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
   }
 
   sensor_msgs::ImagePtr image(new sensor_msgs::Image);
-  if (!user_device_timer_) {
-    ros::Time ros_now = ros::Time::now();
-    image->header.stamp = ros_now;
-    ROS_DEBUG("Time interval between frames: %.4f ms", (float)((ros_now.toSec()-prev_time_stamp_)*1000.0));
-    prev_time_stamp_ = ros_now.toSec();
-  } else {
-    uint64_t device_time = m_frame.getTimestamp();
-    double device_time_in_sec = static_cast<double>(device_time)/1000000.0;
-    double corrected_timestamp = device_time_in_sec;
-
-    image->header.stamp.fromSec(corrected_timestamp);
-
-    ROS_DEBUG("Time interval between frames: %.4f ms", (float)((corrected_timestamp-prev_time_stamp_)*1000.0));
-    prev_time_stamp_ = corrected_timestamp;
-  }
+  ros::Time ros_now = ros::Time::now();
+  image->header.stamp = ros_now;
+  ROS_DEBUG("Time interval between frames: %.4f ms", (float)((ros_now.toSec()-prev_time_stamp_)*1000.0));
+  prev_time_stamp_ = ros_now.toSec();
 
   image->width = m_frame.getWidth();
   image->height = m_frame.getHeight();

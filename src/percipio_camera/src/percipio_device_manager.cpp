@@ -192,7 +192,7 @@ std::size_t PercipioDeviceManager::getNumOfConnectedDevices() const
 
 std::string PercipioDeviceManager::getSerial(const std::string& Uri) const
 {
-  percipio::Device percipio_device;
+  percipio::PercipioDevice percipio_device;
   std::string ret;
 
   // we need to open the device to query the serial number
@@ -209,13 +209,13 @@ std::string PercipioDeviceManager::getSerial(const std::string& Uri) const
   return ret;
 }
 
-boost::shared_ptr<PercipioDevice> PercipioDeviceManager::getAnyDevice()
+boost::shared_ptr<percipio::PercipioDevice> PercipioDeviceManager::getAnyDevice()
 {
-  return boost::make_shared<PercipioDevice>("");
+  return boost::make_shared<percipio::PercipioDevice>("");
 }
-boost::shared_ptr<PercipioDevice> PercipioDeviceManager::getDevice(const std::string& device_URI, const bool reconnection)
+boost::shared_ptr<percipio::PercipioDevice> PercipioDeviceManager::getDevice(const std::string& device_URI, const bool reconnection)
 {
-  return boost::make_shared<PercipioDevice>(device_URI, reconnection);
+  return boost::make_shared<percipio::PercipioDevice>(device_URI, reconnection);
 }
 
 bool PercipioDeviceManager::setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway)
