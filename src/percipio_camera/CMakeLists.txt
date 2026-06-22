@@ -29,6 +29,8 @@ endif()
 
 find_package(TYCam REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/camport4 NO_DEFAULT_PATH)
 
+find_package(PercipioFirmwareUpdate REQUIRED PATHS ${CMAKE_CURRENT_SOURCE_DIR}/camport4 NO_DEFAULT_PATH)
+
 generate_dynamic_reconfigure_options(cfg/Percipio.cfg)
 add_service_files(FILES
   GetSerial.srv)
@@ -45,6 +47,7 @@ include_directories(include
                     ${catkin_INCLUDE_DIRS} 
                     ${Boost_INCLUDE_DIRS}
                     ${TYCam_INCLUDE_DIRS}
+                    ${PercipioFirmwareUpdate_INCLUDE_DIRS}
                     )
 
 #link_directories(${PC_PERCIPIO_LIBRARY_DIRS})
@@ -113,7 +116,12 @@ add_executable(network_ip_config
 target_link_libraries(list_devices percipio_wrapper)
 target_link_libraries(network_ip_config percipio_wrapper)
 
-install(TARGETS percipio_wrapper percipio_camera_nodelet percipio_camera_node list_devices network_ip_config percipio_driver_lib ${ADDITIONAL_EXECUTABLES}
+add_executable(firmware_update
+   src/percipio_firmware_update.cpp
+)
+target_link_libraries(firmware_update ${PercipioFirmwareUpdate_LIB})
+
+install(TARGETS percipio_wrapper percipio_camera_nodelet percipio_camera_node list_devices network_ip_config firmware_update percipio_driver_lib ${ADDITIONAL_EXECUTABLES}
   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -156,10 +164,11 @@ if(ARCH)
         FILES_MATCHING
         PATTERN "libtycam.so*"
         PATTERN "libtyimgproc.so*"
+        PATTERN "libPercipioFirmwareUpdate.so*"
       )
       
       set(CMAKE_INSTALL_RPATH "$ORIGIN/../lib")
-      set_target_properties(percipio_camera_node percipio_camera_nodelet list_devices network_ip_config
+      set_target_properties(percipio_camera_node percipio_camera_nodelet list_devices network_ip_config firmware_update
         PROPERTIES
           INSTALL_RPATH ${CMAKE_INSTALL_RPATH}
           BUILD_WITH_INSTALL_RPATH TRUE
