@@ -106,6 +106,12 @@ namespace percipio
   } DeviceNodeInfo;
   typedef std::map<std::string, std::vector<DeviceNodeInfo>> percipio_feat;
 
+  typedef struct {
+      int64_t binning;
+      int64_t max_sensor_width;
+      int64_t max_sensor_height;
+  } percipio_stream_info;
+
   class VideoFrameData;
   class VideoStream;
   class Percipio;
@@ -163,6 +169,8 @@ namespace percipio
     virtual TY_STATUS EnableLeftIRStream(const bool en) = 0;
     virtual TY_STATUS EnableRightIRStream(const bool en) = 0;
 
+    virtual TY_STATUS stream_base_info_init() = 0;
+
     virtual void Reset() = 0;
     
     TY_DEV_HANDLE hDevice;
@@ -171,6 +179,14 @@ namespace percipio
 
     std::map<SensorType, std::vector<VideoMode>> videos;
     std::map<SensorType, VideoMode> current_video_mode;
+
+    int64_t get_stream_binning(TY_COMPONENT_ID comp) {
+        auto it = m_stream_base_info.find(comp);
+        return (it != m_stream_base_info.end()) ? it->second.binning : 1;
+    }
+
+  protected:
+    std::map<TY_COMPONENT_ID, percipio_stream_info> m_stream_base_info;
   private:
     
   };
@@ -198,6 +214,8 @@ namespace percipio
       {
         TYDeinitLib();
       }
+
+      friend class VideoStream;
 
       TY_STATUS initialize();
       void GetDeviceList(std::vector<EnumeratedDevice>& devices);
@@ -272,6 +290,9 @@ namespace percipio
       TY_STATUS DoIRUndistortion(VideoFrameData& IR);
       TY_STATUS IREnhancement(VideoFrameData& IR);
 
+      TY_CAMERA_CALIB_INFO adjustCalibByBinningCrop(const TY_CAMERA_CALIB_INFO& src_calib, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data);
+      TY_CAMERA_INTRINSIC adjustIntrinsicByBinningCrop(const TY_CAMERA_INTRINSIC& src_intr, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data);
+
       TY_STATUS parseIrStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseColorStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseDepthStream(VideoFrameData* src, VideoFrameData* dst);
@@ -317,10 +338,18 @@ namespace percipio
       void set_work_mode(bool enable_rate, float frame_rate, bool trigger_mode_en);
 
       float getDepthScaleUnit() { return f_depth_scale_unit; }
-      const TY_CAMERA_CALIB_INFO& getDepthCalib() { return depth_calib; }
-      const TY_CAMERA_INTRINSIC&  getDepthIntr() { return depth_intr; }
-      const TY_CAMERA_INTRINSIC&  getColorIntr() { return color_intr; }
-      const TY_CAMERA_DISTORTION& getColorDist() { return color_calib.distortion; }
+      const TY_CAMERA_CALIB_INFO& getDepthCalib() { return adj_depth_calib; }
+      const TY_CAMERA_INTRINSIC&  getDepthIntr() { return adj_depth_calib.intrinsic; }
+      const TY_CAMERA_INTRINSIC&  getColorIntr() { return adj_color_calib.intrinsic; }
+      const TY_CAMERA_DISTORTION& getColorDist() { return adj_color_calib.distortion; }
+
+      TY_CAMERA_CALIB_INFO adj_depth_calib;
+      TY_CAMERA_CALIB_INFO adj_color_calib;
+      TY_CAMERA_CALIB_INFO adj_left_ir_calib;
+      TY_CAMERA_CALIB_INFO adj_right_ir_calib;
+
+      TY_CAMERA_INTRINSIC adj_left_ir_rectified_intr;
+      TY_CAMERA_INTRINSIC adj_right_ir_rectified_intr;
       
       SensorType StreamGetSensorInfo(boost::shared_ptr<VideoStream> stream);
 
@@ -386,6 +415,8 @@ namespace percipio
       
       int32_t current_rgb_width;
       int32_t current_rgb_height;
+      int32_t actual_rgb_width;
+      int32_t actual_rgb_height;
 
       TY_CAMERA_CALIB_INFO depth_calib;
       TY_CAMERA_CALIB_INFO color_calib;

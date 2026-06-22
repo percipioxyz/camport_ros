@@ -10,6 +10,8 @@
 #include "percipio_camera/percipio_log_server.h"
 #include "percipio_camera/image_process.hpp"
 
+#include <cstring>
+
 #include "percipio_camera/gige_2_0.h"
 #include "percipio_camera/gige_2_1.h"
 
@@ -163,6 +165,8 @@ public:
 
     current_rgb_width = 0;
     current_rgb_height = 0;
+    actual_rgb_width = 0;
+    actual_rgb_height = 0;
 
     enumerated_devices.clear();
     
@@ -649,19 +653,23 @@ public:
 
   TY_STATUS PercipioDepthCam::MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
-    return ImgProc::MapDepthImageToColorCoordinate(&depth_calib, &color_calib, current_rgb_width, current_rgb_height, src, dst, f_depth_scale_unit);
+    int32_t rgb_w = actual_rgb_width > 0 ? actual_rgb_width : current_rgb_width;
+    int32_t rgb_h = actual_rgb_height > 0 ? actual_rgb_height : current_rgb_height;
+    return ImgProc::MapDepthImageToColorCoordinate(&adj_depth_calib, &adj_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
   }
 
   TY_STATUS PercipioDepthCam::MapXYZ48FrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
-    return ImgProc::MapXYZ48ToColorCoordinate(&depth_calib, &color_calib, current_rgb_width, current_rgb_height, src, dst, f_depth_scale_unit);
+    int32_t rgb_w = actual_rgb_width > 0 ? actual_rgb_width : current_rgb_width;
+    int32_t rgb_h = actual_rgb_height > 0 ? actual_rgb_height : current_rgb_height;
+    return ImgProc::MapXYZ48ToColorCoordinate(&adj_depth_calib, &adj_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
   }
 
   TY_STATUS PercipioDepthCam::parseColorStream(VideoFrameData* src, VideoFrameData* dst)
   {
     TY_STATUS status = TY_STATUS_OK;
     if(color_undistortion)
-      status = ImgProc::doRGBUndistortion(&color_calib, src, dst);
+      status = ImgProc::doRGBUndistortion(&adj_color_calib, src, dst);
     else
       dst->clone(*src);
     return status;
@@ -677,7 +685,7 @@ public:
   {
     TY_STATUS status = TY_STATUS_OK;
     if(depth_distortion)
-      status = ImgProc::doDepthUndistortion(&depth_calib, src, dst);
+      status = ImgProc::doDepthUndistortion(&adj_depth_calib, src, dst);
     else
       dst->clone(*src);
     return status;
@@ -690,18 +698,18 @@ public:
     if(comp == TY_COMPONENT_IR_CAM_LEFT) {
       switch(ir_rectificatio_mode) {
         case DISTORTION_CORRECTION:
-          return ImgProc::IRUndistortion(IR, &left_ir_calib, nullptr, nullptr, ir_len_type);
+          return ImgProc::IRUndistortion(IR, &adj_left_ir_calib, nullptr, nullptr, ir_len_type);
         case EPIPOLAR_RECTIFICATION:
-          return ImgProc::IRUndistortion(IR, &left_ir_calib, &left_ir_rotation, &left_ir_rectified_intr, ir_len_type);
+          return ImgProc::IRUndistortion(IR, &adj_left_ir_calib, &left_ir_rotation, &adj_left_ir_rectified_intr, ir_len_type);
         default:
           return TY_STATUS_INVALID_PARAMETER;
       }
     } else if(comp == TY_COMPONENT_IR_CAM_RIGHT) {
       switch(ir_rectificatio_mode) {
         case DISTORTION_CORRECTION:
-          return ImgProc::IRUndistortion(IR, &right_ir_calib, nullptr, nullptr, ir_len_type);
+          return ImgProc::IRUndistortion(IR, &adj_right_ir_calib, nullptr, nullptr, ir_len_type);
         case EPIPOLAR_RECTIFICATION:
-          return ImgProc::IRUndistortion(IR, &right_ir_calib, &right_ir_rotation, &right_ir_rectified_intr, ir_len_type);
+          return ImgProc::IRUndistortion(IR, &adj_right_ir_calib, &right_ir_rotation, &adj_right_ir_rectified_intr, ir_len_type);
         default:
           return TY_STATUS_INVALID_PARAMETER;
       }
@@ -725,6 +733,42 @@ public:
   TY_STATUS PercipioDepthCam::FrameDecoder(VideoFrameData& src, VideoFrameData& dst)
   {
     return ImgProc::cvtColor(src, dst);
+  }
+
+  TY_CAMERA_CALIB_INFO PercipioDepthCam::adjustCalibByBinningCrop(const TY_CAMERA_CALIB_INFO& src_calib, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data)
+  {
+      TY_CAMERA_CALIB_INFO dst_calib;
+      int64_t binning = m_gige_dev->get_stream_binning(comp);
+      if(binning < 1) binning = 1;
+      int32_t binX = static_cast<int32_t>(binning);
+      int32_t binY = static_cast<int32_t>(binning);
+      TY_STATUS status = TYAdjustCalibInfoByBinningCrop(
+          &src_calib, binX, binY,
+          image_data.cropOffsetX, image_data.cropOffsetY,
+          image_data.width, image_data.height, &dst_calib);
+      if(status != TY_STATUS_OK) {
+          ROS_WARN_STREAM("TYAdjustCalibInfoByBinningCrop failed(comp=0x" << std::hex << comp << std::dec
+              << ", bin=" << binX << "x" << binY
+              << ", crop=" << image_data.cropOffsetX << "," << image_data.cropOffsetY
+              << ", size=" << image_data.width << "x" << image_data.height
+              << "): " << status << ", fallback to original calib");
+          return src_calib;
+      }
+      return dst_calib;
+  }
+
+  TY_CAMERA_INTRINSIC PercipioDepthCam::adjustIntrinsicByBinningCrop(const TY_CAMERA_INTRINSIC& src_intr, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data)
+  {
+      int64_t binning = m_gige_dev->get_stream_binning(comp);
+      if(binning < 1) binning = 1;
+      float fbin = static_cast<float>(binning);
+      TY_CAMERA_INTRINSIC dst_intr;
+      memcpy(dst_intr.data, src_intr.data, sizeof(dst_intr.data));
+      dst_intr.data[0] = src_intr.data[0] / fbin;
+      dst_intr.data[2] = src_intr.data[2] / fbin - static_cast<float>(image_data.cropOffsetX);
+      dst_intr.data[4] = src_intr.data[4] / fbin;
+      dst_intr.data[5] = src_intr.data[5] / fbin - static_cast<float>(image_data.cropOffsetY);
+      return dst_intr;
   }
 
   TY_STATUS PercipioDepthCam::DeviceGetProperty(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size)
@@ -1004,10 +1048,23 @@ public:
       if(rc == TY_STATUS_OK) {
         float fps = fps_counter.get_fps();
         if(fps > 0) ROS_INFO("fps: %.2f", fps);
+
+        if(cam->b_stream_with_color) {
+          for (int i = 0; i < frame.validCount; i++) {
+            if (frame.image[i].status == TY_STATUS_OK && frame.image[i].componentID == TY_COMPONENT_RGB_CAM) {
+              cam->adj_color_calib = cam->adjustCalibByBinningCrop(cam->color_calib, TY_COMPONENT_RGB_CAM, frame.image[i]);
+              cam->actual_rgb_width = frame.image[i].width;
+              cam->actual_rgb_height = frame.image[i].height;
+              break;
+            }
+          }
+        }
+
         for (int i = 0; i < frame.validCount; i++){
           if (frame.image[i].status != TY_STATUS_OK) continue;
 
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
+            cam->adj_depth_calib = cam->adjustCalibByBinningCrop(cam->depth_calib, TY_COMPONENT_DEPTH_CAM, frame.image[i]);
             if(frame.image[i].pixelFormat == TYPixelFormatCoord3D_C16) {
               uint16_t* ptrDepth = static_cast<uint16_t*>(frame.image[i].buffer);
               int32_t PixsCnt = frame.image[i].width * frame.image[i].height;
@@ -1020,7 +1077,7 @@ public:
                 if(cam->depth_stream_physical_size <= 0)
                     TYDepthSpeckleFilter(&frame.image[i], &param, nullptr, cam->getDepthScaleUnit());
                 else
-                    TYDepthSpeckleFilter(&frame.image[i], &param, &cam->getDepthCalib(), cam->getDepthScaleUnit());
+                    TYDepthSpeckleFilter(&frame.image[i], &param, &cam->adj_depth_calib, cam->getDepthScaleUnit());
               }
 
               if(cam->depth_time_domain_enable) {
@@ -1256,6 +1313,8 @@ public:
     }
       
     m_gige_dev->enable_trigger_mode(b_trigger_mode_en);
+
+    m_gige_dev->stream_base_info_init();
     
     uint32_t frameSize;
     TYGetFrameBufferSize(_M_DEVICE, &frameSize);
@@ -1525,6 +1584,7 @@ public:
     {
       case TY_COMPONENT_DEPTH_CAM:
         type = getSensorInfo().getSensorType();
+        g_Context->adj_depth_calib = g_Context->adjustCalibByBinningCrop(g_Context->depth_calib, TY_COMPONENT_DEPTH_CAM, *img);
         if(img->pixelFormat == TYPixelFormatCoord3D_C16) {
           g_Context->parseDepthStream(&vframe, &tframe);
           ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
@@ -1553,6 +1613,7 @@ public:
         }
         break;
       case TY_COMPONENT_RGB_CAM:
+        g_Context->adj_color_calib = g_Context->adjustCalibByBinningCrop(g_Context->color_calib, TY_COMPONENT_RGB_CAM, *img);
         if(img->pixelFormat == TYPixelFormatMono8)
           tframe.clone(vframe);
         else
@@ -1560,7 +1621,9 @@ public:
         g_Context->parseColorStream(&tframe, &frame);
         break;
       case TY_COMPONENT_IR_CAM_LEFT:
-      case TY_COMPONENT_IR_CAM_RIGHT:
+      {
+        g_Context->adj_left_ir_calib = g_Context->adjustCalibByBinningCrop(g_Context->left_ir_calib, TY_COMPONENT_IR_CAM_LEFT, *img);
+        g_Context->adj_left_ir_rectified_intr = g_Context->adjustIntrinsicByBinningCrop(g_Context->left_ir_rectified_intr, TY_COMPONENT_IR_CAM_LEFT, *img);
         if(img->pixelFormat == TYPixelFormatMono8 || img->pixelFormat == TYPixelFormatMono16) {
           g_Context->DoIRUndistortion(vframe);
           g_Context->IREnhancement(vframe);
@@ -1572,6 +1635,23 @@ public:
           frame.clone(tframe);
         }
         break;
+      }
+      case TY_COMPONENT_IR_CAM_RIGHT:
+      {
+        g_Context->adj_right_ir_calib = g_Context->adjustCalibByBinningCrop(g_Context->right_ir_calib, TY_COMPONENT_IR_CAM_RIGHT, *img);
+        g_Context->adj_right_ir_rectified_intr = g_Context->adjustIntrinsicByBinningCrop(g_Context->right_ir_rectified_intr, TY_COMPONENT_IR_CAM_RIGHT, *img);
+        if(img->pixelFormat == TYPixelFormatMono8 || img->pixelFormat == TYPixelFormatMono16) {
+          g_Context->DoIRUndistortion(vframe);
+          g_Context->IREnhancement(vframe);
+          frame.clone(vframe);
+        } else {
+          g_Context->FrameDecoder(vframe, tframe);
+          g_Context->DoIRUndistortion(tframe);
+          g_Context->IREnhancement(tframe);
+          frame.clone(tframe);
+        }
+        break;
+      }
       default:
         break;
     }

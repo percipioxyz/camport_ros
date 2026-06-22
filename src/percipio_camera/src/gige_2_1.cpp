@@ -107,6 +107,70 @@ static inline int64_t SensorTypeToSourceIdx(const SensorType type)
     return index;
 }
 
+static inline int64_t CamComponentIDToSourceIdx(const TY_COMPONENT_ID comp)
+{
+    int64_t index = -1;
+    switch(comp) {
+    case TY_COMPONENT_DEPTH_CAM:
+        index = m_Source_Range;
+        break;
+    case TY_COMPONENT_RGB_CAM:
+        index = m_Source_Color;
+        break;
+    case TY_COMPONENT_IR_CAM_LEFT:
+        index = m_Source_LeftIR;
+        break;
+    case TY_COMPONENT_IR_CAM_RIGHT:
+        index = m_Source_RightIR;
+        break;
+    default:
+        break;
+    }
+    return index;
+}
+
+TY_STATUS GigE_2_1::stream_base_info_init()
+{
+    const static TY_COMPONENT_ID comps[] = {
+        TY_COMPONENT_IR_CAM_LEFT,
+        TY_COMPONENT_IR_CAM_RIGHT,
+        TY_COMPONENT_RGB_CAM,
+        TY_COMPONENT_DEPTH_CAM
+    };
+
+    for(auto& comp : comps) {
+        m_stream_base_info[comp].binning = 1;
+        m_stream_base_info[comp].max_sensor_width = -1;
+        m_stream_base_info[comp].max_sensor_height = -1;
+
+        int64_t source = CamComponentIDToSourceIdx(comp);
+        if(source < 0) continue;
+
+        TY_STATUS ret = source_init(source);
+        if(ret) continue;
+
+        int64_t binning = 1;
+        ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
+        if(ret == TY_STATUS_OK) {
+            m_stream_base_info[comp].binning = binning;
+        }
+
+        int64_t m_sensor_width = 0;
+        ret = TYIntegerGetValue(hDevice, "SensorWidth", &m_sensor_width);
+        if(ret == TY_STATUS_OK) {
+            m_stream_base_info[comp].max_sensor_width = m_sensor_width;
+        }
+
+        int64_t m_sensor_height = 0;
+        ret = TYIntegerGetValue(hDevice, "SensorHeight", &m_sensor_height);
+        if(ret == TY_STATUS_OK) {
+            m_stream_base_info[comp].max_sensor_height = m_sensor_height;
+        }
+    }
+
+    return TY_STATUS_OK;
+}
+
 bool MatchPixelFormat(const std::string& fmt_desc, const TYPixFmt& m_fmt)
 {
   std::string str_fmt = boost::algorithm::to_lower_copy(fmt_desc);
