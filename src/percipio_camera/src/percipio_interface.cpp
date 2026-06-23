@@ -653,16 +653,22 @@ public:
 
   TY_STATUS PercipioDepthCam::MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
-    int32_t rgb_w = actual_rgb_width > 0 ? actual_rgb_width : current_rgb_width;
-    int32_t rgb_h = actual_rgb_height > 0 ? actual_rgb_height : current_rgb_height;
-    return ImgProc::MapDepthImageToColorCoordinate(&adj_depth_calib, &adj_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
+    auto color_binning = m_gige_dev->get_stream_binning(TY_COMPONENT_RGB_CAM);
+    int32_t rgb_w = color_calib.intrinsicWidth / color_binning;
+    int32_t rgb_h = color_calib.intrinsicHeight / color_binning;
+    TY_CAMERA_CALIB_INFO binning_color_calib;
+    TYAdjustCalibInfoByBinningCrop(&color_calib, color_binning, color_binning, 0, 0, rgb_w, rgb_h, &binning_color_calib);
+    return ImgProc::MapDepthImageToColorCoordinate(&adj_depth_calib, &binning_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
   }
 
   TY_STATUS PercipioDepthCam::MapXYZ48FrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
-    int32_t rgb_w = actual_rgb_width > 0 ? actual_rgb_width : current_rgb_width;
-    int32_t rgb_h = actual_rgb_height > 0 ? actual_rgb_height : current_rgb_height;
-    return ImgProc::MapXYZ48ToColorCoordinate(&adj_depth_calib, &adj_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
+    auto color_binning = m_gige_dev->get_stream_binning(TY_COMPONENT_RGB_CAM);
+    int32_t rgb_w = color_calib.intrinsicWidth / color_binning;
+    int32_t rgb_h = color_calib.intrinsicHeight / color_binning;
+    TY_CAMERA_CALIB_INFO binning_color_calib;
+    TYAdjustCalibInfoByBinningCrop(&color_calib, color_binning, color_binning, 0, 0, rgb_w, rgb_h, &binning_color_calib);
+    return ImgProc::MapXYZ48ToColorCoordinate(&adj_depth_calib, &binning_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
   }
 
   TY_STATUS PercipioDepthCam::parseColorStream(VideoFrameData* src, VideoFrameData* dst)
