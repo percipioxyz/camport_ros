@@ -107,9 +107,9 @@ namespace percipio
   typedef std::map<std::string, std::vector<DeviceNodeInfo>> percipio_feat;
 
   typedef struct {
-      int64_t binning;
-      int64_t max_sensor_width;
-      int64_t max_sensor_height;
+      float binning;
+      int32_t full_width;
+      int32_t full_height;
   } percipio_stream_info;
 
   class VideoFrameData;
@@ -180,9 +180,9 @@ namespace percipio
     std::map<SensorType, std::vector<VideoMode>> videos;
     std::map<SensorType, VideoMode> current_video_mode;
 
-    int64_t get_stream_binning(TY_COMPONENT_ID comp) {
+    float get_stream_binning(TY_COMPONENT_ID comp) {
         auto it = m_stream_base_info.find(comp);
-        return (it != m_stream_base_info.end()) ? it->second.binning : 1;
+        return (it != m_stream_base_info.end()) ? it->second.binning : 1.f;
     }
 
   protected:

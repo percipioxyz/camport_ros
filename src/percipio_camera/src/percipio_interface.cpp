@@ -653,9 +653,9 @@ public:
 
   TY_STATUS PercipioDepthCam::MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
-    auto color_binning = m_gige_dev->get_stream_binning(TY_COMPONENT_RGB_CAM);
-    int32_t rgb_w = color_calib.intrinsicWidth / color_binning;
-    int32_t rgb_h = color_calib.intrinsicHeight / color_binning;
+    int32_t color_binning = static_cast<int32_t>(m_gige_dev->get_stream_binning(TY_COMPONENT_RGB_CAM));
+    int32_t rgb_w = static_cast<int32_t>(color_calib.intrinsicWidth / color_binning);
+    int32_t rgb_h = static_cast<int32_t>(color_calib.intrinsicHeight / color_binning);
     TY_CAMERA_CALIB_INFO binning_color_calib;
     TYAdjustCalibInfoByBinningCrop(&color_calib, color_binning, color_binning, 0, 0, rgb_w, rgb_h, &binning_color_calib);
     return ImgProc::MapDepthImageToColorCoordinate(&adj_depth_calib, &binning_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
@@ -663,9 +663,9 @@ public:
 
   TY_STATUS PercipioDepthCam::MapXYZ48FrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
-    auto color_binning = m_gige_dev->get_stream_binning(TY_COMPONENT_RGB_CAM);
-    int32_t rgb_w = color_calib.intrinsicWidth / color_binning;
-    int32_t rgb_h = color_calib.intrinsicHeight / color_binning;
+    int32_t color_binning = static_cast<int32_t>(m_gige_dev->get_stream_binning(TY_COMPONENT_RGB_CAM));
+    int32_t rgb_w = static_cast<int32_t>(color_calib.intrinsicWidth / color_binning);
+    int32_t rgb_h = static_cast<int32_t>(color_calib.intrinsicHeight / color_binning);
     TY_CAMERA_CALIB_INFO binning_color_calib;
     TYAdjustCalibInfoByBinningCrop(&color_calib, color_binning, color_binning, 0, 0, rgb_w, rgb_h, &binning_color_calib);
     return ImgProc::MapXYZ48ToColorCoordinate(&adj_depth_calib, &binning_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
@@ -744,8 +744,8 @@ public:
   TY_CAMERA_CALIB_INFO PercipioDepthCam::adjustCalibByBinningCrop(const TY_CAMERA_CALIB_INFO& src_calib, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data)
   {
       TY_CAMERA_CALIB_INFO dst_calib;
-      int64_t binning = m_gige_dev->get_stream_binning(comp);
-      if(binning < 1) binning = 1;
+      float binning = m_gige_dev->get_stream_binning(comp);
+      if(binning < 0) binning = 1.f;
       int32_t binX = static_cast<int32_t>(binning);
       int32_t binY = static_cast<int32_t>(binning);
       TY_STATUS status = TYAdjustCalibInfoByBinningCrop(
@@ -765,15 +765,15 @@ public:
 
   TY_CAMERA_INTRINSIC PercipioDepthCam::adjustIntrinsicByBinningCrop(const TY_CAMERA_INTRINSIC& src_intr, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data)
   {
-      int64_t binning = m_gige_dev->get_stream_binning(comp);
-      if(binning < 1) binning = 1;
-      float fbin = static_cast<float>(binning);
+      float binning = m_gige_dev->get_stream_binning(comp);
+      if(binning < 0) binning = 1.f;
+
       TY_CAMERA_INTRINSIC dst_intr;
       memcpy(dst_intr.data, src_intr.data, sizeof(dst_intr.data));
-      dst_intr.data[0] = src_intr.data[0] / fbin;
-      dst_intr.data[2] = src_intr.data[2] / fbin - static_cast<float>(image_data.cropOffsetX);
-      dst_intr.data[4] = src_intr.data[4] / fbin;
-      dst_intr.data[5] = src_intr.data[5] / fbin - static_cast<float>(image_data.cropOffsetY);
+      dst_intr.data[0] = src_intr.data[0] / binning;
+      dst_intr.data[2] = src_intr.data[2] / binning - static_cast<float>(image_data.cropOffsetX);
+      dst_intr.data[4] = src_intr.data[4] / binning;
+      dst_intr.data[5] = src_intr.data[5] / binning - static_cast<float>(image_data.cropOffsetY);
       return dst_intr;
   }
 

@@ -578,6 +578,34 @@ TY_STATUS GigE_2_0::EnableRightIRStream(const bool en)
 
 TY_STATUS GigE_2_0::stream_base_info_init()
 {
+  const static TY_COMPONENT_ID comps[] = {
+    TY_COMPONENT_IR_CAM_LEFT,
+    TY_COMPONENT_IR_CAM_RIGHT,
+    TY_COMPONENT_RGB_CAM,
+    TY_COMPONENT_DEPTH_CAM
+  };
+
+  for(auto& comp : comps) {
+      percipio_stream_info default_stream_info = {1, -1, -1};
+
+      TY_CAMERA_CALIB_INFO calib_data;
+      auto ret = TYGetStruct(hDevice, comp, TY_STRUCT_CAM_CALIB_DATA, &calib_data, sizeof(calib_data));
+      if(ret) continue;
+      
+      TY_IMAGE_MODE  image_mode = 0;
+      ret = TYGetEnum(hDevice, comp, TY_ENUM_IMAGE_MODE, &image_mode);
+      if(ret) continue;
+
+      int width = TYImageWidth(image_mode);
+      int height = TYImageHeight(image_mode);
+
+      default_stream_info.binning = 1.f * calib_data.intrinsicWidth / width;
+      default_stream_info.full_width = width;
+      default_stream_info.full_height = height;
+
+      m_stream_base_info[comp] = default_stream_info;
+  }
+
   return TY_STATUS_OK;
 }
 

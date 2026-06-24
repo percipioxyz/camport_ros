@@ -139,9 +139,7 @@ TY_STATUS GigE_2_1::stream_base_info_init()
     };
 
     for(auto& comp : comps) {
-        m_stream_base_info[comp].binning = 1;
-        m_stream_base_info[comp].max_sensor_width = -1;
-        m_stream_base_info[comp].max_sensor_height = -1;
+        percipio_stream_info default_stream_info = {1, -1, -1};
 
         int64_t source = CamComponentIDToSourceIdx(comp);
         if(source < 0) continue;
@@ -152,20 +150,22 @@ TY_STATUS GigE_2_1::stream_base_info_init()
         int64_t binning = 1;
         ret = TYEnumGetValue(hDevice, "BinningHorizontal", &binning);
         if(ret == TY_STATUS_OK) {
-            m_stream_base_info[comp].binning = binning;
+            default_stream_info.binning = static_cast<float>(binning);
         }
 
         int64_t m_sensor_width = 0;
         ret = TYIntegerGetValue(hDevice, "SensorWidth", &m_sensor_width);
         if(ret == TY_STATUS_OK) {
-            m_stream_base_info[comp].max_sensor_width = m_sensor_width;
+            default_stream_info.full_width = m_sensor_width / binning;
         }
 
         int64_t m_sensor_height = 0;
         ret = TYIntegerGetValue(hDevice, "SensorHeight", &m_sensor_height);
         if(ret == TY_STATUS_OK) {
-            m_stream_base_info[comp].max_sensor_height = m_sensor_height;
+            default_stream_info.full_height = m_sensor_height / binning;
         }
+
+        m_stream_base_info[comp] = default_stream_info;
     }
 
     return TY_STATUS_OK;
