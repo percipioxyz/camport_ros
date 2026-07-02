@@ -327,14 +327,22 @@ public:
     }
 
     if(!_M_IFACE) {
-      ROS_ERROR("not found any device");
+      ROS_ERROR("not found device with sn: %s", sn);
       return TY_STATUS_ERROR;
     }
 
-    TY_DEV_HANDLE deviceHandle;
-    TY_STATUS rc = TYOpenDevice(_M_IFACE, sn, &deviceHandle);
-    if(rc != TY_STATUS_OK)
+    TY_STATUS rc = TYUpdateDeviceList(_M_IFACE);
+    if(rc != TY_STATUS_OK) {
+      ROS_ERROR("update device list failed, error: %d", rc);
       return rc;
+    }
+
+    TY_DEV_HANDLE deviceHandle;
+    rc = TYOpenDevice(_M_IFACE, sn, &deviceHandle);
+    if(rc != TY_STATUS_OK) {
+      ROS_ERROR("open device with sn: %s failed, error: %d", sn, rc);
+      return rc;
+    }
 
     ROS_INFO("Device %s is open!", sn);
 
