@@ -64,13 +64,13 @@ namespace percipio
     std::string wrappedXML = WrapXML(xml);
     percipio_ros1_tinyxml2::XMLError err = m_doc.Parse(wrappedXML.c_str());
     if( err != percipio_ros1_tinyxml2::XML_SUCCESS ){
-      ROS_ERROR("xml parse failed");
+      ROS_ERROR("Failed to parse XML parameters, error: %d", err);
       return -1;
     }
 
     percipio_ros1_tinyxml2::XMLElement* m_root = m_doc.RootElement();
     if(!m_root){
-      ROS_ERROR("found no root element");
+      ROS_ERROR("Failed to find root element in XML parameters");
       return -1;
     }
 
@@ -189,7 +189,7 @@ public:
     TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", "", 100, selected);
     if(rc != TY_STATUS_OK || selected.size() == 0) {
        devices.clear();
-       ROS_ERROR("not found any device");
+       ROS_ERROR("Failed to enumerate devices, error: %d", rc);
        return;
     }
 
@@ -327,20 +327,20 @@ public:
     }
 
     if(!_M_IFACE) {
-      ROS_ERROR("not found device with sn: %s", sn);
+      ROS_ERROR("Not found device with sn: %s", sn);
       return TY_STATUS_ERROR;
     }
 
     TY_STATUS rc = TYUpdateDeviceList(_M_IFACE);
     if(rc != TY_STATUS_OK) {
-      ROS_ERROR("update device list failed, error: %d", rc);
+      ROS_ERROR("Failed to update device list, error: %d", rc);
       return rc;
     }
 
     TY_DEV_HANDLE deviceHandle;
     rc = TYOpenDevice(_M_IFACE, sn, &deviceHandle);
     if(rc != TY_STATUS_OK) {
-      ROS_ERROR("open device with sn: %s failed, error: %d", sn, rc);
+      ROS_ERROR("Failed to open device with sn: %s, error: %d", sn, rc);
       return rc;
     }
 
@@ -365,7 +365,7 @@ public:
     }
 
     if(!_M_IFACE) {
-      ROS_ERROR("not found any device");
+      ROS_ERROR("Not found device with ip: %s", ip);
       return TY_STATUS_ERROR;
     }
 
@@ -484,7 +484,10 @@ public:
   {
     if (_M_DEVICE != NULL)
     {
-      TYCloseDevice(_M_DEVICE);
+      auto rc = TYCloseDevice(_M_DEVICE);
+      if(rc != TY_STATUS_OK) {
+        ROS_WARN("TYCloseDevice got error code : %d!", rc);
+      }
       //TYCloseInterface(_M_IFACE);
     }
     _M_DEVICE = NULL;
@@ -988,19 +991,22 @@ public:
     PercipioDepthCam* cam = (PercipioDepthCam*)ptr;
 
     while(cam->b_device_opened) {
-      std::unique_lock<std::mutex> lck(cam->detect_mutex);
-      cam->detect_cond.wait(lck);
-      cam->StreamStopAll();
-      cam->close();
+      {
+        std::unique_lock<std::mutex> lck(cam->detect_mutex);
+        cam->detect_cond.wait(lck);
+        cam->StreamStopAll();
+        cam->close();
+      }
+
+RETRY:
       while(true) {
         if(!cam->openWithSN(cam->m_current_device_sn.c_str())) {
           cam->send_device_event(DEVICE_EVENT_AUTO_RECONNECTED);
-
-          ROS_INFO("camera: %s  opened!", cam->m_current_device_sn.c_str());
+          ROS_INFO("Successfully reconnected camera: %s", cam->m_current_device_sn.c_str());
           break;
         }
 
-        ROS_INFO("camera: %s  failed, retry!", cam->m_current_device_sn.c_str());
+        ROS_INFO("Failed to open camera: %s, retry...", cam->m_current_device_sn.c_str());
         MSLEEP(1000);
       }
       
@@ -1008,7 +1014,12 @@ public:
 
       PercipioDepthCam::isOffline = false;
       if(cam->HasStream()) {
-        cam->StreamStart();
+        auto ret = cam->StreamStart();
+        if(ret != TY_STATUS_OK) {
+          ROS_WARN("Failed to restart stream, retry...");
+          cam->close();
+          goto RETRY;
+        }
       }
     }
 
@@ -1061,7 +1072,7 @@ public:
       rc = TYFetchFrame(handle, &frame, 2000);
       if(rc == TY_STATUS_OK) {
         float fps = fps_counter.get_fps();
-        if(fps > 0) ROS_INFO("fps: %.2f", fps);
+        if(fps > 0) ROS_INFO("Fps: %.2f", fps);
 
         if(cam->b_stream_with_color) {
           for (int i = 0; i < frame.validCount; i++) {
@@ -1186,7 +1197,7 @@ public:
     if(isRuning) StreamStopAll();
     
     if(!HasStream()) {
-      ROS_WARN("device has no stream component!");
+      ROS_WARN("Device has no stream component enabled!");
       return TY_STATUS_ERROR;
     }
 
@@ -1254,7 +1265,7 @@ public:
           current_rgb_height = it->second.getResolutionY();
           ROS_INFO("Current color image size : %d x %d.", current_rgb_width, current_rgb_height);
         } else {
-          ROS_WARN("Got current color image size failed!");
+          ROS_WARN("Failed to get current color image size, use default size!");
         }
 
         ROS_INFO("Enable color stream!");
@@ -1287,7 +1298,7 @@ public:
           int current_depth_height = it->second.getResolutionY();
           ROS_INFO("Current depth image size : %d x %d.", current_depth_width, current_depth_height);
         } else {
-          ROS_WARN("Got current depth image size failed, use default size!");
+          ROS_WARN("Failed to get current depth image size, use default size!");
         }
 
         depth_distortion = m_gige_dev->need_depth_undistortion;
@@ -1331,7 +1342,12 @@ public:
     m_gige_dev->stream_base_info_init();
     
     uint32_t frameSize;
-    TYGetFrameBufferSize(_M_DEVICE, &frameSize);
+    rc = TYGetFrameBufferSize(_M_DEVICE, &frameSize);
+    if(rc) {
+      ROS_WARN("TYGetFrameBufferSize got error code : %d!", rc);
+      return rc;
+    }
+
     frameBuffer[0].resize(frameSize);
     frameBuffer[1].resize(frameSize);
     TYEnqueueBuffer(_M_DEVICE, &frameBuffer[0][0], frameSize);
@@ -1361,7 +1377,10 @@ public:
       }
       pthread_join(frame_fetch_thread, NULL);
     }
-    TYStopCapture(_M_DEVICE);
+    auto rc = TYStopCapture(_M_DEVICE);
+    if(rc != TY_STATUS_OK) {
+      ROS_WARN("TYStopCapture got error code : %d!", rc);
+    }
     TYClearBufferQueue(_M_DEVICE);
   }
 
@@ -1912,7 +1931,7 @@ public:
     std::vector<TY_DEVICE_BASE_INFO> selected;
     TY_STATUS rc = selectDevice(TY_INTERFACE_ETHERNET | TY_INTERFACE_IEEE80211, "", "", 100, selected);
     if(rc) {
-      ROS_ERROR("not found any device");
+      ROS_ERROR("Failed to enumerate devices, error: %d", rc);
       return false;
     }
 
