@@ -34,6 +34,8 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   point3d_subscribers_(false),
   depth_subscribers_(false)
 {
+  ros::console::initialize();
+
   readConfigFromParameterServer();
 
   setupDevice();
@@ -44,7 +46,7 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   
   while (!config_init_)
   {
-    ROS_DEBUG("Waiting for dynamic reconfigure configuration.");
+    ROS_DEBUG("Waiting for dynamic reconfigure configuration...");
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   }
   ROS_DEBUG("Dynamic reconfigure configuration received.");
@@ -110,7 +112,7 @@ void PercipioDriver::advertiseROSTopics()
   // Advertise all published topics
   if (trigger_mode_) {
     soft_trigger_sub_ = nh_.subscribe(soft_trigger_topic_, 10, &PercipioDriver::SoftTriggerCb, this);
-    ROS_INFO("Soft trigger mode enabled, subscribe to the topic.: %s", soft_trigger_topic_.c_str());
+    ROS_INFO("Soft trigger mode enabled, subscribed to topic: %s", soft_trigger_topic_.c_str());
   }
 
   device_reset_sub_ = nh_.subscribe(device_reset_topic_, 10, &PercipioDriver::ResetCb, this);
@@ -130,7 +132,7 @@ void PercipioDriver::advertiseROSTopics()
     ros::SubscriberStatusCallback rssc = boost::bind(&PercipioDriver::colorConnectCb, this);
     pub_color_ = color_it.advertiseCamera("image", 1, itssc, itssc, rssc, rssc);
   } else {
-    ROS_WARN("The device lacks an RGB component and does not support RGBD alignment mode!\n");
+    ROS_WARN("The device lacks an RGB component and does not support RGBD alignment mode");
   }
 
   if (device_->hasIRSensor())
@@ -600,43 +602,43 @@ void PercipioDriver::readConfigFromParameterServer()
 
   if (!pnh_.getParam("camera", camera_name_))
   {
-    ROS_WARN ("~camera_name_ is not set! Using first device.");
+    ROS_WARN("~camera_name_ is not set, using first device.");
     camera_name_ = "camera";
   }
 
   const std::string param_name = "/percipio_camera_parameter";
   if (!pnh_.getParam(param_name, xml_content)) {
-      ROS_ERROR("Failed to get parameter %s after waiting", param_name.c_str());
+      ROS_ERROR("Failed to retrieve parameter: %s", param_name.c_str());
   }
 
   if (!pnh_.getParam("device_id", device_id_))
   {
-    ROS_WARN ("~device_id is not set! Using first device.");
+    ROS_WARN("~device_id is not set, using first device.");
     device_id_ = "#1";
   }
 
   if (!pnh_.getParam("device_reconnection", reconnection_flag_))
   {
-    ROS_WARN ("~reconnection flag is not set! Using default.");
+    ROS_WARN("~reconnection flag is not set, using default.");
     reconnection_flag_ = false;
   }
 
   if (!pnh_.getParam("frame_rate_control", frame_rate_control_))
   {
-    ROS_WARN ("~frame_rate_control is not set! Try using default.");
+    ROS_WARN("~frame_rate_control is not set, using default.");
     frame_rate_control_ = false;
   }
 
   
   if (!pnh_.getParam("frame_rate", frame_rate_))
   {
-    ROS_WARN ("~frame_rate is not set! Try using default.");
+    ROS_WARN("~frame_rate is not set, using default.");
     frame_rate_ = 5.0;
   }
   
   if (!pnh_.getParam("trigger_mode", trigger_mode_))
   {
-    ROS_WARN ("~trigger_mode is not set! Try using default.");
+    ROS_WARN("~trigger_mode is not set, using default.");
     trigger_mode_ = false;
   }
 
@@ -652,19 +654,19 @@ void PercipioDriver::readConfigFromParameterServer()
 
   if (!pnh_.getParam("rgb_resolution", rgb_resolution_))
   {
-    ROS_WARN ("~rgb_resolution is not set! Try using default.");
+    ROS_WARN("~rgb_resolution is not set, using default.");
     rgb_resolution_ = "640x480";
   }
 
   if (!pnh_.getParam("rgb_format", rgb_format_))
   {
-    ROS_WARN ("~rgb_format is not set! Try using default.");
+    ROS_WARN("~rgb_format is not set, using default.");
     rgb_format_ = "";
   }
 
   if (!pnh_.getParam("depth_resolution", depth_resolution_))
   {
-    ROS_WARN ("~depth_resolution is not set! Try using default.");
+    ROS_WARN("~depth_resolution is not set, using default.");
     depth_resolution_ = "640x480";
   }
 
@@ -675,19 +677,19 @@ void PercipioDriver::readConfigFromParameterServer()
 
   if (!pnh_.getParam("color_undistortion", color_undistortion_))
   {
-    ROS_WARN ("~color_undistortion is not set! Using default.");
+    ROS_WARN("~color_undistortion is not set, using default.");
     color_undistortion_ = true;
   }
 
   if (!pnh_.getParam("depth_registration", depth_registration_))
   {
-    ROS_WARN ("~depth_registration is not set! Using default.");
+    ROS_WARN("~depth_registration is not set, using default.");
     depth_registration_ = false;
   }
 
   if (!pnh_.getParam("ir_undistortion", ir_undistortion_))
   {
-    ROS_WARN ("~ir_undistortion is not set! Using default.");
+    ROS_WARN("~ir_undistortion is not set, using default.");
     ir_undistortion_ = true;
   }
   
@@ -892,9 +894,9 @@ void PercipioDriver::SoftTriggerCb(const std_msgs::EmptyConstPtr& msg)
     ROS_INFO("Received soft trigger signal, sent trigger command to device");
   } else {
     if (!device_)
-      ROS_WARN("Device not initialized, unable to send soft trigger command");
+      ROS_WARN("Device is not initialized, cannot send soft trigger command");
     else if (!trigger_mode_)
-      ROS_WARN("Device not in trigger mode, ignoring soft trigger signal");
+      ROS_WARN("Device is not in trigger mode, ignoring soft trigger signal");
   }
 }
 
@@ -903,7 +905,7 @@ void PercipioDriver::ResetCb(const std_msgs::EmptyConstPtr& msg)
   if(device_) {
     device_->reset();
   } else {
-    ROS_WARN("Device not initialized, unable to send reset command");
+    ROS_WARN("Device is not initialized, cannot send reset command");
   }
 }
 
@@ -912,7 +914,7 @@ void PercipioDriver::DynamicConfigureCb(const std_msgs::String::ConstPtr& msg)
   if(device_) {
     device_->dynamic_configure(msg->data);
   } else {
-    ROS_WARN("Device not initialized, unable to send dynamic configure command");
+    ROS_WARN("Device is not initialized, cannot send dynamic configure command");
   }
 }
 
@@ -925,7 +927,7 @@ void PercipioDriver::setupDevice()
     {
       std::string device_URI = resolveDeviceURI(device_id_);
       if(!device_URI.length()) {
-        ROS_INFO("No matching device found.... waiting for devices.");
+        ROS_INFO("No matching device found, waiting for devices...");
         boost::this_thread::sleep(boost::posix_time::seconds(3));
         continue;
       }
@@ -943,7 +945,7 @@ void PercipioDriver::setupDevice()
     {
       if (!device_)
       {
-        ROS_INFO("No matching device found.... waiting for devices. Reason: %s", exception.what());
+        ROS_INFO("No matching device found, waiting for devices... Reason: %s", exception.what());
         boost::this_thread::sleep(boost::posix_time::seconds(3));
         continue;
       }
@@ -956,7 +958,7 @@ void PercipioDriver::setupDevice()
 
   while (ros::ok() && !device_->isValid())
   {
-    ROS_DEBUG("Waiting for device initialization..");
+    ROS_DEBUG("Waiting for device initialization...");
     boost::this_thread::sleep(boost::posix_time::milliseconds(100));
   }
 

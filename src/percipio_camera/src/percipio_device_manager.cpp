@@ -65,9 +65,9 @@ public:
     const PercipioDeviceInfo device_info_wrapped = percipio_convert(&info);
 
     if(strlen(info.getIp()))
-      ROS_INFO("Device \"%s\" IP:%s found.", info.getUri(), info.getIp());
+      ROS_INFO("Device \"%s\" (IP: %s) connected", info.getUri(), info.getIp());
     else
-      ROS_INFO("Device \"%s\" found.", info.getUri());
+      ROS_INFO("Device \"%s\" connected", info.getUri());
 
     // make sure it does not exist in set before inserting
     device_set_.erase(device_info_wrapped);

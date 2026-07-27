@@ -20,18 +20,18 @@ PercipioFrameListener::PercipioFrameListener(const std::string& desc) :
 void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
 {
   if(TY_STATUS_OK != stream.readFrame(&m_frame)) {
-    ROS_WARN("onNewFrame(%s): readFrame end< invalid frame>!\n", stream_desc.c_str());
+    ROS_WARN("onNewFrame(%s): readFrame returned invalid frame", stream_desc.c_str());
     return;
   }
 
   bool isValid = m_frame.isValid();
   if(!isValid) {
-    ROS_ERROR("invalid frame(%s)!\n", stream_desc.c_str());
+    ROS_ERROR("Invalid frame received from %s", stream_desc.c_str());
     return;
   }
 
   if(!callback_) {
-    ROS_ERROR("stream[%s] no callback!\n", stream.desc().c_str());
+    ROS_ERROR("Stream %s has no callback registered", stream.desc().c_str());
     return;
   }
 
@@ -77,7 +77,7 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       image->step = sizeof(unsigned short) * 3 * image->width;
       break;
     default:
-      ROS_ERROR("Invalid image encoding(%s).", stream_desc.c_str());
+      ROS_ERROR("Unsupported image encoding for %s", stream_desc.c_str());
       return;
   }
   (*callback_)(image);

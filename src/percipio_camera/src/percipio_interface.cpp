@@ -327,7 +327,7 @@ public:
     }
 
     if(!_M_IFACE) {
-      ROS_ERROR("Not found device with sn: %s", sn);
+      ROS_ERROR("Device not found with serial number: %s", sn);
       return TY_STATUS_ERROR;
     }
 
@@ -340,11 +340,11 @@ public:
     TY_DEV_HANDLE deviceHandle;
     rc = TYOpenDevice(_M_IFACE, sn, &deviceHandle);
     if(rc != TY_STATUS_OK) {
-      ROS_ERROR("Failed to open device with sn: %s, error: %d", sn, rc);
+      ROS_ERROR("Failed to open device with serial number: %s, error: %d", sn, rc);
       return rc;
     }
 
-    ROS_INFO("Device %s is open!", sn);
+    ROS_INFO("Device %s opened successfully", sn);
 
     _M_DEVICE = deviceHandle;
 
@@ -365,7 +365,7 @@ public:
     }
 
     if(!_M_IFACE) {
-      ROS_ERROR("Not found device with ip: %s", ip);
+      ROS_ERROR("Device not found with IP: %s", ip);
       return TY_STATUS_ERROR;
     }
 
@@ -374,7 +374,7 @@ public:
     if(rc != TY_STATUS_OK)
       return rc;
 
-    ROS_INFO("Device %s is open!", ip);
+    ROS_INFO("Device %s opened successfully", ip);
 
     _M_DEVICE = deviceHandle;
     return DeviceInit();
@@ -384,7 +384,7 @@ public:
   {
     if(enable_rate) {
       if(trigger_mode_en) {
-        ROS_WARN("Since enable_rate is enabled, trigger_mode_en parameter will be ignored");
+        ROS_WARN("Frame rate control is enabled, trigger mode parameter will be ignored");
         trigger_mode_en = false;
       }
     }
@@ -486,7 +486,7 @@ public:
     {
       auto rc = TYCloseDevice(_M_DEVICE);
       if(rc != TY_STATUS_OK) {
-        ROS_WARN("TYCloseDevice got error code : %d!", rc);
+        ROS_WARN("TYCloseDevice failed, error code: %d", rc);
       }
       //TYCloseInterface(_M_IFACE);
     }
@@ -503,7 +503,7 @@ public:
         return -1;
       }
     } else {
-      ROS_ERROR("Device not in trigger mode, ignoring soft trigger signal");
+      ROS_ERROR("Device is not in trigger mode, ignoring soft trigger signal");
       return -1;
     }
     return 0;
@@ -614,7 +614,7 @@ public:
       DepthDomainTimeFilterMgrPtr->reset(depth_time_domain_frame_cnt);
       return true;
     } else {
-      ROS_WARN("Frame setting out of range (2-10) for time-domain filtering. Current value: %d is invalid, use default : %d",
+      ROS_WARN("Time-domain filter frame count out of range (2-10). Current value %d is invalid, using default: %d",
            frameCnt, depth_time_domain_frame_cnt);
       return false;
     }
@@ -764,11 +764,11 @@ public:
           image_data.cropOffsetX, image_data.cropOffsetY,
           image_data.width, image_data.height, &dst_calib);
       if(status != TY_STATUS_OK) {
-          ROS_WARN_STREAM("TYAdjustCalibInfoByBinningCrop failed(comp=0x" << std::hex << comp << std::dec
+          ROS_WARN_STREAM("TYAdjustCalibInfoByBinningCrop failed (comp=0x" << std::hex << comp << std::dec
               << ", bin=" << binX << "x" << binY
               << ", crop=" << image_data.cropOffsetX << "," << image_data.cropOffsetY
               << ", size=" << image_data.width << "x" << image_data.height
-              << "): " << status << ", fallback to original calib");
+              << "), error: " << status << ", falling back to original calibration");
           return src_calib;
       }
       return dst_calib;
@@ -793,7 +793,7 @@ public:
     bool has = false;
     TY_STATUS ret = TYHasFeature(_M_DEVICE, comp, feat, &has);
     if(ret || (!has)) {
-      ROS_WARN("Invalid property(0x%08x 0x%08x) ret = %d", comp, feat, ret);
+      ROS_WARN("Feature not available or invalid (comp=0x%08x, feat=0x%08x), error: %d", comp, feat, ret);
       return ret;
     }
 
@@ -840,7 +840,7 @@ public:
         break;
       }
       default:{
-        ROS_WARN("Invalid feature type(0x%08x)", feat);
+        ROS_WARN("Unsupported feature type: 0x%08x", feat);
       }
     }
     return ret;
@@ -851,7 +851,7 @@ public:
     bool has = false;
     TY_STATUS ret = TYHasFeature(_M_DEVICE, comp, feat, &has);
     if(ret || (!has)) {
-      ROS_WARN("Invalid property(0x%08x 0x%08x) ret = %d", comp, feat, ret);
+      ROS_WARN("Feature not available or invalid (comp=0x%08x, feat=0x%08x), error: %d", comp, feat, ret);
       return ret;
     }
 
@@ -898,7 +898,7 @@ public:
         break;
       }
       default:{
-        ROS_WARN("Invalid feature type(0x%08x)", feat);
+        ROS_WARN("Unsupported feature type: 0x%08x", feat);
       }
     }
     return ret;
@@ -1006,7 +1006,7 @@ RETRY:
           break;
         }
 
-        ROS_INFO("Failed to open camera: %s, retry...", cam->m_current_device_sn.c_str());
+        ROS_INFO("Failed to open camera: %s, retrying...", cam->m_current_device_sn.c_str());
         MSLEEP(1000);
       }
       
@@ -1016,7 +1016,7 @@ RETRY:
       if(cam->HasStream()) {
         auto ret = cam->StreamStart();
         if(ret != TY_STATUS_OK) {
-          ROS_WARN("Failed to restart stream, retry...");
+          ROS_WARN("Failed to restart stream, retrying...");
           cam->close();
           goto RETRY;
         }
@@ -1053,7 +1053,7 @@ RETRY:
           }
           MSLEEP(delt);
       } else {
-          ROS_WARN("Trigger signal timeout!");
+          ROS_WARN("Soft trigger signal timed out");
       }
     }
 
@@ -1072,7 +1072,7 @@ RETRY:
       rc = TYFetchFrame(handle, &frame, 2000);
       if(rc == TY_STATUS_OK) {
         float fps = fps_counter.get_fps();
-        if(fps > 0) ROS_INFO("Fps: %.2f", fps);
+        if(fps > 0) ROS_INFO("Frame rate: %.2f FPS", fps);
 
         if(cam->b_stream_with_color) {
           for (int i = 0; i < frame.validCount; i++) {
@@ -1108,7 +1108,7 @@ RETRY:
               if(cam->depth_time_domain_enable) {
                 cam->DepthDomainTimeFilterMgrPtr->add_frame(frame.image[i]);
                 if(!cam->DepthDomainTimeFilterMgrPtr->do_time_domain_process(frame.image[i])) {
-                  ROS_WARN("Do Time-domain filter, drop frame!");
+                  ROS_WARN("Time-domain filter active, dropping frame");
                   continue;
                 }
               }
@@ -1197,7 +1197,7 @@ RETRY:
     if(isRuning) StreamStopAll();
     
     if(!HasStream()) {
-      ROS_WARN("Device has no stream component enabled!");
+      ROS_WARN("No stream component is enabled on the device");
       return TY_STATUS_ERROR;
     }
 
@@ -1207,22 +1207,22 @@ RETRY:
     std::string component_list;
     if(mIDS & TY_COMPONENT_IR_CAM_LEFT) {
       if(leftIRStream && leftIRStream->isValid()) {
-        ROS_INFO("Enable Left-IR stream!");
+        ROS_INFO("Enabling Left-IR stream");
         rc = m_gige_dev->EnableLeftIRStream(true);
         if(!rc) component_list += "leftIR ";
       } else {
-        ROS_INFO("Disable Left-IR stream!");
+        ROS_INFO("Disabling Left-IR stream");
         rc = m_gige_dev->EnableLeftIRStream(false);
       }
     }
 
     if(mIDS & TY_COMPONENT_IR_CAM_RIGHT) {
       if(rightIRStream && rightIRStream->isValid()){
-        ROS_INFO("Enable Right-IR stream!");
+        ROS_INFO("Enabling Right-IR stream");
         rc = m_gige_dev->EnableRightIRStream(true);
         if(!rc) component_list += "rightIR ";
       } else {
-        ROS_INFO("Disable Right-IR stream!");
+        ROS_INFO("Disabling Right-IR stream");
         rc = m_gige_dev->EnableRightIRStream(false);
       }
     }
@@ -1263,12 +1263,12 @@ RETRY:
         if (it != m_gige_dev->current_video_mode.end()) {
           current_rgb_width = it->second.getResolutionX();
           current_rgb_height = it->second.getResolutionY();
-          ROS_INFO("Current color image size : %d x %d.", current_rgb_width, current_rgb_height);
+          ROS_INFO("Current color image resolution: %d x %d", current_rgb_width, current_rgb_height);
         } else {
-          ROS_WARN("Failed to get current color image size, use default size!");
+          ROS_WARN("Failed to retrieve current color image resolution, using default");
         }
 
-        ROS_INFO("Enable color stream!");
+        ROS_INFO("Enabling color stream");
         rc = m_gige_dev->EnableColorStream(true);
         if(!rc) component_list += "color ";
 
@@ -1276,7 +1276,7 @@ RETRY:
 
         b_stream_with_color = true;
       } else {
-        ROS_INFO("Disable color stream!");
+        ROS_INFO("Disabling color stream");
         rc = m_gige_dev->EnableColorStream(false);
 
         current_rgb_width = 0;
@@ -1296,14 +1296,14 @@ RETRY:
         if (it != m_gige_dev->current_video_mode.end()) {
           int current_depth_width = it->second.getResolutionX();
           int current_depth_height = it->second.getResolutionY();
-          ROS_INFO("Current depth image size : %d x %d.", current_depth_width, current_depth_height);
+          ROS_INFO("Current depth image resolution: %d x %d", current_depth_width, current_depth_height);
         } else {
-          ROS_WARN("Failed to get current depth image size, use default size!");
+          ROS_WARN("Failed to retrieve current depth image resolution, using default");
         }
 
         depth_distortion = m_gige_dev->need_depth_undistortion;
 
-        ROS_INFO("Enable depth stream!");
+        ROS_INFO("Enabling depth stream");
         rc = m_gige_dev->EnableDepthStream(true);
         if(!rc) component_list += "depth ";
 
@@ -1311,17 +1311,17 @@ RETRY:
 
         m_gige_dev->getDepthScaleUnit(f_depth_scale_unit);
 
-        ROS_INFO("Depth stream scale unit : %f", f_depth_scale_unit);
+        ROS_INFO("Depth stream scale unit: %f", f_depth_scale_unit);
       } else {
-        ROS_INFO("Disable depth stream!");
+        ROS_INFO("Disabling depth stream");
         rc = m_gige_dev->EnableDepthStream(false);
       }
     }
 
-    ROS_INFO("Device components enabled: %s.", component_list.c_str());
+    ROS_INFO("Enabled device components: %s", component_list.c_str());
     ROS_INFO("Color undistortion flag: %d", color_undistortion);
     ROS_INFO("Depth undistortion flag: %d", depth_distortion);
-    ROS_INFO("RGBD alignment flag:     %d", DeviceGetImageRegistrationMode());
+    ROS_INFO("RGBD alignment flag: %d", DeviceGetImageRegistrationMode());
 
     enable_soft_frame_rate_ctrl = false;
     if(b_enable_rate_ctrl) {
@@ -1332,7 +1332,7 @@ RETRY:
         if(rc == TY_STATUS_OK) {
           enable_soft_frame_rate_ctrl = true;
         } else {
-          ROS_WARN("The frame rate of the device output is uncontrollable, and frame rate control cannot be achieved.");
+          ROS_WARN("Device does not support hardware frame rate control, frame rate control is unavailable");
         }
       }
     }
@@ -1344,7 +1344,7 @@ RETRY:
     uint32_t frameSize;
     rc = TYGetFrameBufferSize(_M_DEVICE, &frameSize);
     if(rc) {
-      ROS_WARN("TYGetFrameBufferSize got error code : %d!", rc);
+      ROS_WARN("TYGetFrameBufferSize failed, error code: %d", rc);
       return rc;
     }
 
@@ -1355,7 +1355,7 @@ RETRY:
 
     rc = TYStartCapture(_M_DEVICE);
     if(rc != TY_STATUS_OK) {
-      ROS_WARN("TYStartCapture got error code : %d!", rc);
+      ROS_WARN("TYStartCapture failed, error code: %d", rc);
       return rc;
     }
 
@@ -1379,7 +1379,7 @@ RETRY:
     }
     auto rc = TYStopCapture(_M_DEVICE);
     if(rc != TY_STATUS_OK) {
-      ROS_WARN("TYStopCapture got error code : %d!", rc);
+      ROS_WARN("TYStopCapture failed, error code: %d", rc);
     }
     TYClearBufferQueue(_M_DEVICE);
   }
@@ -1505,7 +1505,7 @@ RETRY:
 
   TY_STATUS VideoStream::addNewFrameListener(NewFrameListener* pListener)
   {
-    if (!isValid()) 
+    if (!isValid())
       return TY_STATUS_ERROR;
 
     pListener->VideoStreamInit(this);
@@ -1575,7 +1575,7 @@ RETRY:
     {
       return rc;
     }
-    
+
     m_self = streamHandle;
     m_created = true;
     m_sensorInfo._setInternal(sensorType);
@@ -1638,7 +1638,7 @@ RETRY:
             if(ret == TY_STATUS_OK) {
               frame.clone(tempFrame);
             } else {
-              ROS_WARN("XYZ48 MapXYZ48FrameToColorCoordinate ERR : %d", ret);
+              ROS_WARN("MapXYZ48FrameToColorCoordinate failed, error: %d", ret);
             }
           } else {
             frame.clone(vframe);
@@ -1721,7 +1721,7 @@ RETRY:
     {
       const std::vector<VideoMode>& video_mode = g_Context->getVideoModeList(type);
       if(video_mode.size()) {
-        m_videoModes = video_mode;;
+        m_videoModes = video_mode;
       } else {
         m_videoModes.clear();
       }
@@ -1948,7 +1948,7 @@ RETRY:
     TY_INTERFACE_HANDLE hIface;
     rc = TYOpenInterface(pSelected->iface.id, &hIface);
     if(rc) {
-      ROS_ERROR("Failed to open interface %d", rc);
+      ROS_ERROR("Failed to open interface, error: %d", rc);
       return false;
     }
 
@@ -1996,11 +1996,11 @@ RETRY:
         TYCloseInterface(hIface);
         return true;
       } else {
-        ROS_ERROR("Failed to open device %s(%d)", selected[0].netInfo.ip, rc);
+        ROS_ERROR("Failed to open device %s, error: %d", selected[0].netInfo.ip, rc);
         goto ForceFailed;
       }
     } else {
-      ROS_ERROR("Force ip failed on interface %s", pSelected->iface.id);
+      ROS_ERROR("Failed to force IP on interface %s", pSelected->iface.id);
       goto ForceFailed;
     }
 ForceFailed:

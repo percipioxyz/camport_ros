@@ -310,7 +310,7 @@ void PercipioDevice::startDepthStream()
   }
   else
   {
-    printf("invalid stream!\n");
+    ROS_WARN("Cannot start depth stream: stream is invalid");
   }
 }
 
@@ -325,7 +325,7 @@ void PercipioDevice::startPoint3DStream()
   }
   else
   {
-    printf("invalid stream!\n");
+    ROS_WARN("Cannot start point3d stream: stream is invalid");
   }
 }
 
@@ -522,7 +522,7 @@ void PercipioDevice::setImageRegistrationMode(bool enabled)
         THROW_PERCIPIO_EXCEPTION("Enabling image registration mode failed: \n%s\n", Percipio::getExtendedError(rc));
     }
   } else {
-    printf("Not support registration!\n");
+    ROS_WARN("Image registration is not supported on this device");
   }
 }
 
