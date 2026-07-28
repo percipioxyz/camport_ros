@@ -1122,7 +1122,13 @@ typedef struct TY_CAMERA_STATISTICS
     uint64_t   packetLost;
     uint64_t   imageOutputed;
     uint64_t   imageDropped;
-    uint8_t   rsvd[1024];
+    union {
+        struct{
+            uint64_t   resendPacketSent;
+            uint64_t   resendPacketReceived;
+        };
+        uint8_t   rsvd[1024];
+    };
 }TY_CAMERA_STATISTICS;
 
 typedef struct TY_IMU_DATA

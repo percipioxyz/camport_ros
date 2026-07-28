@@ -54,6 +54,7 @@ enum FW_UPDATE_STATUS
     UPDATE_STATUS_NO_MATCHING_RULE           = -2003,
     UPDATE_STATUS_CONDITION_EVAL_FAILED      = -2004,
     UPDATE_STATUS_COMMAND_EXEC_FAILED        = -2005,
+    UPDATE_STATUS_PACKAGE_EXTRACT_FAILED     = -2006,  // system error: disk full / permission / I/O
 
     // 
     NET_CONFIGURATION_CLEAR_FAILED           = -3001
@@ -168,7 +169,10 @@ PERCIPIO_FW_UPDATE_API FW_UPDATE_STATUS ty_execute_upgrade_with_mode(
                                                    TY_UPGRADE_MODE_INFO         mode,
                                                    bool                    force);
 
-
+PERCIPIO_FW_UPDATE_API FW_UPDATE_STATUS ty_execute_uset_upgrade(
+                                        const ty_dev_base_info* dev,
+                                        const char*             uset_path,
+                                        bool                    force);
 #ifdef __cplusplus
 }
 #endif

@@ -2951,4 +2951,35 @@ TY_CAPI TYGetDeviceXMLSize        (TY_DEV_HANDLE hDevice, uint32_t* size);
 ///          
 TY_CAPI TYGetDeviceXML            (TY_DEV_HANDLE hDevice, char *xml, const uint32_t in_size, uint32_t* out_size);
 
+///@brief  Get camera statistics information (packet received/lost, image output/dropped).
+///        Applicable to network interface devices.
+///@param  [in]  hDevice       Device handle.
+///@param  [out] pStatistics   Pointer to a TY_CAMERA_STATISTICS struct to be filled. Must not be NULL.
+///@retval TY_STATUS_OK                     Succeed.
+///@retval TY_STATUS_NOT_INITED             Not call TYInitLib
+///@retval TY_STATUS_INVALID_HANDLE         TYGetCameraStatistics called with invalid device handle
+///          
+///          Suggestions:
+///            Please check device handle
+///            Like this:
+///              TYGetCameraStatistics(hDevice, pStatistics);
+///                                    ^ is invalid
+///            The hDevice parameter you input is not recorded
+///            Possible reasons:
+///              1.TYOpenDevice failed to open device and get correct handle
+///              2.Memory in stack to store handle data is corrupted
+///              3.After getting handle, you updated device list by calling TYUpdateDeviceList
+///          
+///@retval TY_STATUS_NULL_POINTER           TYGetCameraStatistics called with NULL pointer
+///          
+///          Suggestions:
+///            Please check your code
+///            Like this:
+///              TYGetCameraStatistics(hDevice, pStatistics);
+///                                                    ^ is NULL
+///          
+///@retval TY_STATUS_NOT_IMPLEMENTED        The device does not support statistics.
+///@retval TY_STATUS_DEVICE_ERROR           Failed to read statistics from device.
+TY_CAPI TYGetCameraStatistics     (TY_DEV_HANDLE hDevice, TY_CAMERA_STATISTICS* pStatistics);
+
 #endif //TY_API_H_
