@@ -25,8 +25,8 @@
 # ======================================================
 SET(PercipioFirmwareUpdate_VERSION_MAJOR  1)
 SET(PercipioFirmwareUpdate_VERSION_MINOR  0)
-SET(PercipioFirmwareUpdate_VERSION_PATCH  31)
-SET(PercipioFirmwareUpdate_VERSION 1.0.31)
+SET(PercipioFirmwareUpdate_VERSION_PATCH  32)
+SET(PercipioFirmwareUpdate_VERSION 1.0.32)
 
 include(FindPackageHandleStandardArgs)
 
