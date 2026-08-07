@@ -25,8 +25,8 @@
 # ======================================================
 SET(PercipioExtra_VERSION_MAJOR  1)
 SET(PercipioExtra_VERSION_MINOR  0)
-SET(PercipioExtra_VERSION_PATCH  32)
-SET(PercipioExtra_VERSION 1.0.32)
+SET(PercipioExtra_VERSION_PATCH  33)
+SET(PercipioExtra_VERSION 1.0.33)
 
 include(FindPackageHandleStandardArgs)
 
