@@ -405,6 +405,11 @@ public:
     ptrFuncDeviceEvent = callback;
   }
 
+  void PercipioDepthCam::setStreamRestoreCallback(boost::shared_ptr<StreamRestoreCallbackFunction>& callback)
+  {
+    ptrFuncStreamRestore = callback;
+  }
+
   const DeviceInfo& PercipioDepthCam::get_current_device_info()
   {
     return current_device_info;
@@ -1013,13 +1018,20 @@ RETRY:
       if(cam->ptrFuncDeviceInit) (*(cam->ptrFuncDeviceInit))();
 
       PercipioDepthCam::isOffline = false;
-      if(cam->HasStream()) {
-        auto ret = cam->StreamStart();
-        if(ret != TY_STATUS_OK) {
-          ROS_WARN("Failed to restart stream, retrying...");
-          cam->close();
-          goto RETRY;
-        }
+
+      TY_STATUS ret = TY_STATUS_OK;
+      if(cam->ptrFuncStreamRestore) {
+        //Let the upper layer decide which streams to restart
+        //based on the current topic subscription status.
+        ret = (*(cam->ptrFuncStreamRestore))();
+      } else if(cam->HasStream()) {
+        ret = cam->StreamStart();
+      }
+
+      if(ret != TY_STATUS_OK) {
+        ROS_WARN("Failed to restart stream, retrying...");
+        cam->close();
+        goto RETRY;
       }
     }
 

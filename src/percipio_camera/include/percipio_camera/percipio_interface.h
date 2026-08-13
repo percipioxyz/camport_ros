@@ -88,6 +88,7 @@ namespace percipio
 
   typedef boost::function<void(void)> DeviceInitCallbackFunction;
   typedef boost::function<void(const char*)> DeviceEventCallbackFunction;
+  typedef boost::function<TY_STATUS(void)> StreamRestoreCallbackFunction;
   typedef struct
   {
     DeviceInfoCallback    deviceConnected;
@@ -236,6 +237,9 @@ namespace percipio
 
       boost::shared_ptr<DeviceEventCallbackFunction> ptrFuncDeviceEvent;
       void setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback);
+
+      boost::shared_ptr<StreamRestoreCallbackFunction> ptrFuncStreamRestore;
+      void setStreamRestoreCallback(boost::shared_ptr<StreamRestoreCallbackFunction>& callback);
 
       const DeviceInfo& get_current_device_info();
 

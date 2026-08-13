@@ -277,56 +277,76 @@ void PercipioDevice::setStreamResendEnable(bool enabled)
   (void)enabled;
 }
 
-void PercipioDevice::startIRStream()
+TY_STATUS PercipioDevice::startIRStream()
 {
   boost::shared_ptr<VideoStream> stream = getIRVideoStream();
   if (stream)
   {
     ir_stream_topic_enable(true);
-    stream->start();
-    ir_video_started_ = true;
+    TY_STATUS rc = stream->start();
+    if(rc == TY_STATUS_OK)
+      ir_video_started_ = true;
+    return rc;
   }
+  return TY_STATUS_ERROR;
 }
 
-void PercipioDevice::startColorStream()
+TY_STATUS PercipioDevice::startColorStream()
 {
   boost::shared_ptr<VideoStream> stream = getColorVideoStream();
   if (stream)
   {
     color_stream_topic_enable(true);
-    stream->start();
-    color_video_started_ = true;
+    TY_STATUS rc = stream->start();
+    if(rc == TY_STATUS_OK)
+      color_video_started_ = true;
+    return rc;
   }
+  return TY_STATUS_ERROR;
 }
 
-void PercipioDevice::startDepthStream()
+TY_STATUS PercipioDevice::startDepthStream()
 {
   boost::shared_ptr<VideoStream> stream = getDepthVideoStream();
   if (stream)
   {
     depth_stream_topic_enable(true);
-    stream->start();
-    depth_video_started_ = true;
+    TY_STATUS rc = stream->start();
+    if(rc == TY_STATUS_OK)
+      depth_video_started_ = true;
+    return rc;
   }
   else
   {
     ROS_WARN("Cannot start depth stream: stream is invalid");
   }
+  return TY_STATUS_ERROR;
 }
 
-void PercipioDevice::startPoint3DStream()
+TY_STATUS PercipioDevice::startPoint3DStream()
 {
   boost::shared_ptr<VideoStream> stream = getPoint3DVideoStream();
   if(stream)
   {
     pointcloud_stream_topic_enable(true);
-    stream->start();
-    point3d_video_started_ = true;
+    TY_STATUS rc = stream->start();
+    if(rc == TY_STATUS_OK)
+      point3d_video_started_ = true;
+    return rc;
   }
   else
   {
     ROS_WARN("Cannot start point3d stream: stream is invalid");
   }
+  return TY_STATUS_ERROR;
+}
+
+void PercipioDevice::resetStreamState()
+{
+  ir_video_started_ = false;
+  color_video_started_ = false;
+  depth_video_started_ = false;
+  point3d_video_started_ = false;
 }
 
 void PercipioDevice::stopAllStreams()
@@ -620,6 +640,11 @@ void PercipioDevice::setDeviceInitCallback(boost::shared_ptr<DeviceInitCallbackF
 void PercipioDevice::setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback)
 {
   Percipio::getContext()->setDeviceEventCallback(callback);
+}
+
+void PercipioDevice::setStreamRestoreCallback(boost::shared_ptr<StreamRestoreCallbackFunction>& callback)
+{
+  Percipio::getContext()->setStreamRestoreCallback(callback);
 }
 
 void PercipioDevice::setUseDeviceTimer(bool enable)

@@ -214,26 +214,27 @@ void PercipioDriver::applyConfigToPercipioDevice()
   device_->setUseDeviceTimer(use_device_time_);
 }
 
-void PercipioDriver::colorConnectCb()
+TY_STATUS PercipioDriver::colorConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
   color_subscribers_ = pub_color_.getNumSubscribers() > 0;
   if (color_subscribers_ && !device_->isColorStreamStarted())
-  { 
+  {
     color_frame_callback = boost::make_shared<FrameCallbackFunction>(boost::bind(&PercipioDriver::newColorFrameCallback, this, _1));
     device_->setColorFrameCallback(color_frame_callback);
 
     ROS_INFO("Starting color stream.");
-    device_->startColorStream();
+    return device_->startColorStream();
   }
   else if (!color_subscribers_ && device_->isColorStreamStarted())
   {
     ROS_INFO("Stopping color stream.");
     device_->stopColorStream();
   }
+  return TY_STATUS_OK;
 }
 
-void PercipioDriver::depthConnectCb()
+TY_STATUS PercipioDriver::depthConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
   depth_subscribers_ = pub_depth_.getNumSubscribers() > 0;
@@ -244,16 +245,17 @@ void PercipioDriver::depthConnectCb()
     device_->setDepthFrameCallback(depth_frame_callback);
 
     ROS_INFO("Starting depth stream.");
-    device_->startDepthStream();
+    return device_->startDepthStream();
   }
   else if (!need_depth && device_->isDepthStreamStarted())
   {
     ROS_INFO("Stopping depth stream.");
     device_->stopDepthStream();
   }
+  return TY_STATUS_OK;
 }
 
-void PercipioDriver::cloud3DConnectCb()
+TY_STATUS PercipioDriver::cloud3DConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
   point3d_subscribers_ = pub_point3d_.getNumSubscribers() > 0;
@@ -264,16 +266,17 @@ void PercipioDriver::cloud3DConnectCb()
     device_->setPoint3DFrameCallback(p3d_frame_callback);
 
     ROS_INFO("Starting point3d stream.");
-    device_->startPoint3DStream();
+    return device_->startPoint3DStream();
   }
   else if (!need_p3d && device_->isPoint3DStreamStarted())
   {
     ROS_INFO("Stopping depth stream.");
     device_->stopPoint3DStream();
   }
+  return TY_STATUS_OK;
 }
 
-void PercipioDriver::irConnectCb()
+TY_STATUS PercipioDriver::irConnectCb()
 {
   boost::lock_guard<boost::mutex> lock(connect_mutex_);
   ir_subscribers_ = pub_ir_.getNumSubscribers() > 0;
@@ -284,13 +287,32 @@ void PercipioDriver::irConnectCb()
     device_->setIRFrameCallback(ir_frame_callback);
 
     ROS_INFO("Starting IR stream.");
-    device_->startIRStream();
+    return device_->startIRStream();
   }
   else if (!ir_subscribers_ && device_->isIRStreamStarted())
   {
     ROS_INFO("Stopping IR stream.");
     device_->stopIRStream();
   }
+  return TY_STATUS_OK;
+}
+
+TY_STATUS PercipioDriver::restoreStreamsOnReconnect()
+{
+  // The device has been reopened and capture is fully stopped:
+  // reset the stale stream started flags, then re-evaluate the
+  // topic subscriptions and restart only the streams in use.
+  device_->resetStreamState();
+
+  TY_STATUS ret = TY_STATUS_OK;
+  if(device_->hasColorSensor() && colorConnectCb()   != TY_STATUS_OK) ret = TY_STATUS_ERROR;
+  if(device_->hasIRSensor()    && irConnectCb()      != TY_STATUS_OK) ret = TY_STATUS_ERROR;
+  if(device_->hasDepthSensor())
+  {
+    if(depthConnectCb()    != TY_STATUS_OK) ret = TY_STATUS_ERROR;
+    if(cloud3DConnectCb()  != TY_STATUS_OK) ret = TY_STATUS_ERROR;
+  }
+  return ret;
 }
 
 void PercipioDriver::newIRFrameCallback(sensor_msgs::ImagePtr image)
@@ -940,6 +962,9 @@ void PercipioDriver::setupDevice()
 
       auto event_cb = boost::make_shared<percipio::DeviceEventCallbackFunction>(boost::bind(&PercipioDriver::DeviceEvent, this, _1));
       device_->setDeviceEventCallback(event_cb);
+
+      auto stream_restore_cb = boost::make_shared<percipio::StreamRestoreCallbackFunction>(boost::bind(&PercipioDriver::restoreStreamsOnReconnect, this));
+      device_->setStreamRestoreCallback(stream_restore_cb);
     }
     catch (const PercipioException& exception)
     {

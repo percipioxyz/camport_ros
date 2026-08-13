@@ -74,10 +74,13 @@ private:
 
   void advertiseROSTopics();
 
-  void colorConnectCb();
-  void depthConnectCb();
-  void irConnectCb();
-  void cloud3DConnectCb();
+  TY_STATUS colorConnectCb();
+  TY_STATUS depthConnectCb();
+  TY_STATUS irConnectCb();
+  TY_STATUS cloud3DConnectCb();
+
+  //Restart streams according to topic subscriptions after auto reconnection
+  TY_STATUS restoreStreamsOnReconnect();
 
   bool getSerialCb(percipio_camera::GetSerialRequest& req, percipio_camera::GetSerialResponse& res);
 

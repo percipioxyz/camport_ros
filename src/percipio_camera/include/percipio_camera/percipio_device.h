@@ -62,10 +62,14 @@ public:
 
   void setStreamResendEnable(bool enabled);
 
-  void startIRStream();
-  void startColorStream();
-  void startDepthStream();
-  void startPoint3DStream();
+  TY_STATUS startIRStream();
+  TY_STATUS startColorStream();
+  TY_STATUS startDepthStream();
+  TY_STATUS startPoint3DStream();
+
+  // Reset stream started flags without touching the hardware.
+  // Used after the device is reopened (capture fully stopped).
+  void resetStreamState();
 
   void stopAllStreams();
   void stopIRStream();
@@ -123,6 +127,7 @@ public:
 
   void setDeviceInitCallback(boost::shared_ptr<DeviceInitCallbackFunction>& callback);
   void setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback);
+  void setStreamRestoreCallback(boost::shared_ptr<StreamRestoreCallbackFunction>& callback);
 
   void setUseDeviceTimer(bool enable);
 
