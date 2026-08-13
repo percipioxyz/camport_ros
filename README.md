@@ -1,12 +1,10 @@
 1. build ros
 
-$catkin_make -DCMAKE_BUILD_TYPE=Release
+$catkin_make install -DCMAKE_BUILD_TYPE=Release
 
 2. config system env
 
-$echo "source ~/camport_ros/devel/setup.bash" >> ~/.bashrc
-
-$source ~/.bashrc
+$source ./install/setup.bash
 
 Please refer to https://doc.percipio.xyz/cam/latest/getstarted/sdk-ros1-compile.html for more detais.
 
