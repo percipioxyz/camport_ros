@@ -27,8 +27,7 @@ PercipioDevice::PercipioDevice() :
     color_video_started_(false),
     depth_video_started_(false),
     point3d_video_started_(false),
-    image_registration_activated_(false),
-    percipio_device_time_(false)
+    image_registration_activated_(false)
 {
   ir_frame_listener = boost::make_shared<percipio_wrapper::PercipioFrameListener>("IR-Stream");
   color_frame_listener = boost::make_shared<percipio_wrapper::PercipioFrameListener>("Color-Stream");
@@ -42,8 +41,7 @@ PercipioDevice::PercipioDevice(const std::string& device_URI, const bool auto_re
     color_video_started_(false),
     depth_video_started_(false),
     point3d_video_started_(false),
-    image_registration_activated_(false),
-    percipio_device_time_(false)
+    image_registration_activated_(false)
 {
   TY_STATUS rc = Percipio::initialize();
   if (rc != TY_STATUS_OK)
@@ -645,11 +643,6 @@ void PercipioDevice::setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbac
 void PercipioDevice::setStreamRestoreCallback(boost::shared_ptr<StreamRestoreCallbackFunction>& callback)
 {
   Percipio::getContext()->setStreamRestoreCallback(callback);
-}
-
-void PercipioDevice::setUseDeviceTimer(bool enable)
-{
-  percipio_device_time_ = enable;
 }
 
 void PercipioDevice::setDeviceWorkMode(bool enable_rate, float frame_rate, bool trigger_mode_en)

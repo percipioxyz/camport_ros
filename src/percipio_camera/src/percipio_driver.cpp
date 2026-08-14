@@ -26,7 +26,6 @@ PercipioDriver::PercipioDriver(ros::NodeHandle& n, ros::NodeHandle& pnh) :
   device_manager_(PercipioDeviceManager::getSingelton()),
   config_init_(false),
   depth_registration_(false),
-  use_device_time_(false),
   ir_enhancement_(percipio::IREnhanceOFF),
   ir_enhancement_coefficient_(6),
   ir_subscribers_(false),
@@ -207,11 +206,6 @@ void PercipioDriver::configCb(Config &config, uint32_t level)
   }
 
   config_init_ = true;
-}
-
-void PercipioDriver::applyConfigToPercipioDevice()
-{
-  device_->setUseDeviceTimer(use_device_time_);
 }
 
 TY_STATUS PercipioDriver::colorConnectCb()
@@ -745,8 +739,6 @@ void PercipioDriver::readConfigFromParameterServer()
     ir_enhancement_ = percipio::IREnhanceOFF;
   pnh_.getParam("ir_enhancement_coefficient",       ir_enhancement_coefficient_);
 
-  pnh_.getParam("use_device_time",                  use_device_time_);
-
   // Camera TF frames
   pnh_.param("ir_frame_id", ir_frame_id_, std::string("/percipio_ir_optical_frame"));
   pnh_.param("rgb_frame_id", color_frame_id_, std::string("/percipio_rgb_optical_frame"));
@@ -890,8 +882,6 @@ void PercipioDriver::initDevice()
   device_->setDepthTimeDomainFilterNum(depth_time_domain_num_);
 
   device_->setIREnhancement(ir_enhancement_, ir_enhancement_coefficient_);
-
-  device_->setUseDeviceTimer(use_device_time_);
 
   device_->setDeviceWorkMode(frame_rate_control_, frame_rate_, trigger_mode_);
 

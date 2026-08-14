@@ -129,8 +129,6 @@ public:
   void setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback);
   void setStreamRestoreCallback(boost::shared_ptr<StreamRestoreCallbackFunction>& callback);
 
-  void setUseDeviceTimer(bool enable);
-
   void setDeviceWorkMode(bool enable_rate, float frame_rate, bool trigger_mode_en);
 
   int sendSoftTrigger();
@@ -179,8 +177,6 @@ protected:
   bool point3d_video_started_;
 
   bool image_registration_activated_;
-
-  bool percipio_device_time_;
 
 private:
   bool m_isOwner;

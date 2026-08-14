@@ -28,9 +28,6 @@
   <!-- Color undistortion settings (shared by all cameras) -->
   <arg name="global_color_undistortion" default="true" />
   
-  <!-- Use device time (shared by all cameras) -->
-  <arg name="global_use_device_time" default="true" />
-  
   <!-- Speckle filter settings (shared by all cameras) -->
   <arg name="global_depth_speckle_filter" default="false" />
   <arg name="global_max_speckle_size" default="150" />
@@ -88,7 +85,6 @@
     <arg name="device_log_level" value="$(arg global_device_log_level)" />
     <arg name="depth_registration" value="$(arg global_depth_registration)" />
     <arg name="color_undistortion" value="$(arg global_color_undistortion)" />
-    <arg name="use_device_time" value="$(arg global_use_device_time)" />
 
     <arg name="depth_speckle_filter" value="$(arg global_depth_speckle_filter)" />
     <arg name="max_speckle_size" value="$(arg global_max_speckle_size)" />
@@ -136,7 +132,6 @@
     <arg name="device_log_level" value="$(arg global_device_log_level)" />
     <arg name="depth_registration" value="$(arg global_depth_registration)" />
     <arg name="color_undistortion" value="$(arg global_color_undistortion)" />
-    <arg name="use_device_time" value="$(arg global_use_device_time)" />
 
     <arg name="depth_speckle_filter" value="$(arg global_depth_speckle_filter)" />
     <arg name="max_speckle_size" value="$(arg global_max_speckle_size)" />

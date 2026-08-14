@@ -86,8 +86,6 @@ private:
 
   void configCb(Config &config, uint32_t level);
 
-  void applyConfigToPercipioDevice();
-
   sensor_msgs::ImageConstPtr rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, float scale);
 
   ros::NodeHandle& nh_;
@@ -180,8 +178,6 @@ private:
     const tf2::Quaternion &q, const std::string &from,
     const std::string &to);
   void publishStaticTransforms();
-
-  bool use_device_time_;
 
   bool ir_subscribers_;
   bool color_subscribers_;
