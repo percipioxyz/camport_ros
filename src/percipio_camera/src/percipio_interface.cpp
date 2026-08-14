@@ -1180,6 +1180,26 @@ RETRY:
     return false;
   }
 
+  bool PercipioDepthCam::HasEnabledStream()
+  {
+    if(leftIRStream && leftIRStream->isValid() && leftIRStream->isEnabled())
+      return true;
+
+    if(rightIRStream && rightIRStream->isValid() && rightIRStream->isEnabled())
+      return true;
+
+    if(ColorStream && ColorStream->isValid() && ColorStream->isEnabled())
+      return true;
+
+    if(DepthStream && DepthStream->isValid() && DepthStream->isEnabled())
+      return true;
+
+    if(Point3DStream && Point3DStream->isValid() && Point3DStream->isEnabled())
+      return true;
+
+    return false;
+  }
+
   void PercipioDepthCam::StreamEnable(boost::shared_ptr<VideoStream> stream) {
     if(stream) stream->setEnabled(true);
   }
@@ -1413,7 +1433,9 @@ RETRY:
     TYStopCapture(_M_DEVICE);
     TYClearBufferQueue(_M_DEVICE);
 
-    if(HasStream()) {
+    // Only restart capture if at least one stream is still enabled
+    // (i.e. still has subscribers); otherwise keep the camera stopped.
+    if(HasEnabledStream()) {
       StreamStart();
     }
   }

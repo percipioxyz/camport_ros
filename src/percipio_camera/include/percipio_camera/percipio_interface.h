@@ -332,6 +332,7 @@ namespace percipio
       bool pointcloud_topic_swicth() { return enable_cloud_topic; }
 
       bool HasStream();
+      bool HasEnabledStream();
 
       void StreamEnable(boost::shared_ptr<VideoStream> stream);
       void StreamDisable(boost::shared_ptr<VideoStream> stream);
