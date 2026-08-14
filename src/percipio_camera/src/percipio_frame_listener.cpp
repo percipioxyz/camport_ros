@@ -36,10 +36,11 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
   }
 
   sensor_msgs::ImagePtr image(new sensor_msgs::Image);
-  ros::Time ros_now = ros::Time::now();
-  image->header.stamp = ros_now;
-  ROS_DEBUG("Time interval between frames: %.4f ms", (float)((ros_now.toSec()-prev_time_stamp_)*1000.0));
-  prev_time_stamp_ = ros_now.toSec();
+
+  const uint64_t stamp_us = m_frame.getTimestamp();
+  image->header.stamp = ros::Time(stamp_us / 1000000ULL, (stamp_us % 1000000ULL) * 1000ULL);
+  ROS_DEBUG("Time interval between frames: %.4f ms", (float)((image->header.stamp.toSec()-prev_time_stamp_)*1000.0));
+  prev_time_stamp_ = image->header.stamp.toSec();
 
   image->width = m_frame.getWidth();
   image->height = m_frame.getHeight();
