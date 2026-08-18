@@ -501,51 +501,49 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getDefaultCameraInfo(int width, int h
 sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int height, ros::Time time, bool isColor)
 {
   sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
-  if (device_->getVendor() == "Percipio")
-  {
-    size_t size = sizeof(color_cal.intrinsic_data);
 
-    //get intristic from percipio firmware
-    device_->getColorCalibIntristic((void*)color_cal.intrinsic_data, size);
+  size_t size = sizeof(color_cal.intrinsic_data);
+
+  //get intristic from percipio firmware
+  device_->getColorCalibIntristic((void*)color_cal.intrinsic_data, size);
     
-    info->width  = width;
-    info->height = height;
+  info->width  = width;
+  info->height = height;
     
-    info->D.resize(12, 0.0);
-    //depth stream may need color camera info,but without distortion while map to color coordinate
-    if(isColor && !color_undistortion_) {
+  info->D.resize(12, 0.0);
+  //depth stream may need color camera info,but without distortion while map to color coordinate
+  if(isColor && !color_undistortion_) {
       size = sizeof(color_cal.distortion_data);
       device_->getColorCalibDistortion((void*)color_cal.distortion_data, size);
       for(int i = 0; i < 12; i++) {
         info->D[i] = color_cal.distortion_data[i];
       }
-    }
-    info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
-
-    // Simple camera matrix: square pixels (fx = fy), principal point at center
-    info->K.assign(0.0);
-    info->K[0] = color_cal.intrinsic_data[0];
-    info->K[2] = color_cal.intrinsic_data[2];
-    info->K[4] = color_cal.intrinsic_data[4];
-    info->K[5] = color_cal.intrinsic_data[5];
-    info->K[8] = 1.0;
-
-    // No separate rectified image plane, so R = I
-    info->R.assign(0.0);
-    info->R[0] = info->R[4] = info->R[8] = 1.0;
-
-    // Then P=K(I|0) = (K|0)
-    info->P.assign(0.0);
-    info->P[0] = info->K[0]; //fx
-    info->P[5] = info->K[4]; //fy
-    info->P[2] = info->K[2]; //cx
-    info->P[6] = info->K[5]; //cy
-    info->P[10] = 1.0;
-
-    // Fill in header
-    info->header.stamp  = time;
-    info->header.frame_id = color_frame_id_;
   }
+  info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
+
+  // Simple camera matrix: square pixels (fx = fy), principal point at center
+  info->K.assign(0.0);
+  info->K[0] = color_cal.intrinsic_data[0];
+  info->K[2] = color_cal.intrinsic_data[2];
+  info->K[4] = color_cal.intrinsic_data[4];
+  info->K[5] = color_cal.intrinsic_data[5];
+  info->K[8] = 1.0;
+
+  // No separate rectified image plane, so R = I
+  info->R.assign(0.0);
+  info->R[0] = info->R[4] = info->R[8] = 1.0;
+
+  // Then P=K(I|0) = (K|0)
+  info->P.assign(0.0);
+  info->P[0] = info->K[0]; //fx
+  info->P[5] = info->K[4]; //fy
+  info->P[2] = info->K[2]; //cx
+  info->P[6] = info->K[5]; //cy
+  info->P[10] = 1.0;
+
+  // Fill in header
+  info->header.stamp  = time;
+  info->header.frame_id = color_frame_id_;
 
   // Fill in header
   info->header.stamp  = time;
@@ -557,44 +555,42 @@ sensor_msgs::CameraInfoPtr PercipioDriver::getColorCameraInfo(int width, int hei
 sensor_msgs::CameraInfoPtr PercipioDriver::getDepthCameraInfo(int width, int height, ros::Time time)
 {
   sensor_msgs::CameraInfoPtr info = boost::make_shared<sensor_msgs::CameraInfo>();
-  if (device_->getVendor() == "Percipio")
-  {
-    size_t size = sizeof(depth_cal.intrinsic_data);
-    
-    //get intristic from percipio firmware
-    device_->getDepthCalibIntristic((void*)&depth_cal.intrinsic_data, size);
-    
-    info->width  = width;
-    info->height = height;
-    
-    // No distortion
-    info->D.resize(12, 0.0);
-    info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
-    // Simple camera matrix: square pixels (fx = fy), principal point at center
-    info->K.assign(0.0);
-    info->K[0] = depth_cal.intrinsic_data[0];
-    info->K[2] = depth_cal.intrinsic_data[2];
-    info->K[4] = depth_cal.intrinsic_data[4];
-    info->K[5] = depth_cal.intrinsic_data[5];
-    info->K[8] = 1.0;
+  size_t size = sizeof(depth_cal.intrinsic_data);
+  
+  //get intristic from percipio firmware
+  device_->getDepthCalibIntristic((void*)&depth_cal.intrinsic_data, size);
+  
+  info->width  = width;
+  info->height = height;
+  
+  // No distortion
+  info->D.resize(12, 0.0);
+  info->distortion_model = sensor_msgs::distortion_models::PLUMB_BOB;
 
-    // No separate rectified image plane, so R = I
-    info->R.assign(0.0);
-    info->R[0] = info->R[4] = info->R[8] = 1.0;
+  // Simple camera matrix: square pixels (fx = fy), principal point at center
+  info->K.assign(0.0);
+  info->K[0] = depth_cal.intrinsic_data[0];
+  info->K[2] = depth_cal.intrinsic_data[2];
+  info->K[4] = depth_cal.intrinsic_data[4];
+  info->K[5] = depth_cal.intrinsic_data[5];
+  info->K[8] = 1.0;
 
-    // Then P=K(I|0) = (K|0)
-    info->P.assign(0.0);
-    info->P[0] = info->K[0]; //fx
-    info->P[5] = info->K[4]; //fy
-    info->P[2] = info->K[2]; //cx
-    info->P[6] = info->K[5]; //cy
-    info->P[10] = 1.0;
+  // No separate rectified image plane, so R = I
+  info->R.assign(0.0);
+  info->R[0] = info->R[4] = info->R[8] = 1.0;
 
-    // Fill in header
-    info->header.stamp  = time;
-    info->header.frame_id = depth_frame_id_;
-  }
+  // Then P=K(I|0) = (K|0)
+  info->P.assign(0.0);
+  info->P[0] = info->K[0]; //fx
+  info->P[5] = info->K[4]; //fy
+  info->P[2] = info->K[2]; //cx
+  info->P[6] = info->K[5]; //cy
+  info->P[10] = 1.0;
+
+  // Fill in header
+  info->header.stamp  = time;
+  info->header.frame_id = depth_frame_id_;
 
   return info;
 }
