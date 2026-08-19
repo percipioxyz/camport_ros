@@ -83,39 +83,12 @@ namespace percipio
     GigeE_2_1,
   } GigEVersion;
   
-  typedef void* StreamHandle;
-  
-
-  typedef void (* NewFrameCallback)(StreamHandle stream, void* pCookie, TY_IMAGE_DATA* frame);
-  class NewFrameCallbackManager
-  {
-    public:
-      NewFrameCallbackManager() : frame_listener(NULL), cb(NULL), is_enable(false)
-      {
-
-      }
-
-      ~NewFrameCallbackManager()
-      {
-
-      }
-
-      void register_callback(void* listener, NewFrameCallback func);
-      void unregister_callback();
-      bool isValid();
-      void enableCallback(bool en);
-
-      void* frame_listener;
-      bool is_enable;
-      NewFrameCallback cb;
-  };
-    
-  typedef void* CallbackHandle;
   typedef void (*DeviceInfoCallback)(const DeviceInfo* pInfo, void* pCookie);
   typedef void (*DeviceStateCallback)(const DeviceInfo* pInfo, DeviceState deviceState, void* pCookie);
 
   typedef boost::function<void(void)> DeviceInitCallbackFunction;
   typedef boost::function<void(const char*)> DeviceEventCallbackFunction;
+  typedef boost::function<TY_STATUS(void)> StreamRestoreCallbackFunction;
   typedef struct
   {
     DeviceInfoCallback    deviceConnected;
@@ -134,7 +107,14 @@ namespace percipio
   } DeviceNodeInfo;
   typedef std::map<std::string, std::vector<DeviceNodeInfo>> percipio_feat;
 
+  typedef struct {
+      float binning;
+      int32_t full_width;
+      int32_t full_height;
+  } percipio_stream_info;
+
   class VideoFrameData;
+  class VideoStream;
   class Percipio;
   class DeviceDisconnectedListener;
   class DepthTimeDomainMgr;
@@ -190,6 +170,8 @@ namespace percipio
     virtual TY_STATUS EnableLeftIRStream(const bool en) = 0;
     virtual TY_STATUS EnableRightIRStream(const bool en) = 0;
 
+    virtual TY_STATUS stream_base_info_init() = 0;
+
     virtual void Reset() = 0;
     
     TY_DEV_HANDLE hDevice;
@@ -198,10 +180,33 @@ namespace percipio
 
     std::map<SensorType, std::vector<VideoMode>> videos;
     std::map<SensorType, VideoMode> current_video_mode;
+
+    float get_stream_binning(TY_COMPONENT_ID comp) {
+        auto it = m_stream_base_info.find(comp);
+        return (it != m_stream_base_info.end()) ? it->second.binning : 1.f;
+    }
+
+  protected:
+    std::map<TY_COMPONENT_ID, percipio_stream_info> m_stream_base_info;
   private:
     
   };
 
+  class EnumeratedDevice
+  {
+    public:
+      EnumeratedDevice(const TY_INTERFACE_HANDLE iface, const DeviceInfo& info)
+        : hIface(iface), device_info_(info) {}
+
+      ~EnumeratedDevice(){}
+
+      const TY_INTERFACE_HANDLE get_handle() const { return hIface; }
+      const DeviceInfo& get_device_info() const { return device_info_; }
+      
+    private:
+      TY_INTERFACE_HANDLE hIface;
+      DeviceInfo device_info_;
+  };
   class PercipioDepthCam
   {
     public:
@@ -211,8 +216,10 @@ namespace percipio
         TYDeinitLib();
       }
 
+      friend class VideoStream;
+
       TY_STATUS initialize();
-      void GetDeviceList(DeviceInfo** device_info_ptr, int* cnt);
+      void GetDeviceList(std::vector<EnumeratedDevice>& devices);
 
       TY_STATUS openWithSN(const char* sn);
       TY_STATUS openWithIP(const char* ip);
@@ -230,6 +237,9 @@ namespace percipio
 
       boost::shared_ptr<DeviceEventCallbackFunction> ptrFuncDeviceEvent;
       void setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback);
+
+      boost::shared_ptr<StreamRestoreCallbackFunction> ptrFuncStreamRestore;
+      void setStreamRestoreCallback(boost::shared_ptr<StreamRestoreCallbackFunction>& callback);
 
       const DeviceInfo& get_current_device_info();
 
@@ -284,6 +294,9 @@ namespace percipio
       TY_STATUS DoIRUndistortion(VideoFrameData& IR);
       TY_STATUS IREnhancement(VideoFrameData& IR);
 
+      TY_CAMERA_CALIB_INFO adjustCalibByBinningCrop(const TY_CAMERA_CALIB_INFO& src_calib, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data);
+      TY_CAMERA_INTRINSIC adjustIntrinsicByBinningCrop(const TY_CAMERA_INTRINSIC& src_intr, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data);
+
       TY_STATUS parseIrStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseColorStream(VideoFrameData* src, VideoFrameData* dst);
       TY_STATUS parseDepthStream(VideoFrameData* src, VideoFrameData* dst);
@@ -293,13 +306,13 @@ namespace percipio
     
       const std::vector<VideoMode>& getVideoModeList(SensorType type) const;
 
-      TY_STATUS CreateStream(SensorType sensorType, StreamHandle& streamHandle);
+      TY_STATUS CreateStream(SensorType sensorType, boost::shared_ptr<VideoStream>& stream);
 
-      VideoMode get_current_video_mode(StreamHandle stream);
+      VideoMode get_current_video_mode(boost::shared_ptr<VideoStream> stream);
 
-      TY_STATUS StreamRegisterNewFrameCallback(StreamHandle stream, void* listener, NewFrameCallback cb);
+      TY_STATUS StreamRegisterNewFrameCallback(boost::shared_ptr<VideoStream> stream, void* listener);
 
-      void StreamUnregisterNewFrameCallback(StreamHandle stream);
+      void StreamUnregisterNewFrameCallback(boost::shared_ptr<VideoStream> stream);
 
       static void* soft_frame_rate_ctrl_thread(void* ptr);
       static void* device_frame_fetch_thread(void* ptr);
@@ -319,22 +332,31 @@ namespace percipio
       bool pointcloud_topic_swicth() { return enable_cloud_topic; }
 
       bool HasStream();
+      bool HasEnabledStream();
 
-      void StreamEnable(StreamHandle stream);
-      void StreamDisable(StreamHandle stream);
+      void StreamEnable(boost::shared_ptr<VideoStream> stream);
+      void StreamDisable(boost::shared_ptr<VideoStream> stream);
 
       TY_STATUS StartCapture();
-      void StopCapture(StreamHandle stream);
+      void StopCapture(boost::shared_ptr<VideoStream> stream);
 
       void set_work_mode(bool enable_rate, float frame_rate, bool trigger_mode_en);
 
       float getDepthScaleUnit() { return f_depth_scale_unit; }
-      const TY_CAMERA_CALIB_INFO& getDepthCalib() { return depth_calib; }
-      const TY_CAMERA_INTRINSIC&  getDepthIntr() { return depth_intr; }
-      const TY_CAMERA_INTRINSIC&  getColorIntr() { return color_intr; }
-      const TY_CAMERA_DISTORTION& getColorDist() { return color_calib.distortion; }
+      const TY_CAMERA_CALIB_INFO& getDepthCalib() { return adj_depth_calib; }
+      const TY_CAMERA_INTRINSIC&  getDepthIntr() { return adj_depth_calib.intrinsic; }
+      const TY_CAMERA_INTRINSIC&  getColorIntr() { return adj_color_calib.intrinsic; }
+      const TY_CAMERA_DISTORTION& getColorDist() { return adj_color_calib.distortion; }
+
+      TY_CAMERA_CALIB_INFO adj_depth_calib;
+      TY_CAMERA_CALIB_INFO adj_color_calib;
+      TY_CAMERA_CALIB_INFO adj_left_ir_calib;
+      TY_CAMERA_CALIB_INFO adj_right_ir_calib;
+
+      TY_CAMERA_INTRINSIC adj_left_ir_rectified_intr;
+      TY_CAMERA_INTRINSIC adj_right_ir_rectified_intr;
       
-      SensorType StreamGetSensorInfo(StreamHandle stream);
+      SensorType StreamGetSensorInfo(boost::shared_ptr<VideoStream> stream);
 
       std::string            m_current_device_sn;
       static bool            isOffline;
@@ -378,11 +400,11 @@ namespace percipio
       pthread_t              frame_rate_ctrl_thread;
       pthread_t              frame_fetch_thread;
 
-      boost::shared_ptr<NewFrameCallbackManager> leftIRStream;
-      boost::shared_ptr<NewFrameCallbackManager> rightIRStream;
-      boost::shared_ptr<NewFrameCallbackManager> ColorStream;
-      boost::shared_ptr<NewFrameCallbackManager> DepthStream;
-      boost::shared_ptr<NewFrameCallbackManager> Point3DStream;
+      boost::shared_ptr<VideoStream> leftIRStream;
+      boost::shared_ptr<VideoStream> rightIRStream;
+      boost::shared_ptr<VideoStream> ColorStream;
+      boost::shared_ptr<VideoStream> DepthStream;
+      boost::shared_ptr<VideoStream> Point3DStream;
 
       bool enable_color_topic = false;
       bool enable_depth_topic = false;
@@ -398,6 +420,8 @@ namespace percipio
       
       int32_t current_rgb_width;
       int32_t current_rgb_height;
+      int32_t actual_rgb_width;
+      int32_t actual_rgb_height;
 
       TY_CAMERA_CALIB_INFO depth_calib;
       TY_CAMERA_CALIB_INFO color_calib;
@@ -433,125 +457,38 @@ namespace percipio
 
       float f_depth_scale_unit = 1.0f;
 
-      std::vector<DeviceInfo>  device_list;
-
-      DeviceInfo               current_device_info;
+      DeviceInfo                     current_device_info;
+      std::vector<EnumeratedDevice>  enumerated_devices;
 
       ImageRegistrationMode registration_mode = IMAGE_REGISTRATION_OFF;
 
       TY_STATUS DeviceInit();
 
       TY_STATUS StreamStart();
-      void StreamStop(StreamHandle stream);
+      void StreamStop(boost::shared_ptr<VideoStream> stream);
       void StreamStopAll();
 
-      TY_STATUS create_leftIR_stream(StreamHandle& stream);
+      TY_STATUS create_leftIR_stream(boost::shared_ptr<VideoStream>& stream);
 
-      TY_STATUS create_rightIR_stream(StreamHandle& stream);
+      TY_STATUS create_rightIR_stream(boost::shared_ptr<VideoStream>& stream);
       
-      TY_STATUS create_color_stream(StreamHandle& stream);
+      TY_STATUS create_color_stream(boost::shared_ptr<VideoStream>& stream);
 
-      TY_STATUS create_depth_stream(StreamHandle& stream);
+      TY_STATUS create_depth_stream(boost::shared_ptr<VideoStream>& stream);
 
-      TY_STATUS create_point3d_stream(StreamHandle& stream);
+      TY_STATUS create_point3d_stream(boost::shared_ptr<VideoStream>& stream);
 
-      const TY_COMPONENT_ID get_stream_component_id(StreamHandle stream);
+      const TY_COMPONENT_ID get_stream_component_id(boost::shared_ptr<VideoStream> stream);
 
-      const SensorType get_stream_type(StreamHandle stream);
+      const SensorType get_stream_type(boost::shared_ptr<VideoStream> stream);
 
   };
-
-  template<class T>
-  class Array
-  {
-  public:
-    /**
-      Default constructor.  Creates an empty Array and sets the element count to zero.
-    */
-    Array() : m_data(NULL), m_count(0), m_owner(false) {}
-
-    /**
-      Constructor.  Creates new Array from an existing primitive array of known size.
-
-      @tparam [in] T Object type this Array will contain.
-      @param [in] data Pointer to a primitive array of objects of type T.
-      @param [in] count Number of elements in the primitive array pointed to by data.
-    */
-    Array(const T* data, int count) : m_owner(false) { _setData(data, count); }
-
-    /**
-      Destructor.  Destroys the Array object.
-    */
-    ~Array()
-    {
-      clear();
-    }
-
-    /**
-      Getter function for the Array size.
-      @returns Current number of elements in the Array.
-    */
-    int getSize() const { return m_count; }
-
-    /**
-      Implements the array indexing operator for the Array class.
-    */
-    const T& operator[](int index) const {return m_data[index];}
-
-    /**
-      @internal
-      Setter function for data.  Causes this array to wrap an existing primitive array
-      of specified type.  The optional data ownership flag controls whether the primitive
-      array this Array wraps will be destroyed when this Array is deconstructed.
-      @param [in] T Type of objects array will contain.
-      @param [in] data Pointer to first object in list.
-      @param [in] count Number of objects in list.
-      @param [in] isOwner Optional flag to indicate data ownership
-    */
-    void _setData(const T* data, int count, bool isOwner = false)
-    {
-      clear();
-      m_count = count;
-      m_owner = isOwner;
-      if (!isOwner)
-      {
-        m_data = data;
-      }
-      else
-      {
-        m_data = new T[count];
-        memcpy((void*)m_data, data, count*sizeof(T));
-      }
-    }
-
-    const void* ptr() const
-    {
-      return (void*)m_data;
-    }
-
-  private:
-    Array(const Array<T>&);
-    Array<T>& operator=(const Array<T>&);
-
-    void clear()
-    {
-      if (m_owner && m_data != NULL)
-        delete []m_data;
-      m_owner = false;
-      m_data = NULL;
-      m_count = 0;
-    }
-
-    const T* m_data;
-    int m_count;
-    bool m_owner;
-  };
-
+  
   class SensorInfo
   {
   public:
 	  SensorType getSensorType() const;
-    const Array<VideoMode>& getSupportedVideoModes() const;
+    const std::vector<VideoMode>& getSupportedVideoModes() const;
 
   private:
     SensorInfo(const SensorInfo&);
@@ -565,10 +502,10 @@ namespace percipio
 
     SensorType m_type;
 
-    Array<VideoMode> m_videoModes;
+    std::vector<VideoMode> m_videoModes;
 
     friend class VideoStream;
-    friend class Device;
+    friend class PercipioDevice;
   };
 
   class VideoFrameData
@@ -665,7 +602,7 @@ namespace percipio
       VideoFrameData* m_pFrame; 
   };
 
-  class Device;
+  class PercipioDevice;
   class VideoStream
   {
     public:
@@ -682,15 +619,6 @@ namespace percipio
 
           virtual void onNewFrame(VideoStream&) = 0;
 
-          void parseImageData(TY_IMAGE_DATA* frame)
-          {
-            std::unique_lock<std::mutex> lock(_mutex);
-            if(ptrVideoStream) {
-              ptrVideoStream->parseImageData(frame);
-              onNewFrame(*ptrVideoStream);
-            }
-          }
-
           void VideoStreamInit(VideoStream* video) { 
             std::unique_lock<std::mutex> lock(_mutex);
             ptrVideoStream = video;
@@ -704,18 +632,12 @@ namespace percipio
           friend class VideoStream;
           std::mutex _mutex;
           VideoStream* ptrVideoStream;
-          static void callback(StreamHandle streamHandle, void* pCookie,  TY_IMAGE_DATA* frame)
-          {
-            NewFrameListener* pListener = (NewFrameListener*)pCookie;
-            pListener->parseImageData(frame);
-          }
       };
 
-      VideoStream(const std::string& name) : stream_desc(name), m_stream(NULL), m_sensorInfo()
+      VideoStream(const std::string& name) : stream_desc(name), m_listener(NULL), m_enabled(false)
       {
       }
 
-      const std::string& desc() { return stream_desc;}
 
       ~VideoStream()
       {
@@ -729,10 +651,11 @@ namespace percipio
       TY_STATUS start();
       void stop();
 
+      void dispatchFrame(TY_IMAGE_DATA* frame);
+
       void parseImageData(TY_IMAGE_DATA* frame);
 
       VideoFrameData& getFrame();
-      //void CopyFrame(TY_IMAGE_DATA* image);
 
       TY_STATUS readFrame(VideoFrameRef* pFrame);
       
@@ -740,7 +663,7 @@ namespace percipio
   
       float getVerticalFieldOfView() const;
 
-      TY_STATUS create(const Device& device, SensorType sensorType);
+      TY_STATUS create(const PercipioDevice& device, SensorType sensorType);
 
       void destroy();
 
@@ -748,92 +671,33 @@ namespace percipio
 
       const SensorInfo& getSensorInfo() const;
 
-      const StreamHandle& _getHandle() const;
+      const std::string& desc() { return stream_desc; }
+
+      void setEnabled(bool en) { m_enabled = en; }
+      bool isEnabled() const { return m_enabled; }
+
+      NewFrameListener* getListener() const { return m_listener; }
+
+      void setSelf(boost::shared_ptr<VideoStream> self) { m_self = self; m_created = true; }
 
     private:
       const std::string stream_desc;
 
-      StreamHandle m_stream;
+      friend class PercipioDepthCam;
+
+      bool m_created;
+      bool m_enabled;
+      NewFrameListener* m_listener;
+      boost::shared_ptr<VideoStream> m_self;
       SensorInfo   m_sensorInfo;
 
-      //TY_IMAGE_DATA* m_pFrame;
       VideoFrameData frame;
-      
-      void _setHandle(StreamHandle stream);
-  };
+        
+    };
 
-  static const char* ANY_DEVICE = NULL;
-  class Device
-  {
-    public:
-      Device() : /*m_pPlaybackControl(NULL), */m_isOwner(true)
-	    {
-	    }
+    static const char* ANY_DEVICE = NULL;
 
-      TY_STATUS open(const char* uri, const bool auto_reconnect = false);
-
-      void close();
-
-      const DeviceInfo& getDeviceInfo() const
-	    {
-		    return m_deviceInfo;
-	    }
-
-      boost::shared_ptr<PercipioDepthCam> DevicePtr();
-
-      bool hasSensor(SensorType sensorType);
-
-      bool isValid() const;
-
-      bool ResolutionSetting(SensorType sensorType, int width, int height, const std::string& fmt);
-
-      TY_STATUS _setHandle(TY_DEV_HANDLE deviceHandle);
-
-      void setStreamResendEnable(bool enabled);
-
-      void setColorUndistortion(bool enabled);
-
-      void setIRUndistortion(bool enabled);
-
-      bool setDepthSpecFilterEn(bool enabled);
-      bool getDepthSpecFilterEn();
-      
-      bool setDepthSpecFilterSpecSize(int spec_size);
-      int getDepthSpecFilterSpecSize();
-      
-      bool setDepthSpeckFilterDiff(int spec_diff);
-      int getDepthSpeckFilterDiff();
-
-      bool setDepthSpeckFilterPhySize(float phy_size);
-      float getDepthSpeckFilterPhySize();
-
-      bool setDepthTimeDomainFilterEn(bool enabled);
-      bool getDepthTimeDomainFilterEn();
-  
-      bool setDepthTimeDomainFilterNum(int frames);
-      int getDepthTimeDomainFilterNum();
-
-      void setIREnhancement(IREnhanceModel model, int coeff);
-
-      bool isImageRegistrationModeSupported(ImageRegistrationMode mode) const;
-      TY_STATUS setImageRegistrationMode(ImageRegistrationMode mode);
-      ImageRegistrationMode getImageRegistrationMode() const;
-
-      void ir_stream_topic_enable(bool enabled);
-      void color_stream_topic_enable(bool enabled);
-      void depth_stream_topic_enable(bool enabled);
-      void pointcloud_stream_topic_enable(bool enabled);
-
-      TY_STATUS PropertyGet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
-      TY_STATUS PropertySet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
-
-    private:
-      bool m_isOwner;
-      DeviceInfo m_deviceInfo;
-      TY_STATUS DeviceGetInfo();
-
-      bool IPv4_verify(const char *ip);
-  };
+  class PercipioDevice;
 
   #define PERCIPIO_USB_PID    (0x1003)
   #define PERCIPIO_USB_VID    (0x04B4)
@@ -852,12 +716,12 @@ namespace percipio
 		{
 		}
 		
-		virtual void onDeviceConnected(const DeviceInfo*) = 0;
+		virtual void onDeviceConnected(const DeviceInfo&) = 0;
 	private:
 		static void deviceConnectedCallback(const DeviceInfo* pInfo, void* pCookie)
 		{
 			DeviceConnectedListener* pListener = (DeviceConnectedListener*)pCookie;
-			pListener->onDeviceConnected(static_cast<const DeviceInfo*>(pInfo));
+			pListener->onDeviceConnected(static_cast<const DeviceInfo&>(*pInfo));
 		}
 
  		friend class Percipio;
@@ -878,12 +742,12 @@ namespace percipio
       {
       }
 		
-      virtual void onDeviceDisconnected(const DeviceInfo*) = 0;
+      virtual void onDeviceDisconnected(const DeviceInfo&) = 0;
     private:
       static void deviceDisconnectedCallback(const DeviceInfo* pInfo, void* pCookie)
       {
         DeviceDisconnectedListener* pListener = (DeviceDisconnectedListener*)pCookie;
-        pListener->onDeviceDisconnected(pInfo);
+        pListener->onDeviceDisconnected(static_cast<const DeviceInfo&>(*pInfo));
       }
 
       friend class Percipio;
@@ -902,13 +766,15 @@ namespace percipio
 
       static TY_STATUS initialize();
 
-      static void enumerateDevices(Array<DeviceInfo>* deviceInfoList);
+      static void enumerateDevices(std::vector<EnumeratedDevice>& deviceInfoList);
 
       static int tycam_log_server_init(bool enable, const std::string& level, int32_t port);
 
       static bool forceDeviceIP(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway);
 
       static const char* getExtendedError(TY_STATUS status);
+
+      static boost::shared_ptr<PercipioDepthCam> getContext();
   };
 }
 

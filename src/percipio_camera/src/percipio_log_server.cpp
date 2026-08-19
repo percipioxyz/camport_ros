@@ -13,7 +13,7 @@ PercipioTcpLogServer::~PercipioTcpLogServer() {
 
 bool PercipioTcpLogServer::start(int port) {
     if (running_) {
-        ROS_ERROR("[ERROR] Server is already running on port %d", port_);
+        ROS_ERROR("Server is already running on port %d", port_);
         return false;
     }
 
@@ -22,14 +22,14 @@ bool PercipioTcpLogServer::start(int port) {
     // Create socket
     server_fd_ = socket(AF_INET, SOCK_STREAM, 0);
     if (server_fd_ < 0) {
-        ROS_ERROR("[ERROR] Failed to create socket: %s", strerror(errno));
+        ROS_ERROR("Failed to create socket: %s", strerror(errno));
         return false;
     }
 
     // Set socket options
     int opt = 1;
     if (setsockopt(server_fd_, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
-        ROS_ERROR("[ERROR] Failed to set socket options: %s", strerror(errno));
+        ROS_ERROR("Failed to set socket options: %s", strerror(errno));
         close(server_fd_);
         return false;
     }
@@ -41,14 +41,14 @@ bool PercipioTcpLogServer::start(int port) {
     address.sin_port = htons(port_);
 
     if (bind(server_fd_, (struct sockaddr*)&address, sizeof(address)) < 0) {
-        ROS_ERROR("[ERROR] Failed to bind socket: %s", strerror(errno));
+        ROS_ERROR("Failed to bind socket: %s", strerror(errno));
         close(server_fd_);
         return false;
     }
 
     // Listen for connections
     if (listen(server_fd_, 10) < 0) {
-        ROS_ERROR("[ERROR] Failed to listen on socket: %s", strerror(errno));
+        ROS_ERROR("Failed to listen on socket: %s", strerror(errno));
         close(server_fd_);
         return false;
     }
@@ -60,7 +60,7 @@ bool PercipioTcpLogServer::start(int port) {
     running_ = true;
     server_thread_ = std::thread([this]() { this->run(); });
 
-    ROS_INFO("[INFO] TCP Log Server started on port %d", port_ );
+    ROS_INFO("TCP Log Server started on port %d", port_);
     return true;
 }
 
@@ -91,7 +91,7 @@ void PercipioTcpLogServer::stop() {
         client_threads_.clear();
     }
 
-    ROS_INFO("[INFO] TCP Log Server stopped");
+    ROS_INFO("TCP Log Server stopped");
 }
 
 void PercipioTcpLogServer::run() {
@@ -104,7 +104,7 @@ void PercipioTcpLogServer::run() {
 
         if (poll_count < 0) {
             if (errno == EINTR) continue;
-            ROS_ERROR("[ERROR] Poll error: %s", strerror(errno));
+            ROS_ERROR("Poll error: %s", strerror(errno));
             break;
         }
 
@@ -124,7 +124,7 @@ void PercipioTcpLogServer::run() {
                 if (errno == EWOULDBLOCK || errno == EAGAIN) {
                     continue;
                 }
-                ROS_ERROR("[ERROR] Failed to accept connection: %s", strerror(errno));
+                ROS_ERROR("Failed to accept connection: %s", strerror(errno));
                 continue;
             }
 
@@ -132,7 +132,7 @@ void PercipioTcpLogServer::run() {
             std::string client_ip = inet_ntoa(client_addr.sin_addr);
             int client_port = ntohs(client_addr.sin_port);
 
-            ROS_INFO("[INFO] Client connected: %s:%d",client_ip.c_str(), client_port);
+            ROS_INFO("Client connected: %s:%d", client_ip.c_str(), client_port);
 
             // Set client socket to non-blocking
             setNonBlocking(client_fd);
@@ -219,7 +219,7 @@ void PercipioTcpLogServer::handleClient(int client_fd, const std::string& client
     }
 
     close(client_fd);
-    ROS_INFO("[INFO] Client disconnected: %s:%d", client_ip.c_str(), client_port);
+    ROS_INFO("Client disconnected: %s:%d", client_ip.c_str(), client_port);
 }
 
 void PercipioTcpLogServer::setNonBlocking(int fd) {

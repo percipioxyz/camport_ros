@@ -39,7 +39,7 @@ int main()
 
   BOOST_FOREACH(const std::string& uri, *device_uris)
   {
-    boost::shared_ptr<PercipioDevice> device = device_manager.getDevice(uri);
+    boost::shared_ptr<percipio::PercipioDevice> device = device_manager.getDevice(uri);
     std::cout << *device;
 
     device->setIRFrameCallback(boost::bind(&IRCallback, _1));

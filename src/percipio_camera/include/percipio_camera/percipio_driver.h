@@ -74,16 +74,17 @@ private:
 
   void advertiseROSTopics();
 
-  void colorConnectCb();
-  void depthConnectCb();
-  void irConnectCb();
-  void cloud3DConnectCb();
+  TY_STATUS colorConnectCb();
+  TY_STATUS depthConnectCb();
+  TY_STATUS irConnectCb();
+  TY_STATUS cloud3DConnectCb();
+
+  //Restart streams according to topic subscriptions after auto reconnection
+  TY_STATUS restoreStreamsOnReconnect();
 
   bool getSerialCb(percipio_camera::GetSerialRequest& req, percipio_camera::GetSerialResponse& res);
 
   void configCb(Config &config, uint32_t level);
-
-  void applyConfigToPercipioDevice();
 
   sensor_msgs::ImageConstPtr rawToFloatingPointConversion(sensor_msgs::ImageConstPtr raw_image, float scale);
 
@@ -91,7 +92,7 @@ private:
   ros::NodeHandle& pnh_;
 
   boost::shared_ptr<PercipioDeviceManager> device_manager_;
-  boost::shared_ptr<PercipioDevice> device_;
+  boost::shared_ptr<percipio::PercipioDevice> device_;
 
   boost::shared_ptr<FrameCallbackFunction> color_frame_callback;
   boost::shared_ptr<FrameCallbackFunction> depth_frame_callback;
@@ -177,8 +178,6 @@ private:
     const tf2::Quaternion &q, const std::string &from,
     const std::string &to);
   void publishStaticTransforms();
-
-  bool use_device_time_;
 
   bool ir_subscribers_;
   bool color_subscribers_;

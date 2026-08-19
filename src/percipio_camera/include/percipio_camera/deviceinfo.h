@@ -17,48 +17,51 @@ namespace percipio
   {
     public:
       DeviceInfo(){}
-      DeviceInfo(std::string sn, std::string vd, std::string na, int pid, int vid)
+      DeviceInfo(const char* serial_num, const char* vendor_name, const char* modle_name, int pid, int vid)
+      : uri(serial_num),
+        vendor(vendor_name),
+        name(modle_name),
+        ip(std::string()),
+        usbVendorId(vid),
+        usbProductId(pid)
       {
-        strcpy(uri, sn.c_str());
-        strcpy(vendor, vd.c_str());
-        strcpy(name, na.c_str());
-        memset(_ip, 0, sizeof(_ip));
-
-        usbVendorId  = vid;
-        usbProductId = pid;
       }
 
-      DeviceInfo(std::string sn, std::string vd, std::string na, std::string ip)
+      DeviceInfo(const char* serial_num, const char* vendor_name, const char* modle_name, const char* ip_addr)
+        : uri(serial_num),
+          vendor(vendor_name),
+          name(modle_name),
+          ip(ip_addr),
+          usbVendorId(0),
+          usbProductId(0)
       {
-        strcpy(uri, sn.c_str());
-        strcpy(vendor, vd.c_str());
-        strcpy(name, na.c_str());
-        strcpy(_ip, ip.c_str());
-
-        usbVendorId  = 0;
-        usbProductId = 0;
-
       }
 
-      const char* getUri() const { return uri; }
-      const char* getVendor() const { return vendor; }
-      const char* getIp() const { return _ip; }
-      const char* getName() const { return name; }
+      DeviceInfo& operator=(const DeviceInfo& other) {
+        if (this != &other) {
+          uri = other.uri;
+          vendor = other.vendor;
+          name = other.name;
+          ip = other.ip;
+          usbVendorId = other.usbVendorId;
+          usbProductId = other.usbProductId;
+        }
+        return *this;
+      }
+
+      const char* getUri() const { return uri.c_str(); }
+      const char* getVendor() const { return vendor.c_str(); }
+      const char* getIp() const { return ip.c_str(); }
+      const char* getName() const { return name.c_str(); }
       uint16_t getUsbVendorId() const { return usbVendorId; }
       uint16_t getUsbProductId() const { return usbProductId; }
 
-      void setUri(char* sn) {strcpy(uri, sn); }
-      void setVendor(char* v) { strcpy(vendor, v); }
-      void setName(char* n) { strcpy(name, n);}
-      void setUsbVendorId(uint16_t v) { usbVendorId = v;}
-      void setUsbProductId(uint16_t p) { usbProductId = p;}
-
     private:
-      char uri[64];
-      char vendor[64];
-      char name[64];
-      char _ip[65];
-      uint16_t    usbVendorId  = 0;
+      std::string uri;
+      std::string vendor;
+      std::string name;
+      std::string ip;
+      uint16_t    usbVendorId = 0;
       uint16_t    usbProductId = 0;
   };
 }

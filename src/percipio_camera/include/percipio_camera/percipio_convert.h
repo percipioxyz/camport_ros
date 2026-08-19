@@ -24,7 +24,7 @@ const PercipioDeviceInfo percipio_convert(const percipio::DeviceInfo* pInfo);
 const PercipioVideoMode percipio_convert(const percipio::VideoMode& input);
 const percipio::VideoMode percipio_convert(const PercipioVideoMode& input);
 
-const std::vector<PercipioVideoMode> percipio_convert(const percipio::Array<percipio::VideoMode>& input);
+const std::vector<PercipioVideoMode> percipio_convert(const std::vector<percipio::VideoMode>& input);
 }
 
 #endif

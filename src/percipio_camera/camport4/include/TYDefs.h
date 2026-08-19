@@ -95,6 +95,8 @@
 
 #include "TYVer.h"
 
+typedef char TY_GENI_FEATURE_NAME[100];
+
 //------------------------------------------------------------------------------
 ///@brief API call return status
 typedef enum TY_STATUS_LIST :int32_t
@@ -162,6 +164,7 @@ typedef enum TY_EVENT_LIST :int32_t
     TY_EVENT_DEVICE_OFFLINE     = -2001,
     TY_EVENT_LICENSE_ERROR      = -2002,
     TY_EVENT_FW_INIT_ERROR      = -2003,
+    TY_EVENT_CMD                = -2004,
 }TY_ENENT_LIST;
 typedef int32_t TY_EVENT;
 
@@ -432,6 +435,10 @@ typedef enum TY_INTERFACE_TYPE_LIST :uint32_t
     TY_INTERFACE_ALL            = 0xffff,
 }TY_INTERFACE_TYPE_LIST;
 typedef uint32_t TY_INTERFACE_TYPE;
+
+///Device open mode for TYOpenDeviceWithAccessMode
+#define TY_DEVICE_ACCESS_EXCLUSIVE  4  ///< Exclusive control (default, same as TYOpenDevice)
+#define TY_DEVICE_ACCESS_MONITOR    2  ///< Monitor/read-only: does not claim CCP, skips AcquisitionStart/Stop
 
 ///Indicate a feature is readable or writable
 ///@see TYGetFeatureInfo
@@ -1115,7 +1122,13 @@ typedef struct TY_CAMERA_STATISTICS
     uint64_t   packetLost;
     uint64_t   imageOutputed;
     uint64_t   imageDropped;
-    uint8_t   rsvd[1024];
+    union {
+        struct{
+            uint64_t   resendPacketSent;
+            uint64_t   resendPacketReceived;
+        };
+        uint8_t   rsvd[1024];
+    };
 }TY_CAMERA_STATISTICS;
 
 typedef struct TY_IMU_DATA
@@ -1232,7 +1245,7 @@ typedef struct TY_LASER_PARAM
 typedef struct TY_IMAGE_DATA
 {
     uint64_t        timestamp;      ///< Timestamp in microseconds
-    int32_t         imageIndex;     ///< image index used in trigger mode
+    int32_t         imageIndex;     ///< image index
     int32_t         status;         ///< Status of this buffer
     TY_COMPONENT_ID componentID;    ///< Where current data come from
     int32_t         size;           ///< Buffer size
@@ -1240,16 +1253,27 @@ typedef struct TY_IMAGE_DATA
     int32_t         width;          ///< Image width in pixels
     int32_t         height;         ///< Image height in pixels
     TYPixFmt        pixelFormat;    ///< Pixel format, see TYPixFmtList
-    int32_t         reserved[9];    ///< Reserved
-}TY_IMAGE_DATA;
+    union 
+    {
+        struct {
+            int32_t laser_val;      ///< laser_val in image[0] in legacy SDK
+            int32_t regionID;       ///< region of interest ID
+            int32_t cropOffsetX;    ///< Horizontal offset (in pixels) of the crop region from the top-left corner
+                                    ///< of the binned image. Must be >= 0.
+            int32_t cropOffsetY;    ///< Vertical offset (in pixels) of the crop region from the top-left corner
+                                    ///< of the binned image. Must be >= 0
+        };
 
+        int32_t     reserved[9];    ///< Reserved
+    };
+}TY_IMAGE_DATA;
 
 typedef struct TY_FRAME_DATA
 {
     void*           userBuffer;     ///< Pointer to user enqueued buffer, user should enqueue this buffer in the end of callback
     int32_t         bufferSize;     ///< Size of userBuffer
     int32_t         validCount;     ///< Number of valid data
-    int32_t         reserved[6];    ///< Reserved: reserved[0],laser_val;
+    int32_t         reserved[6];    ///< Reserved
     TY_IMAGE_DATA   image[10];      ///< Buffer data, max to 10 images per frame, each buffer data could be an image or something else.
 }TY_FRAME_DATA;
 
@@ -1321,5 +1345,26 @@ typedef struct TY_CAMERA_ROTATION
     float data[3*3];
 }TY_CAMERA_ROTATION;
 
+
+#define WATERMARKV1   0x10000
+//WaterMark data struct of V1
+typedef struct TY_IMAGE_WATER_MARK {
+    char deviceID[16];
+    char model[32];
+    uint64_t timestamp;
+    uint64_t frameCount;
+    uint32_t sourceID;
+    uint32_t regionID;
+    uint32_t triggerSource;
+    uint32_t triggerCount;
+    float aGain;
+    float exposure;
+    uint32_t undistortion;
+    uint32_t pixelFormat;
+    uint32_t laserBrightness;
+    uint32_t floodBrightness;
+    uint32_t userSet;
+    uint32_t seqSet;
+}TY_IMAGE_WATER_MARK;
 #pragma pack()
 #endif /*TY_DEFS_H_*/

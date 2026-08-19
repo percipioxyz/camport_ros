@@ -1,13 +1,10 @@
 #include "TYApi.h"
 
 #include "percipio_camera/percipio_frame_listener.h"
-#include "percipio_camera/percipio_timer_filter.h"
 
 #include <sensor_msgs/image_encodings.h>
 
 #include <ros/ros.h>
-
-#define TIME_FILTER_LENGTH 15
 
 namespace percipio_wrapper
 {
@@ -15,55 +12,35 @@ namespace percipio_wrapper
 PercipioFrameListener::PercipioFrameListener(const std::string& desc) :
     stream_desc(desc),
     callback_(0),
-    user_device_timer_(false),
-    timer_filter_(new PercipioTimerFilter(TIME_FILTER_LENGTH)),
     prev_time_stamp_(0.0)
 {
   ros::Time::init();
 }
 
-void PercipioFrameListener::setUseDeviceTimer(bool enable)
-{
-  user_device_timer_ = enable;
-
-  if (user_device_timer_)
-    timer_filter_->clear();
-}
-
 void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
 {
   if(TY_STATUS_OK != stream.readFrame(&m_frame)) {
-    ROS_WARN("onNewFrame(%s): readFrame end< invalid frame>!\n", stream_desc.c_str());
+    ROS_WARN("onNewFrame(%s): readFrame returned invalid frame", stream_desc.c_str());
     return;
   }
 
   bool isValid = m_frame.isValid();
   if(!isValid) {
-    ROS_ERROR("invalid frame(%s)!\n", stream_desc.c_str());
+    ROS_ERROR("Invalid frame received from %s", stream_desc.c_str());
     return;
   }
 
   if(!callback_) {
-    ROS_ERROR("stream[%s] no callback!\n", stream.desc().c_str());
+    ROS_ERROR("Stream %s has no callback registered", stream.desc().c_str());
     return;
   }
 
   sensor_msgs::ImagePtr image(new sensor_msgs::Image);
-  if (!user_device_timer_) {
-    ros::Time ros_now = ros::Time::now();
-    image->header.stamp = ros_now;
-    ROS_DEBUG("Time interval between frames: %.4f ms", (float)((ros_now.toSec()-prev_time_stamp_)*1000.0));
-    prev_time_stamp_ = ros_now.toSec();
-  } else {
-    uint64_t device_time = m_frame.getTimestamp();
-    double device_time_in_sec = static_cast<double>(device_time)/1000000.0;
-    double corrected_timestamp = device_time_in_sec;
 
-    image->header.stamp.fromSec(corrected_timestamp);
-
-    ROS_DEBUG("Time interval between frames: %.4f ms", (float)((corrected_timestamp-prev_time_stamp_)*1000.0));
-    prev_time_stamp_ = corrected_timestamp;
-  }
+  const uint64_t stamp_us = m_frame.getTimestamp();
+  image->header.stamp = ros::Time(stamp_us / 1000000ULL, (stamp_us % 1000000ULL) * 1000ULL);
+  ROS_DEBUG("Time interval between frames: %.4f ms", (float)((image->header.stamp.toSec()-prev_time_stamp_)*1000.0));
+  prev_time_stamp_ = image->header.stamp.toSec();
 
   image->width = m_frame.getWidth();
   image->height = m_frame.getHeight();
@@ -81,6 +58,10 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       image->step = sizeof(unsigned char) * 2 * image->width;
       break;
     case TYPixelFormatRGB8:
+      image->encoding = sensor_msgs::image_encodings::RGB8;
+      image->step = sizeof(unsigned char) * 3 * image->width;
+      break;
+    case TYPixelFormatBGR8:
       image->encoding = sensor_msgs::image_encodings::BGR8;
       image->step = sizeof(unsigned char) * 3 * image->width;
       break;
@@ -97,7 +78,7 @@ void PercipioFrameListener::onNewFrame(percipio::VideoStream& stream)
       image->step = sizeof(unsigned short) * 3 * image->width;
       break;
     default:
-      ROS_ERROR("Invalid image encoding(%s).", stream_desc.c_str());
+      ROS_ERROR("Unsupported image encoding for %s", stream_desc.c_str());
       return;
   }
   (*callback_)(image);

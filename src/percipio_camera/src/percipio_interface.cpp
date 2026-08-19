@@ -10,6 +10,8 @@
 #include "percipio_camera/percipio_log_server.h"
 #include "percipio_camera/image_process.hpp"
 
+#include <cstring>
+
 #include "percipio_camera/gige_2_0.h"
 #include "percipio_camera/gige_2_1.h"
 
@@ -20,7 +22,7 @@
 #define MAX_STORAGE_SIZE    (10*1024*1024)
 namespace percipio
 {
-  static tinyxml2::XMLDocument m_doc;
+  static percipio_ros1_tinyxml2::XMLDocument m_doc;
   static std::vector<DeviceCallback_t> cb_list;
 
   std::map<SensorType, std::string> SensorDesc = {
@@ -30,27 +32,12 @@ namespace percipio
     {SENSOR_DEPTH, "Depth"},
   };
 
-  void NewFrameCallbackManager::register_callback(void* listener, NewFrameCallback callback)
+  void VideoStream::dispatchFrame(TY_IMAGE_DATA* frame)
   {
-    frame_listener = listener;
-    cb = callback;
-  }
-
-  void NewFrameCallbackManager::unregister_callback()
-  {
-    frame_listener = NULL;
-    cb = NULL;
-  }
-  
-  bool NewFrameCallbackManager::isValid()
-  {
-    if(frame_listener && cb && is_enable) return true;
-    return false;
-  }
-
-  void NewFrameCallbackManager::enableCallback(bool en)
-  {
-    is_enable = en;
+    if (m_listener && m_enabled) {
+      parseImageData(frame);
+      m_listener->onNewFrame(*this);
+    }
   }
 
   TY_STATUS PercipioDepthCam::initialize()
@@ -75,15 +62,15 @@ namespace percipio
     cfg.clear();
 
     std::string wrappedXML = WrapXML(xml);
-    tinyxml2::XMLError err = m_doc.Parse(wrappedXML.c_str());
-    if( err != tinyxml2::XML_SUCCESS ){
-      ROS_ERROR("xml parse failed");
+    percipio_ros1_tinyxml2::XMLError err = m_doc.Parse(wrappedXML.c_str());
+    if( err != percipio_ros1_tinyxml2::XML_SUCCESS ){
+      ROS_ERROR("Failed to parse XML parameters, error: %d", err);
       return -1;
     }
 
-    tinyxml2::XMLElement* m_root = m_doc.RootElement();
+    percipio_ros1_tinyxml2::XMLElement* m_root = m_doc.RootElement();
     if(!m_root){
-      ROS_ERROR("found no root element");
+      ROS_ERROR("Failed to find root element in XML parameters");
       return -1;
     }
 
@@ -178,9 +165,11 @@ public:
 
     current_rgb_width = 0;
     current_rgb_height = 0;
+    actual_rgb_width = 0;
+    actual_rgb_height = 0;
 
-    device_list.clear();
-
+    enumerated_devices.clear();
+    
     DepthDomainTimeFilterMgrPtr = boost::make_shared<DepthTimeDomainMgr>(depth_time_domain_frame_cnt);
 
     TY_STATUS rc;
@@ -193,25 +182,23 @@ public:
     TYImageProcesAcceEnable(false);
   }
 
-  void PercipioDepthCam::GetDeviceList(DeviceInfo** device_info_ptr, int* cnt)
+  void PercipioDepthCam::GetDeviceList(std::vector<EnumeratedDevice>& devices)
   {
-    device_list.clear();
-
+    enumerated_devices.clear();
     std::vector<TY_DEVICE_BASE_INFO> selected;
     TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", "", 100, selected);
     if(rc != TY_STATUS_OK || selected.size() == 0) {
-       *cnt = 0;
-       *device_info_ptr = nullptr;
-       ROS_ERROR("not found any device");
+       devices.clear();
+       ROS_ERROR("Failed to enumerate devices, error: %d", rc);
        return;
     }
 
     for(size_t i = 0; i < selected.size(); i++) {
+      TY_INTERFACE_HANDLE hIface;
+      rc = TYOpenInterface(selected[i].iface.id, &hIface);
       if (TYIsNetworkInterface(selected[i].iface.type)) {
-        device_list.push_back(DeviceInfo(selected[i].id, selected[i].vendorName, selected[i].modelName, selected[i].netInfo.ip));
+        enumerated_devices.push_back(EnumeratedDevice(hIface, DeviceInfo(selected[i].id, selected[i].vendorName, selected[i].modelName, selected[i].netInfo.ip)));
       } else {
-        TY_INTERFACE_HANDLE hIface;
-        rc = TYOpenInterface(selected[i].iface.id, &hIface);
         if(rc == TY_STATUS_OK) {
           TY_DEV_HANDLE handle;
           int32_t ret = TYOpenDevice(hIface, selected[i].id, &handle);
@@ -223,10 +210,10 @@ public:
             TYCloseDevice(handle);
 
             if (strlen(dev.userDefinedName) != 0) {
-              device_list.push_back(DeviceInfo(selected[i].id, dev.userDefinedName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID));
+              enumerated_devices.push_back(EnumeratedDevice(hIface, DeviceInfo(selected[i].id, dev.userDefinedName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID)));
             } else {
               //LOGD("          vendor     : %s", dev.vendorName);
-              device_list.push_back(DeviceInfo(selected[i].id, dev.vendorName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID));
+              enumerated_devices.push_back(EnumeratedDevice(hIface, DeviceInfo(selected[i].id, dev.vendorName, dev.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID)));
             }
           }
           TYCloseInterface(hIface);
@@ -234,10 +221,7 @@ public:
       }
     }
 
-    *cnt = device_list.size();
-    *device_info_ptr = new DeviceInfo[device_list.size()];
-    for(size_t i = 0; i < device_list.size(); i++)
-      *(*device_info_ptr + i) = device_list[i];
+    devices = enumerated_devices;
   }
 
   TY_STATUS PercipioDepthCam::DeviceInit()
@@ -318,12 +302,6 @@ public:
     m_gige_dev->PreSetting();
     m_gige_dev->AcquisitionInit();
     
-    if (TYIsNetworkInterface(info.iface.type)) {
-      current_device_info = DeviceInfo(info.id, info.vendorName, info.modelName, info.netInfo.ip);
-    } else {
-      current_device_info = DeviceInfo(info.id, info.vendorName, info.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID);
-    }
-
     TYRegisterEventCallback(_M_DEVICE, eventCallback, this);
 
     if(!b_auto_reconnect) 
@@ -339,32 +317,34 @@ public:
 
   TY_STATUS PercipioDepthCam::openWithSN(const char* sn)
   {
-    TY_DEV_HANDLE deviceHandle;
-    std::vector<TY_DEVICE_BASE_INFO> selected;
-    std::string SN = std::string(sn);
-    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, SN, "", 1, selected);
-    if(!selected.size()) {
-      ROS_ERROR("not found any device");
+    _M_IFACE = nullptr;
+    for(auto& dev : enumerated_devices) {
+      if(strcmp(dev.get_device_info().getUri(),sn) == 0) {
+        _M_IFACE = dev.get_handle();
+        current_device_info = dev.get_device_info();
+        break;
+      }
+    }
+
+    if(!_M_IFACE) {
+      ROS_ERROR("Device not found with serial number: %s", sn);
       return TY_STATUS_ERROR;
     }
 
-    TY_DEVICE_BASE_INFO& selectedDev = selected[0];
-    for(size_t m = 0; m < selected.size(); m++) {
-      selectedDev = selected[m];
-      rc = TYOpenInterface(selectedDev.iface.id, &_M_IFACE);
-      if(rc != TY_STATUS_OK) continue;
-      rc = TYOpenDevice(_M_IFACE, selectedDev.id, &deviceHandle);
-      if(rc == TY_STATUS_OK) break;
-
-      ROS_INFO("TYOpenDevice error: %d", rc);
-      TYCloseInterface(_M_IFACE);
+    TY_STATUS rc = TYUpdateDeviceList(_M_IFACE);
+    if(rc != TY_STATUS_OK) {
+      ROS_ERROR("Failed to update device list, error: %d", rc);
+      return rc;
     }
 
-    if(rc != TY_STATUS_OK)
+    TY_DEV_HANDLE deviceHandle;
+    rc = TYOpenDevice(_M_IFACE, sn, &deviceHandle);
+    if(rc != TY_STATUS_OK) {
+      ROS_ERROR("Failed to open device with serial number: %s, error: %d", sn, rc);
       return rc;
+    }
 
-    
-    ROS_INFO("Device %s is open!", selectedDev.id);
+    ROS_INFO("Device %s opened successfully", sn);
 
     _M_DEVICE = deviceHandle;
 
@@ -373,37 +353,30 @@ public:
   
   TY_STATUS PercipioDepthCam::openWithIP(const char* ip)
   {
-    TY_DEV_HANDLE deviceHandle;
-    std::vector<TY_DEVICE_BASE_INFO> selected;
-    std::string IP = std::string(ip);
-    TY_STATUS rc = selectDevice(TY_INTERFACE_ALL, "", IP, 1, selected);
-    if(!selected.size()) {
-      ROS_ERROR("not found any device");
+    std::string sn;
+    _M_IFACE = nullptr;
+    for(auto& dev : enumerated_devices) {
+      if(strcmp(dev.get_device_info().getIp(),ip) == 0) {
+        _M_IFACE = dev.get_handle();
+        sn = dev.get_device_info().getUri();
+        current_device_info = dev.get_device_info();
+        break;
+      }
+    }
+
+    if(!_M_IFACE) {
+      ROS_ERROR("Device not found with IP: %s", ip);
       return TY_STATUS_ERROR;
     }
 
-    TY_DEVICE_BASE_INFO& selectedDev = selected[0];
-    for(size_t m = 0; m < selected.size(); m++) {
-      selectedDev = selected[m];
-      rc = TYOpenInterface(selectedDev.iface.id, &_M_IFACE);
-      if(rc != TY_STATUS_OK)
-        continue;
-      rc = TYOpenDevice(_M_IFACE, selectedDev.id, &deviceHandle);
-      if(rc != TY_STATUS_OK) {
-        TYCloseInterface(_M_IFACE);
-        continue;
-      }
-      else
-        break;
-    }
-
+    TY_DEV_HANDLE deviceHandle;
+    TY_STATUS rc = TYOpenDevice(_M_IFACE, sn.c_str(), &deviceHandle);
     if(rc != TY_STATUS_OK)
       return rc;
 
-    ROS_INFO("Device %s is open!", selectedDev.netInfo.ip);
+    ROS_INFO("Device %s opened successfully", ip);
 
     _M_DEVICE = deviceHandle;
-
     return DeviceInit();
   }
 
@@ -411,7 +384,7 @@ public:
   {
     if(enable_rate) {
       if(trigger_mode_en) {
-        ROS_WARN("Since enable_rate is enabled, trigger_mode_en parameter will be ignored");
+        ROS_WARN("Frame rate control is enabled, trigger mode parameter will be ignored");
         trigger_mode_en = false;
       }
     }
@@ -430,6 +403,11 @@ public:
   void PercipioDepthCam::setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback)
   {
     ptrFuncDeviceEvent = callback;
+  }
+
+  void PercipioDepthCam::setStreamRestoreCallback(boost::shared_ptr<StreamRestoreCallbackFunction>& callback)
+  {
+    ptrFuncStreamRestore = callback;
   }
 
   const DeviceInfo& PercipioDepthCam::get_current_device_info()
@@ -511,8 +489,11 @@ public:
   {
     if (_M_DEVICE != NULL)
     {
-      TYCloseDevice(_M_DEVICE);
-      TYCloseInterface(_M_IFACE);
+      auto rc = TYCloseDevice(_M_DEVICE);
+      if(rc != TY_STATUS_OK) {
+        ROS_WARN("TYCloseDevice failed, error code: %d", rc);
+      }
+      //TYCloseInterface(_M_IFACE);
     }
     _M_DEVICE = NULL;
   }
@@ -527,7 +508,7 @@ public:
         return -1;
       }
     } else {
-      ROS_ERROR("Device not in trigger mode, ignoring soft trigger signal");
+      ROS_ERROR("Device is not in trigger mode, ignoring soft trigger signal");
       return -1;
     }
     return 0;
@@ -638,7 +619,7 @@ public:
       DepthDomainTimeFilterMgrPtr->reset(depth_time_domain_frame_cnt);
       return true;
     } else {
-      ROS_WARN("Frame setting out of range (2-10) for time-domain filtering. Current value: %d is invalid, use default : %d",
+      ROS_WARN("Time-domain filter frame count out of range (2-10). Current value %d is invalid, using default: %d",
            frameCnt, depth_time_domain_frame_cnt);
       return false;
     }
@@ -688,19 +669,29 @@ public:
 
   TY_STATUS PercipioDepthCam::MapDepthFrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
-    return ImgProc::MapDepthImageToColorCoordinate(&depth_calib, &color_calib, current_rgb_width, current_rgb_height, src, dst, f_depth_scale_unit);
+    int32_t color_binning = static_cast<int32_t>(m_gige_dev->get_stream_binning(TY_COMPONENT_RGB_CAM));
+    int32_t rgb_w = static_cast<int32_t>(color_calib.intrinsicWidth / color_binning);
+    int32_t rgb_h = static_cast<int32_t>(color_calib.intrinsicHeight / color_binning);
+    TY_CAMERA_CALIB_INFO binning_color_calib;
+    TYAdjustCalibInfoByBinningCrop(&color_calib, color_binning, color_binning, 0, 0, rgb_w, rgb_h, &binning_color_calib);
+    return ImgProc::MapDepthImageToColorCoordinate(&adj_depth_calib, &binning_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
   }
 
   TY_STATUS PercipioDepthCam::MapXYZ48FrameToColorCoordinate(VideoFrameData* src, VideoFrameData* dst)
   {
-    return ImgProc::MapXYZ48ToColorCoordinate(&depth_calib, &color_calib, current_rgb_width, current_rgb_height, src, dst, f_depth_scale_unit);
+    int32_t color_binning = static_cast<int32_t>(m_gige_dev->get_stream_binning(TY_COMPONENT_RGB_CAM));
+    int32_t rgb_w = static_cast<int32_t>(color_calib.intrinsicWidth / color_binning);
+    int32_t rgb_h = static_cast<int32_t>(color_calib.intrinsicHeight / color_binning);
+    TY_CAMERA_CALIB_INFO binning_color_calib;
+    TYAdjustCalibInfoByBinningCrop(&color_calib, color_binning, color_binning, 0, 0, rgb_w, rgb_h, &binning_color_calib);
+    return ImgProc::MapXYZ48ToColorCoordinate(&adj_depth_calib, &binning_color_calib, rgb_w, rgb_h, src, dst, f_depth_scale_unit);
   }
 
   TY_STATUS PercipioDepthCam::parseColorStream(VideoFrameData* src, VideoFrameData* dst)
   {
     TY_STATUS status = TY_STATUS_OK;
     if(color_undistortion)
-      status = ImgProc::doRGBUndistortion(&color_calib, src, dst);
+      status = ImgProc::doRGBUndistortion(&adj_color_calib, src, dst);
     else
       dst->clone(*src);
     return status;
@@ -716,7 +707,7 @@ public:
   {
     TY_STATUS status = TY_STATUS_OK;
     if(depth_distortion)
-      status = ImgProc::doDepthUndistortion(&depth_calib, src, dst);
+      status = ImgProc::doDepthUndistortion(&adj_depth_calib, src, dst);
     else
       dst->clone(*src);
     return status;
@@ -729,18 +720,18 @@ public:
     if(comp == TY_COMPONENT_IR_CAM_LEFT) {
       switch(ir_rectificatio_mode) {
         case DISTORTION_CORRECTION:
-          return ImgProc::IRUndistortion(IR, &left_ir_calib, nullptr, nullptr, ir_len_type);
+          return ImgProc::IRUndistortion(IR, &adj_left_ir_calib, nullptr, nullptr, ir_len_type);
         case EPIPOLAR_RECTIFICATION:
-          return ImgProc::IRUndistortion(IR, &left_ir_calib, &left_ir_rotation, &left_ir_rectified_intr, ir_len_type);
+          return ImgProc::IRUndistortion(IR, &adj_left_ir_calib, &left_ir_rotation, &adj_left_ir_rectified_intr, ir_len_type);
         default:
           return TY_STATUS_INVALID_PARAMETER;
       }
     } else if(comp == TY_COMPONENT_IR_CAM_RIGHT) {
       switch(ir_rectificatio_mode) {
         case DISTORTION_CORRECTION:
-          return ImgProc::IRUndistortion(IR, &right_ir_calib, nullptr, nullptr, ir_len_type);
+          return ImgProc::IRUndistortion(IR, &adj_right_ir_calib, nullptr, nullptr, ir_len_type);
         case EPIPOLAR_RECTIFICATION:
-          return ImgProc::IRUndistortion(IR, &right_ir_calib, &right_ir_rotation, &right_ir_rectified_intr, ir_len_type);
+          return ImgProc::IRUndistortion(IR, &adj_right_ir_calib, &right_ir_rotation, &adj_right_ir_rectified_intr, ir_len_type);
         default:
           return TY_STATUS_INVALID_PARAMETER;
       }
@@ -766,12 +757,48 @@ public:
     return ImgProc::cvtColor(src, dst);
   }
 
+  TY_CAMERA_CALIB_INFO PercipioDepthCam::adjustCalibByBinningCrop(const TY_CAMERA_CALIB_INFO& src_calib, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data)
+  {
+      TY_CAMERA_CALIB_INFO dst_calib;
+      float binning = m_gige_dev->get_stream_binning(comp);
+      if(binning < 0) binning = 1.f;
+      int32_t binX = static_cast<int32_t>(binning);
+      int32_t binY = static_cast<int32_t>(binning);
+      TY_STATUS status = TYAdjustCalibInfoByBinningCrop(
+          &src_calib, binX, binY,
+          image_data.cropOffsetX, image_data.cropOffsetY,
+          image_data.width, image_data.height, &dst_calib);
+      if(status != TY_STATUS_OK) {
+          ROS_WARN_STREAM("TYAdjustCalibInfoByBinningCrop failed (comp=0x" << std::hex << comp << std::dec
+              << ", bin=" << binX << "x" << binY
+              << ", crop=" << image_data.cropOffsetX << "," << image_data.cropOffsetY
+              << ", size=" << image_data.width << "x" << image_data.height
+              << "), error: " << status << ", falling back to original calibration");
+          return src_calib;
+      }
+      return dst_calib;
+  }
+
+  TY_CAMERA_INTRINSIC PercipioDepthCam::adjustIntrinsicByBinningCrop(const TY_CAMERA_INTRINSIC& src_intr, TY_COMPONENT_ID comp, const TY_IMAGE_DATA& image_data)
+  {
+      float binning = m_gige_dev->get_stream_binning(comp);
+      if(binning < 0) binning = 1.f;
+
+      TY_CAMERA_INTRINSIC dst_intr;
+      memcpy(dst_intr.data, src_intr.data, sizeof(dst_intr.data));
+      dst_intr.data[0] = src_intr.data[0] / binning;
+      dst_intr.data[2] = src_intr.data[2] / binning - static_cast<float>(image_data.cropOffsetX);
+      dst_intr.data[4] = src_intr.data[4] / binning;
+      dst_intr.data[5] = src_intr.data[5] / binning - static_cast<float>(image_data.cropOffsetY);
+      return dst_intr;
+  }
+
   TY_STATUS PercipioDepthCam::DeviceGetProperty(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size)
   {
     bool has = false;
     TY_STATUS ret = TYHasFeature(_M_DEVICE, comp, feat, &has);
     if(ret || (!has)) {
-      ROS_WARN("Invalid property(0x%08x 0x%08x) ret = %d", comp, feat, ret);
+      ROS_WARN("Feature not available or invalid (comp=0x%08x, feat=0x%08x), error: %d", comp, feat, ret);
       return ret;
     }
 
@@ -818,7 +845,7 @@ public:
         break;
       }
       default:{
-        ROS_WARN("Invalid feature type(0x%08x)", feat);
+        ROS_WARN("Unsupported feature type: 0x%08x", feat);
       }
     }
     return ret;
@@ -829,7 +856,7 @@ public:
     bool has = false;
     TY_STATUS ret = TYHasFeature(_M_DEVICE, comp, feat, &has);
     if(ret || (!has)) {
-      ROS_WARN("Invalid property(0x%08x 0x%08x) ret = %d", comp, feat, ret);
+      ROS_WARN("Feature not available or invalid (comp=0x%08x, feat=0x%08x), error: %d", comp, feat, ret);
       return ret;
     }
 
@@ -876,7 +903,7 @@ public:
         break;
       }
       default:{
-        ROS_WARN("Invalid feature type(0x%08x)", feat);
+        ROS_WARN("Unsupported feature type: 0x%08x", feat);
       }
     }
     return ret;
@@ -898,44 +925,44 @@ public:
     }
   }
 
-  TY_STATUS PercipioDepthCam::CreateStream(SensorType sensorType, StreamHandle& streamHandle)
+  TY_STATUS PercipioDepthCam::CreateStream(SensorType sensorType, boost::shared_ptr<VideoStream>& stream)
   {
     switch(sensorType)
     {
       case SENSOR_IR_LEFT:
-        return create_leftIR_stream(streamHandle);
+        return create_leftIR_stream(stream);
       case SENSOR_IR_RIGHT:
-        return create_rightIR_stream(streamHandle);
+        return create_rightIR_stream(stream);
       case SENSOR_COLOR:
-        return create_color_stream(streamHandle);
+        return create_color_stream(stream);
       case SENSOR_DEPTH:
-        return create_depth_stream(streamHandle);
+        return create_depth_stream(stream);
       case SENSOR_POINT3D:
-        return create_point3d_stream(streamHandle);
+        return create_point3d_stream(stream);
       default:
         return TY_STATUS_INVALID_PARAMETER;
     }
   }
 
-  VideoMode PercipioDepthCam::get_current_video_mode(StreamHandle stream)
+  VideoMode PercipioDepthCam::get_current_video_mode(boost::shared_ptr<VideoStream> stream)
   {
     uint32_t value = 0;
     SensorType type = get_stream_type(stream);
     return m_gige_dev->current_video_mode[type];
   }
 
-  TY_STATUS PercipioDepthCam::StreamRegisterNewFrameCallback(StreamHandle stream, void* listener, NewFrameCallback cb)//, void* listener)
+  TY_STATUS PercipioDepthCam::StreamRegisterNewFrameCallback(boost::shared_ptr<VideoStream> stream, void* listener)
   {
     pthread_mutex_lock(&m_mutex);
-    if(stream) static_cast<NewFrameCallbackManager*>(stream)->register_callback(listener, cb);
+    if(stream) stream->m_listener = static_cast<VideoStream::NewFrameListener*>(listener);
     pthread_mutex_unlock(&m_mutex);
     return TY_STATUS_OK;
   }
 
-  void PercipioDepthCam::StreamUnregisterNewFrameCallback(StreamHandle stream)
+  void PercipioDepthCam::StreamUnregisterNewFrameCallback(boost::shared_ptr<VideoStream> stream)
   {
     pthread_mutex_lock(&m_mutex);
-    if(stream) static_cast<NewFrameCallbackManager*>(stream)->unregister_callback();
+    if(stream) stream->m_listener = NULL;
     pthread_mutex_unlock(&m_mutex);
   }
 
@@ -969,27 +996,42 @@ public:
     PercipioDepthCam* cam = (PercipioDepthCam*)ptr;
 
     while(cam->b_device_opened) {
-      std::unique_lock<std::mutex> lck(cam->detect_mutex);
-      cam->detect_cond.wait(lck);
-      cam->StreamStopAll();
-      cam->close();
+      {
+        std::unique_lock<std::mutex> lck(cam->detect_mutex);
+        cam->detect_cond.wait(lck);
+        cam->StreamStopAll();
+        cam->close();
+      }
+
+RETRY:
       while(true) {
         if(!cam->openWithSN(cam->m_current_device_sn.c_str())) {
           cam->send_device_event(DEVICE_EVENT_AUTO_RECONNECTED);
-
-          ROS_INFO("camera: %s  opened!", cam->m_current_device_sn.c_str());
+          ROS_INFO("Successfully reconnected camera: %s", cam->m_current_device_sn.c_str());
           break;
         }
 
-        ROS_INFO("camera: %s  failed, retry!", cam->m_current_device_sn.c_str());
+        ROS_INFO("Failed to open camera: %s, retrying...", cam->m_current_device_sn.c_str());
         MSLEEP(1000);
       }
       
       if(cam->ptrFuncDeviceInit) (*(cam->ptrFuncDeviceInit))();
 
       PercipioDepthCam::isOffline = false;
-      if(cam->HasStream()) {
-        cam->StreamStart();
+
+      TY_STATUS ret = TY_STATUS_OK;
+      if(cam->ptrFuncStreamRestore) {
+        //Let the upper layer decide which streams to restart
+        //based on the current topic subscription status.
+        ret = (*(cam->ptrFuncStreamRestore))();
+      } else if(cam->HasStream()) {
+        ret = cam->StreamStart();
+      }
+
+      if(ret != TY_STATUS_OK) {
+        ROS_WARN("Failed to restart stream, retrying...");
+        cam->close();
+        goto RETRY;
       }
     }
 
@@ -1023,7 +1065,7 @@ public:
           }
           MSLEEP(delt);
       } else {
-          ROS_WARN("Trigger signal timeout!");
+          ROS_WARN("Soft trigger signal timed out");
       }
     }
 
@@ -1042,11 +1084,24 @@ public:
       rc = TYFetchFrame(handle, &frame, 2000);
       if(rc == TY_STATUS_OK) {
         float fps = fps_counter.get_fps();
-        if(fps > 0) ROS_INFO("fps: %.2f", fps);
+        if(fps > 0) ROS_INFO("Frame rate: %.2f FPS", fps);
+
+        if(cam->b_stream_with_color) {
+          for (int i = 0; i < frame.validCount; i++) {
+            if (frame.image[i].status == TY_STATUS_OK && frame.image[i].componentID == TY_COMPONENT_RGB_CAM) {
+              cam->adj_color_calib = cam->adjustCalibByBinningCrop(cam->color_calib, TY_COMPONENT_RGB_CAM, frame.image[i]);
+              cam->actual_rgb_width = frame.image[i].width;
+              cam->actual_rgb_height = frame.image[i].height;
+              break;
+            }
+          }
+        }
+
         for (int i = 0; i < frame.validCount; i++){
           if (frame.image[i].status != TY_STATUS_OK) continue;
 
           if (frame.image[i].componentID == TY_COMPONENT_DEPTH_CAM){
+            cam->adj_depth_calib = cam->adjustCalibByBinningCrop(cam->depth_calib, TY_COMPONENT_DEPTH_CAM, frame.image[i]);
             if(frame.image[i].pixelFormat == TYPixelFormatCoord3D_C16) {
               uint16_t* ptrDepth = static_cast<uint16_t*>(frame.image[i].buffer);
               int32_t PixsCnt = frame.image[i].width * frame.image[i].height;
@@ -1056,34 +1111,37 @@ public:
 
               if(cam->depth_stream_spec_enable) {
                 DepthSpeckleFilterParameters param = {cam->depth_stream_spec_size, cam->depth_stream_spec_diff, cam->depth_stream_physical_size};
-                TYDepthSpeckleFilter(&frame.image[i], &param, &cam->getDepthCalib(), cam->getDepthScaleUnit());
+                if(cam->depth_stream_physical_size <= 0)
+                    TYDepthSpeckleFilter(&frame.image[i], &param, nullptr, cam->getDepthScaleUnit());
+                else
+                    TYDepthSpeckleFilter(&frame.image[i], &param, &cam->adj_depth_calib, cam->getDepthScaleUnit());
               }
 
               if(cam->depth_time_domain_enable) {
                 cam->DepthDomainTimeFilterMgrPtr->add_frame(frame.image[i]);
                 if(!cam->DepthDomainTimeFilterMgrPtr->do_time_domain_process(frame.image[i])) {
-                  ROS_WARN("Do Time-domain filter, drop frame!");
+                  ROS_WARN("Time-domain filter active, dropping frame");
                   continue;
                 }
               }
             }
             
-            if(cam->DepthStream->isValid() && cam->depth_topic_swicth()) {
-              cam->DepthStream->cb(cam->DepthStream.get(), cam->DepthStream->frame_listener, &frame.image[i]);
+            if(cam->DepthStream && cam->DepthStream->isEnabled() && cam->depth_topic_swicth()) {
+              cam->DepthStream->dispatchFrame(&frame.image[i]);
             }
             
-            if(cam->Point3DStream->isValid() && cam->pointcloud_topic_swicth()) {
-              cam->Point3DStream->cb(cam->Point3DStream.get(), cam->Point3DStream->frame_listener, &frame.image[i]);
+            if(cam->Point3DStream && cam->Point3DStream->isEnabled() && cam->pointcloud_topic_swicth()) {
+              cam->Point3DStream->dispatchFrame(&frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_RGB_CAM){
-            if(cam->ColorStream->isValid() && cam->color_topic_swicth()) {
-              cam->ColorStream->cb(cam->ColorStream.get(), cam->ColorStream->frame_listener, &frame.image[i]);
+            if(cam->ColorStream && cam->ColorStream->isEnabled() && cam->color_topic_swicth()) {
+              cam->ColorStream->dispatchFrame(&frame.image[i]);
             }
           }
           else if(frame.image[i].componentID == TY_COMPONENT_IR_CAM_LEFT){
-            if(cam->leftIRStream->isValid() && cam->ir_topic_swicth()) {
-              cam->leftIRStream->cb(cam->leftIRStream.get(), cam->leftIRStream->frame_listener, &frame.image[i]);
+            if(cam->leftIRStream && cam->leftIRStream->isEnabled() && cam->ir_topic_swicth()) {
+              cam->leftIRStream->dispatchFrame(&frame.image[i]);
             }
           }
           #if 0
@@ -1122,12 +1180,32 @@ public:
     return false;
   }
 
-  void PercipioDepthCam::StreamEnable(StreamHandle stream) {
-    if(stream) static_cast<NewFrameCallbackManager*>(stream)->enableCallback(true);
+  bool PercipioDepthCam::HasEnabledStream()
+  {
+    if(leftIRStream && leftIRStream->isValid() && leftIRStream->isEnabled())
+      return true;
+
+    if(rightIRStream && rightIRStream->isValid() && rightIRStream->isEnabled())
+      return true;
+
+    if(ColorStream && ColorStream->isValid() && ColorStream->isEnabled())
+      return true;
+
+    if(DepthStream && DepthStream->isValid() && DepthStream->isEnabled())
+      return true;
+
+    if(Point3DStream && Point3DStream->isValid() && Point3DStream->isEnabled())
+      return true;
+
+    return false;
   }
 
-  void PercipioDepthCam::StreamDisable(StreamHandle stream) {
-    if(stream) static_cast<NewFrameCallbackManager*>(stream)->enableCallback(false);
+  void PercipioDepthCam::StreamEnable(boost::shared_ptr<VideoStream> stream) {
+    if(stream) stream->setEnabled(true);
+  }
+
+  void PercipioDepthCam::StreamDisable(boost::shared_ptr<VideoStream> stream) {
+    if(stream) stream->setEnabled(false);
   }
   
   TY_STATUS PercipioDepthCam::StartCapture()
@@ -1138,7 +1216,7 @@ public:
     return rc;
   }
 
-  void PercipioDepthCam::StopCapture(StreamHandle stream)
+  void PercipioDepthCam::StopCapture(boost::shared_ptr<VideoStream> stream)
   {
     pthread_mutex_lock(&m_mutex);
     StreamStop(stream);
@@ -1151,7 +1229,7 @@ public:
     if(isRuning) StreamStopAll();
     
     if(!HasStream()) {
-      ROS_WARN("device has no stream component!");
+      ROS_WARN("No stream component is enabled on the device");
       return TY_STATUS_ERROR;
     }
 
@@ -1161,22 +1239,22 @@ public:
     std::string component_list;
     if(mIDS & TY_COMPONENT_IR_CAM_LEFT) {
       if(leftIRStream && leftIRStream->isValid()) {
-        ROS_INFO("Enable Left-IR stream!");
+        ROS_INFO("Enabling Left-IR stream");
         rc = m_gige_dev->EnableLeftIRStream(true);
         if(!rc) component_list += "leftIR ";
       } else {
-        ROS_INFO("Disable Left-IR stream!");
+        ROS_INFO("Disabling Left-IR stream");
         rc = m_gige_dev->EnableLeftIRStream(false);
       }
     }
 
     if(mIDS & TY_COMPONENT_IR_CAM_RIGHT) {
       if(rightIRStream && rightIRStream->isValid()){
-        ROS_INFO("Enable Right-IR stream!");
+        ROS_INFO("Enabling Right-IR stream");
         rc = m_gige_dev->EnableRightIRStream(true);
         if(!rc) component_list += "rightIR ";
       } else {
-        ROS_INFO("Disable Right-IR stream!");
+        ROS_INFO("Disabling Right-IR stream");
         rc = m_gige_dev->EnableRightIRStream(false);
       }
     }
@@ -1217,12 +1295,12 @@ public:
         if (it != m_gige_dev->current_video_mode.end()) {
           current_rgb_width = it->second.getResolutionX();
           current_rgb_height = it->second.getResolutionY();
-          ROS_INFO("Current color image size : %d x %d.", current_rgb_width, current_rgb_height);
+          ROS_INFO("Current color image resolution: %d x %d", current_rgb_width, current_rgb_height);
         } else {
-          ROS_WARN("Got current color image size failed!");
+          ROS_WARN("Failed to retrieve current color image resolution, using default");
         }
 
-        ROS_INFO("Enable color stream!");
+        ROS_INFO("Enabling color stream");
         rc = m_gige_dev->EnableColorStream(true);
         if(!rc) component_list += "color ";
 
@@ -1230,7 +1308,7 @@ public:
 
         b_stream_with_color = true;
       } else {
-        ROS_INFO("Disable color stream!");
+        ROS_INFO("Disabling color stream");
         rc = m_gige_dev->EnableColorStream(false);
 
         current_rgb_width = 0;
@@ -1250,14 +1328,14 @@ public:
         if (it != m_gige_dev->current_video_mode.end()) {
           int current_depth_width = it->second.getResolutionX();
           int current_depth_height = it->second.getResolutionY();
-          ROS_INFO("Current depth image size : %d x %d.", current_depth_width, current_depth_height);
+          ROS_INFO("Current depth image resolution: %d x %d", current_depth_width, current_depth_height);
         } else {
-          ROS_WARN("Got current depth image size failed, use default size!");
+          ROS_WARN("Failed to retrieve current depth image resolution, using default");
         }
 
         depth_distortion = m_gige_dev->need_depth_undistortion;
 
-        ROS_INFO("Enable depth stream!");
+        ROS_INFO("Enabling depth stream");
         rc = m_gige_dev->EnableDepthStream(true);
         if(!rc) component_list += "depth ";
 
@@ -1265,17 +1343,17 @@ public:
 
         m_gige_dev->getDepthScaleUnit(f_depth_scale_unit);
 
-        ROS_INFO("Depth stream scale unit : %f", f_depth_scale_unit);
+        ROS_INFO("Depth stream scale unit: %f", f_depth_scale_unit);
       } else {
-        ROS_INFO("Disable depth stream!");
+        ROS_INFO("Disabling depth stream");
         rc = m_gige_dev->EnableDepthStream(false);
       }
     }
 
-    ROS_INFO("Device components enabled: %s.", component_list.c_str());
+    ROS_INFO("Enabled device components: %s", component_list.c_str());
     ROS_INFO("Color undistortion flag: %d", color_undistortion);
     ROS_INFO("Depth undistortion flag: %d", depth_distortion);
-    ROS_INFO("RGBD alignment flag:     %d", DeviceGetImageRegistrationMode());
+    ROS_INFO("RGBD alignment flag: %d", DeviceGetImageRegistrationMode());
 
     enable_soft_frame_rate_ctrl = false;
     if(b_enable_rate_ctrl) {
@@ -1286,15 +1364,22 @@ public:
         if(rc == TY_STATUS_OK) {
           enable_soft_frame_rate_ctrl = true;
         } else {
-          ROS_WARN("The frame rate of the device output is uncontrollable, and frame rate control cannot be achieved.");
+          ROS_WARN("Device does not support hardware frame rate control, frame rate control is unavailable");
         }
       }
     }
       
     m_gige_dev->enable_trigger_mode(b_trigger_mode_en);
+
+    m_gige_dev->stream_base_info_init();
     
     uint32_t frameSize;
-    TYGetFrameBufferSize(_M_DEVICE, &frameSize);
+    rc = TYGetFrameBufferSize(_M_DEVICE, &frameSize);
+    if(rc) {
+      ROS_WARN("TYGetFrameBufferSize failed, error code: %d", rc);
+      return rc;
+    }
+
     frameBuffer[0].resize(frameSize);
     frameBuffer[1].resize(frameSize);
     TYEnqueueBuffer(_M_DEVICE, &frameBuffer[0][0], frameSize);
@@ -1302,7 +1387,7 @@ public:
 
     rc = TYStartCapture(_M_DEVICE);
     if(rc != TY_STATUS_OK) {
-      ROS_WARN("TYStartCapture got error code : %d!", rc);
+      ROS_WARN("TYStartCapture failed, error code: %d", rc);
       return rc;
     }
 
@@ -1324,11 +1409,14 @@ public:
       }
       pthread_join(frame_fetch_thread, NULL);
     }
-    TYStopCapture(_M_DEVICE);
+    auto rc = TYStopCapture(_M_DEVICE);
+    if(rc != TY_STATUS_OK) {
+      ROS_WARN("TYStopCapture failed, error code: %d", rc);
+    }
     TYClearBufferQueue(_M_DEVICE);
   }
 
-  void PercipioDepthCam::StreamStop(StreamHandle stream)
+  void PercipioDepthCam::StreamStop(boost::shared_ptr<VideoStream> stream)
   {
     TY_COMPONENT_ID  comp = get_stream_component_id(stream);
     if(comp == 0)
@@ -1345,12 +1433,14 @@ public:
     TYStopCapture(_M_DEVICE);
     TYClearBufferQueue(_M_DEVICE);
 
-    if(HasStream()) {
+    // Only restart capture if at least one stream is still enabled
+    // (i.e. still has subscribers); otherwise keep the camera stopped.
+    if(HasEnabledStream()) {
       StreamStart();
     }
   }
 
-  SensorType PercipioDepthCam::StreamGetSensorInfo(StreamHandle stream)
+  SensorType PercipioDepthCam::StreamGetSensorInfo(boost::shared_ptr<VideoStream> stream)
   {
     return get_stream_type(stream);
   }
@@ -1370,52 +1460,57 @@ public:
     return f_frame_rate;
   }
 
-  TY_STATUS PercipioDepthCam::create_leftIR_stream(StreamHandle& stream)
+  TY_STATUS PercipioDepthCam::create_leftIR_stream(boost::shared_ptr<VideoStream>& stream)
   {
-    if(!leftIRStream) leftIRStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = static_cast<StreamHandle>(leftIRStream.get());
+    if(!leftIRStream) leftIRStream = boost::make_shared<VideoStream>("LeftIR");
+    stream = leftIRStream;
+    stream->setSelf(stream);
     return TY_STATUS_OK;
   }
 
-  TY_STATUS PercipioDepthCam::create_rightIR_stream(StreamHandle& stream)
+  TY_STATUS PercipioDepthCam::create_rightIR_stream(boost::shared_ptr<VideoStream>& stream)
   {
-    if(!rightIRStream) rightIRStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = static_cast<StreamHandle>(rightIRStream.get());
+    if(!rightIRStream) rightIRStream = boost::make_shared<VideoStream>("RightIR");
+    stream = rightIRStream;
+    stream->setSelf(stream);
     return TY_STATUS_OK;
   }
   
-  TY_STATUS PercipioDepthCam::create_color_stream(StreamHandle& stream)
+  TY_STATUS PercipioDepthCam::create_color_stream(boost::shared_ptr<VideoStream>& stream)
   {
-    if(!ColorStream) ColorStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = static_cast<StreamHandle>(ColorStream.get());
+    if(!ColorStream) ColorStream = boost::make_shared<VideoStream>("Color");
+    stream = ColorStream;
+    stream->setSelf(stream);
     return TY_STATUS_OK;
   }
 
-  TY_STATUS PercipioDepthCam::create_depth_stream(StreamHandle& stream)
+  TY_STATUS PercipioDepthCam::create_depth_stream(boost::shared_ptr<VideoStream>& stream)
   {
-    if(!DepthStream) DepthStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = static_cast<StreamHandle>(DepthStream.get());
+    if(!DepthStream) DepthStream = boost::make_shared<VideoStream>("Depth");
+    stream = DepthStream;
+    stream->setSelf(stream);
     return TY_STATUS_OK;
   }
 
-  TY_STATUS PercipioDepthCam::create_point3d_stream(StreamHandle& stream)
+  TY_STATUS PercipioDepthCam::create_point3d_stream(boost::shared_ptr<VideoStream>& stream)
   {
-    if(!Point3DStream) Point3DStream = boost::make_shared<NewFrameCallbackManager>();
-    stream = static_cast<StreamHandle>(Point3DStream.get());
+    if(!Point3DStream) Point3DStream = boost::make_shared<VideoStream>("Point3D");
+    stream = Point3DStream;
+    stream->setSelf(stream);
     return TY_STATUS_OK;
   }
 
-  const TY_COMPONENT_ID PercipioDepthCam::get_stream_component_id(StreamHandle stream)
+  const TY_COMPONENT_ID PercipioDepthCam::get_stream_component_id(boost::shared_ptr<VideoStream> stream)
   {
-    if(leftIRStream.get() == stream) {
+    if(leftIRStream == stream) {
       return TY_COMPONENT_IR_CAM_LEFT;
-    }else if(rightIRStream.get() == stream) {
+    }else if(rightIRStream == stream) {
       return TY_COMPONENT_IR_CAM_RIGHT;
-    } else if(ColorStream.get() == stream) {
+    } else if(ColorStream == stream) {
       return TY_COMPONENT_RGB_CAM;
-    } else if(DepthStream.get() == stream) {
+    } else if(DepthStream == stream) {
       return TY_COMPONENT_DEPTH_CAM;
-    } else if(Point3DStream.get() == stream) {
+    } else if(Point3DStream == stream) {
       return TY_COMPONENT_DEPTH_CAM;
     }
     else {
@@ -1423,32 +1518,32 @@ public:
     }
   }
 
-  const SensorType PercipioDepthCam::get_stream_type(StreamHandle stream)
+  const SensorType PercipioDepthCam::get_stream_type(boost::shared_ptr<VideoStream> stream)
   {
-    if(leftIRStream.get() == stream) {
+    if(leftIRStream == stream) {
       return SENSOR_IR_LEFT;
-    }else if(rightIRStream.get() == stream) {
+    }else if(rightIRStream == stream) {
       return SENSOR_IR_RIGHT;
-    } else if(ColorStream.get() == stream) {
+    } else if(ColorStream == stream) {
       return SENSOR_COLOR;
-    } else if(DepthStream.get() == stream) {
+    } else if(DepthStream == stream) {
       return SENSOR_DEPTH;
-    } else if(Point3DStream.get() == stream) {
+    } else if(Point3DStream == stream) {
       return SENSOR_POINT3D;
     } else {
       return SENSOR_NONE;
     }
   }
 
-  static boost::shared_ptr<PercipioDepthCam> g_Context = boost::shared_ptr<PercipioDepthCam>();
+  static boost::shared_ptr<PercipioDepthCam> g_Context = nullptr;//boost::shared_ptr<PercipioDepthCam>();
 
   TY_STATUS VideoStream::addNewFrameListener(NewFrameListener* pListener)
   {
-    if (!isValid()) 
+    if (!isValid())
       return TY_STATUS_ERROR;
 
     pListener->VideoStreamInit(this);
-    return g_Context->StreamRegisterNewFrameCallback(m_stream, static_cast<void*>(pListener), pListener->callback);
+    return g_Context->StreamRegisterNewFrameCallback(m_self, static_cast<void*>(pListener));
   }
 
   void VideoStream::removeNewFrameListener(NewFrameListener* pListener)
@@ -1457,7 +1552,7 @@ public:
     {
       return;
     }
-    g_Context->StreamUnregisterNewFrameCallback(m_stream);
+    g_Context->StreamUnregisterNewFrameCallback(m_self);
     pListener->VideoStreamDeinit();
   }
 
@@ -1467,7 +1562,7 @@ public:
       return TY_STATUS_ERROR;
     }
 
-    g_Context->StreamEnable(m_stream);
+    g_Context->StreamEnable(m_self);
     return g_Context->StartCapture();
   }
 
@@ -1475,8 +1570,8 @@ public:
   {
     if (!isValid())
       return;
-    g_Context->StreamDisable(m_stream);
-    g_Context->StopCapture(m_stream);
+    g_Context->StreamDisable(m_self);
+    g_Context->StopCapture(m_self);
   }
 
   TY_STATUS VideoStream::readFrame(VideoFrameRef* pFrame)
@@ -1496,7 +1591,7 @@ public:
   
   VideoMode VideoStream::getVideoMode() const
   {
-    VideoMode videoMode = g_Context->get_current_video_mode(m_stream);
+    VideoMode videoMode = g_Context->get_current_video_mode(m_self);
     return videoMode;
   }
 
@@ -1506,16 +1601,18 @@ public:
     return vertical;
   }
 
-  TY_STATUS VideoStream::create(const Device& device, SensorType sensorType)
+  TY_STATUS VideoStream::create(const PercipioDevice& device, SensorType sensorType)
   {
-    StreamHandle streamHandle;
+    boost::shared_ptr<VideoStream> streamHandle;
     TY_STATUS rc = g_Context->CreateStream(sensorType, streamHandle);
     if (rc != TY_STATUS_OK)
     {
       return rc;
     }
-    
-    _setHandle(streamHandle);
+
+    m_self = streamHandle;
+    m_created = true;
+    m_sensorInfo._setInternal(sensorType);
     return TY_STATUS_OK;
   }
 
@@ -1525,10 +1622,8 @@ public:
     {
       return;
     }
-    if (m_stream != NULL)
-    {
-      m_stream = NULL;
-    }
+    m_created = false;
+    m_self.reset();
   }
 
   const SensorInfo& VideoStream::getSensorInfo() const
@@ -1536,23 +1631,17 @@ public:
     return m_sensorInfo;
   }
 
-  const StreamHandle& VideoStream::_getHandle() const
+  bool VideoStream::isValid() const
   {
-    return m_stream;
+    return m_created;
   }
 
-  void VideoStream::_setHandle(StreamHandle stream)
+  VideoFrameData& VideoStream::getFrame()
   {
-    //need bind stream handle & sensorInfo
-    m_sensorInfo._setInternal(SENSOR_NONE);
-    m_stream = stream;
-    if (stream != NULL)
-    {
-      m_sensorInfo._setInternal(g_Context->StreamGetSensorInfo(m_stream));
-    }
+    return frame;
   }
 
-  void  VideoStream::parseImageData(TY_IMAGE_DATA* img)
+  void VideoStream::parseImageData(TY_IMAGE_DATA* img)
   {
     TY_STATUS ret;
     VideoFrameData vframe, tframe;
@@ -1562,6 +1651,7 @@ public:
     {
       case TY_COMPONENT_DEPTH_CAM:
         type = getSensorInfo().getSensorType();
+        g_Context->adj_depth_calib = g_Context->adjustCalibByBinningCrop(g_Context->depth_calib, TY_COMPONENT_DEPTH_CAM, *img);
         if(img->pixelFormat == TYPixelFormatCoord3D_C16) {
           g_Context->parseDepthStream(&vframe, &tframe);
           ImageRegistrationMode mode = g_Context->DeviceGetImageRegistrationMode();
@@ -1582,7 +1672,7 @@ public:
             if(ret == TY_STATUS_OK) {
               frame.clone(tempFrame);
             } else {
-              ROS_WARN("XYZ48 MapXYZ48FrameToColorCoordinate ERR : %d", ret);
+              ROS_WARN("MapXYZ48FrameToColorCoordinate failed, error: %d", ret);
             }
           } else {
             frame.clone(vframe);
@@ -1590,6 +1680,7 @@ public:
         }
         break;
       case TY_COMPONENT_RGB_CAM:
+        g_Context->adj_color_calib = g_Context->adjustCalibByBinningCrop(g_Context->color_calib, TY_COMPONENT_RGB_CAM, *img);
         if(img->pixelFormat == TYPixelFormatMono8)
           tframe.clone(vframe);
         else
@@ -1597,32 +1688,41 @@ public:
         g_Context->parseColorStream(&tframe, &frame);
         break;
       case TY_COMPONENT_IR_CAM_LEFT:
-      case TY_COMPONENT_IR_CAM_RIGHT:
+      {
+        g_Context->adj_left_ir_calib = g_Context->adjustCalibByBinningCrop(g_Context->left_ir_calib, TY_COMPONENT_IR_CAM_LEFT, *img);
+        g_Context->adj_left_ir_rectified_intr = g_Context->adjustIntrinsicByBinningCrop(g_Context->left_ir_rectified_intr, TY_COMPONENT_IR_CAM_LEFT, *img);
         if(img->pixelFormat == TYPixelFormatMono8 || img->pixelFormat == TYPixelFormatMono16) {
           g_Context->DoIRUndistortion(vframe);
           g_Context->IREnhancement(vframe);
           frame.clone(vframe);
         } else {
           g_Context->FrameDecoder(vframe, tframe);
-          g_Context->DoIRUndistortion(vframe);
+          g_Context->DoIRUndistortion(tframe);
           g_Context->IREnhancement(tframe);
-          g_Context->parseIrStream(&tframe, &frame);
+          frame.clone(tframe);
         }
         break;
+      }
+      case TY_COMPONENT_IR_CAM_RIGHT:
+      {
+        g_Context->adj_right_ir_calib = g_Context->adjustCalibByBinningCrop(g_Context->right_ir_calib, TY_COMPONENT_IR_CAM_RIGHT, *img);
+        g_Context->adj_right_ir_rectified_intr = g_Context->adjustIntrinsicByBinningCrop(g_Context->right_ir_rectified_intr, TY_COMPONENT_IR_CAM_RIGHT, *img);
+        if(img->pixelFormat == TYPixelFormatMono8 || img->pixelFormat == TYPixelFormatMono16) {
+          g_Context->DoIRUndistortion(vframe);
+          g_Context->IREnhancement(vframe);
+          frame.clone(vframe);
+        } else {
+          g_Context->FrameDecoder(vframe, tframe);
+          g_Context->DoIRUndistortion(tframe);
+          g_Context->IREnhancement(tframe);
+          frame.clone(tframe);
+        }
+        break;
+      }
       default:
         break;
     }
     return;
-  }
-
-  bool VideoStream::isValid() const
-  {
-    return m_stream != NULL;
-  }
-
-  VideoFrameData& VideoStream::getFrame()
-  {
-    return frame;
   }
 
   SensorType SensorInfo::getSensorType() const 
@@ -1630,16 +1730,16 @@ public:
     return m_type;
   }
   
-  const Array<VideoMode>& SensorInfo::getSupportedVideoModes() const 
+  const std::vector<VideoMode>& SensorInfo::getSupportedVideoModes() const 
   {
     return m_videoModes;
   }
 
-  SensorInfo::SensorInfo() : /*m_pInfo(NULL), */m_type(SENSOR_NONE), m_videoModes(NULL, 0) 
+  SensorInfo::SensorInfo() : /*m_pInfo(NULL), */m_type(SENSOR_NONE), m_videoModes(0) 
   {
   }
 
-  SensorInfo::SensorInfo(const SensorType type) : m_videoModes(NULL, 0)
+  SensorInfo::SensorInfo(const SensorType type) : m_videoModes(0)
   {
     _setInternal(type);
   }
@@ -1649,15 +1749,15 @@ public:
     m_type = type;
     if(m_type == SENSOR_NONE)
     {
-      m_videoModes._setData(NULL, 0);
+      m_videoModes.clear();
     }
     else
     {
       const std::vector<VideoMode>& video_mode = g_Context->getVideoModeList(type);
       if(video_mode.size()) {
-        m_videoModes._setData(&video_mode[0], video_mode.size());
+        m_videoModes = video_mode;
       } else {
-        m_videoModes._setData(NULL, 0);
+        m_videoModes.clear();
       }
     }
   }
@@ -1782,264 +1882,9 @@ public:
     componentID = compID;
   }
 
-  TY_STATUS Device::open(const char* uri, const bool auto_reconnect)
-  {
-    TY_STATUS rc;
-    if(!m_isOwner)
-    {
-      if(isValid()){
-        return TY_STATUS_OK;
-      }else{
-        return TY_STATUS_ERROR;
-      }
-    }
-
-    g_Context->b_auto_reconnect = auto_reconnect;
-
-    bool isIP = IPv4_verify(uri);
-    if(isIP)
-      rc = g_Context->openWithIP(uri);
-    else
-      rc = g_Context->openWithSN(uri);
-    if(rc != TY_STATUS_OK)
-      return rc;
-
-    DeviceGetInfo();
-
-    return TY_STATUS_OK;
-  }
-
-  void Device::close()
-  {
-    if(!m_isOwner)
-    {
-      g_Context->close();
-    }
-  }
-
-  boost::shared_ptr<PercipioDepthCam> Device::DevicePtr()
+  boost::shared_ptr<PercipioDepthCam> Percipio::getContext()
   {
     return g_Context;
-  }
-
-  bool Device::isValid() const 
-  { 
-    return g_Context->isValid(); 
-  }
-
-  void Device::setColorUndistortion(bool enabled)
-  {
-    g_Context->DeviceSetColorUndistortionEnable(enabled);
-  }
-
-  void Device::setIRUndistortion(bool enabled)
-  {
-    g_Context->DeviceSetIRUndistortionEnable(enabled);
-  }
-
-  bool Device::setDepthSpecFilterEn(bool enabled)
-  {
-    return g_Context->DepthStreamSetSpeckFilterEn(enabled);
-  }
-
-  bool Device::getDepthSpecFilterEn()
-  {
-    return g_Context->DepthStreamGetSpeckFilterEn();
-  }
-
-  bool Device::setDepthSpecFilterSpecSize(int spec_size)
-  {
-    return g_Context->DepthStreamSetSpeckFilterSpecSize(spec_size);
-  }
-
-  int Device::getDepthSpecFilterSpecSize()
-  {
-    return g_Context->DepthStreamGetSpeckFilterSpecSize();
-  }
-
-  bool Device::setDepthSpeckFilterDiff(int spec_diff)
-  {
-    return g_Context->DepthStreamSetSpeckFilterDiff(spec_diff);
-  }
-
-  int Device::getDepthSpeckFilterDiff()
-  {
-    return g_Context->DepthStreamGetSpeckFilterDiff();
-  }
-
-  bool Device::setDepthSpeckFilterPhySize(float phy_size)
-  {
-    return g_Context->DepthStreamSetSpeckFilterPhySize(phy_size);
-  }
-
-  float Device::getDepthSpeckFilterPhySize()
-  {
-    return g_Context->DepthStreamGetSpeckFilterPhySize();
-  }
-
-  bool Device::setDepthTimeDomainFilterEn(bool enabled)
-  {
-    return g_Context->DepthStreamSetTimeDomainFilterEn(enabled);
-  }
-
-  bool Device::getDepthTimeDomainFilterEn()
-  {
-    return g_Context->DepthStreamGetTimeDomainFilterEn();
-  }
-
-  bool Device::setDepthTimeDomainFilterNum(int frames)
-  {
-    return g_Context->DepthStreamSetTimeDomainFilterFCnt(frames);
-  }
-
-  void Device::setIREnhancement(IREnhanceModel model, int coeff)
-  {
-    g_Context->IRStreamEnhancementConfig(model, coeff);
-  }
-
-  int  Device::getDepthTimeDomainFilterNum()
-  {
-    return g_Context->DepthStreamGetTimeDomainFilterFCnt();
-  }
-
-  bool Device::isImageRegistrationModeSupported(ImageRegistrationMode mode) const
-  {
-    return (g_Context->DeviceIsImageRegistrationModeSupported() == true);
-  }
-
-  TY_STATUS Device::setImageRegistrationMode(ImageRegistrationMode mode)
-  {
-    return g_Context->DeviceSetImageRegistrationMode(mode);
-  }
-
-  ImageRegistrationMode Device::getImageRegistrationMode() const
-  {
-    return g_Context->DeviceGetImageRegistrationMode();
-  }
-
-  void Device::ir_stream_topic_enable(bool enabled)
-  {
-    g_Context->EnableIRTopic(enabled);
-  }
-
-  void Device::color_stream_topic_enable(bool enabled)
-  {
-    g_Context->EnableColorTopic(enabled);
-  }
-  
-  void Device::depth_stream_topic_enable(bool enabled)
-  {
-    g_Context->EnableDepthTopic(enabled);
-  }
-
-  void Device::pointcloud_stream_topic_enable(bool enabled)
-  {
-    g_Context->EnableP3DTopic(enabled);
-  }
-
-  TY_STATUS Device::PropertyGet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size)
-  {
-    return g_Context->DeviceGetProperty(comp, feat, ptr, size);
-  }
-
-  TY_STATUS Device::PropertySet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size)
-  {
-    return g_Context->DeviceSetProperty(comp, feat, ptr, size);
-  }
-
-  bool Device::hasSensor(SensorType sensorType)
-  {
-    bool has = false;
-    switch (sensorType)
-    {
-    case SENSOR_IR_LEFT:
-    {
-      if(g_Context->get_components() & TY_COMPONENT_IR_CAM_LEFT)
-        has = true;
-      break;
-    }
-    case SENSOR_IR_RIGHT:
-    {
-      if(g_Context->get_components() & TY_COMPONENT_IR_CAM_RIGHT)
-        has = true;
-      break;
-    }
-	  case SENSOR_COLOR:
-    {
-      if(g_Context->get_components() & TY_COMPONENT_RGB_CAM)
-        has = true;
-      break;
-    }
-	  case SENSOR_DEPTH:
-    case SENSOR_POINT3D:
-    {
-      if(g_Context->get_components() & TY_COMPONENT_DEPTH_CAM)
-        has = true;
-      break;
-    }
-    default:
-      break;
-    }
-    return has;
-  }
-
-  bool Device::ResolutionSetting(SensorType sensorType, int width, int height, const std::string& fmt)
-  {
-    switch (sensorType)
-    {
-      case SENSOR_COLOR:
-        return g_Context->set_image_mode(SENSOR_COLOR, width, height, fmt);
-	    case SENSOR_DEPTH:
-        return g_Context->set_image_mode(SENSOR_DEPTH, width, height, fmt);
-      default:
-        return false;
-    }
-  }
-
-  TY_STATUS Device::_setHandle(TY_DEV_HANDLE deviceHandle)
-  {
-      return DeviceGetInfo();
-  }
-
-  TY_STATUS Device::DeviceGetInfo()
-  {
-    TY_STATUS rc;
-    TY_DEVICE_BASE_INFO  info;
-    rc = g_Context->get_device_info(info);
-    if(rc != TY_STATUS_OK)
-      return rc;
-
-    if (TYIsNetworkInterface(info.iface.type)) {
-      m_deviceInfo = DeviceInfo(info.id, info.vendorName, info.modelName, info.netInfo.ip);
-    } else {
-      m_deviceInfo = DeviceInfo(info.id, info.vendorName, info.modelName, PERCIPIO_USB_PID, PERCIPIO_USB_VID);
-    }
-#if 0    
-    if(info.iface.type == TY_INTERFACE_USB) {
-      m_deviceInfo.setUsbVendorId(PERCIPIO_USB_VID);
-      m_deviceInfo.setUsbProductId(PERCIPIO_USB_PID);
-    } else {
-      m_deviceInfo.setUsbVendorId(0);
-      m_deviceInfo.setUsbProductId(0);
-    }
-#endif
-    return TY_STATUS_OK;
-  }
-
-  bool Device::IPv4_verify(const char *ip) 
-  {
-    int a,b,c,d;
-    char t;
-
-	  if (4 == sscanf(ip,"%d.%d.%d.%d%c",&a,&b,&c,&d,&t)) {
-      if (0<=a && a<=255 && 
-          0<=b && b<=255 && 
-          0<=c && c<=255 && 
-          0<=d && d<=255) {
-        return true;
-      }
-    }
-    return false;
   }
 
   ////
@@ -2065,19 +1910,15 @@ public:
 
   TY_STATUS Percipio::initialize()
   {
-    if(g_Context) g_Context.reset();
-
-    g_Context = boost::make_shared<PercipioDepthCam>();
+    if(!g_Context) {
+      g_Context = boost::make_shared<PercipioDepthCam>();
+    }
     return g_Context->initialize();
   } 
 
-  void Percipio::enumerateDevices(Array<DeviceInfo>* deviceInfoList)
+  void Percipio::enumerateDevices(std::vector<EnumeratedDevice>& deviceInfoList)
   {
-    DeviceInfo* m_pDeviceInfos;
-    int m_deviceInfoCount;
-    g_Context->GetDeviceList(&m_pDeviceInfos, &m_deviceInfoCount);
-    deviceInfoList->_setData((DeviceInfo*)m_pDeviceInfos, m_deviceInfoCount, true);
-    delete []m_pDeviceInfos;
+    g_Context->GetDeviceList(deviceInfoList);
   } 
 
   const char* Percipio::getExtendedError(TY_STATUS status) {
@@ -2115,6 +1956,7 @@ public:
     } else {
       PercipioTcpLogServer::getInstance().stop();
     }
+    
     return 0;
   }
 
@@ -2123,7 +1965,7 @@ public:
     std::vector<TY_DEVICE_BASE_INFO> selected;
     TY_STATUS rc = selectDevice(TY_INTERFACE_ETHERNET | TY_INTERFACE_IEEE80211, "", "", 100, selected);
     if(rc) {
-      ROS_ERROR("not found any device");
+      ROS_ERROR("Failed to enumerate devices, error: %d", rc);
       return false;
     }
 
@@ -2140,7 +1982,7 @@ public:
     TY_INTERFACE_HANDLE hIface;
     rc = TYOpenInterface(pSelected->iface.id, &hIface);
     if(rc) {
-      ROS_ERROR("Failed to open interface %d", rc);
+      ROS_ERROR("Failed to open interface, error: %d", rc);
       return false;
     }
 
@@ -2188,11 +2030,11 @@ public:
         TYCloseInterface(hIface);
         return true;
       } else {
-        ROS_ERROR("Failed to open device %s(%d)", selected[0].netInfo.ip, rc);
+        ROS_ERROR("Failed to open device %s, error: %d", selected[0].netInfo.ip, rc);
         goto ForceFailed;
       }
     } else {
-      ROS_ERROR("Force ip failed on interface %s", pSelected->iface.id);
+      ROS_ERROR("Failed to force IP on interface %s", pSelected->iface.id);
       goto ForceFailed;
     }
 ForceFailed:

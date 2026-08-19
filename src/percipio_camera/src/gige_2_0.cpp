@@ -368,7 +368,7 @@ TY_STATUS GigE_2_0::AcquisitionInit()
 
   TY_STATUS status = TYSetEnum(hDevice, TY_COMPONENT_DEVICE, TY_ENUM_TIME_SYNC_TYPE, TY_TIME_SYNC_TYPE_HOST);
   if(status) {
-    ROS_WARN("Failed to set time sync tpye to host, error: %d", status);
+    ROS_WARN("Failed to set time sync type to host, error: %d", status);
   }
 
   bool hasTrigger = false;
@@ -398,12 +398,12 @@ TY_STATUS GigE_2_0::SetImageMode(const SensorType sensorType, const int width, c
     for(size_t i = 0; i < videos[sensorType].size(); i++) {
       int m_width = videos[sensorType][i].getResolutionX();
       int m_height = videos[sensorType][i].getResolutionY();
-      int m_pixFmt = videos[sensorType][i].getPixelFormat();
+      TYPixFmt m_pixFmt = static_cast<TYPixFmt>(videos[sensorType][i].getPixelFormat());
       if((width == m_width) && (height == m_height) && MatchPixelFormat(fmt, m_pixFmt)) {
         ret = TYSetEnum(hDevice, component, TY_ENUM_IMAGE_MODE, TYImageMode2(StdTYPixFmtToOldPixelFormat(m_pixFmt), width, height));
         if(ret == TY_STATUS_OK) {
           current_video_mode[sensorType] = videos[sensorType][i];
-          ROS_INFO("Set %s image mode : %d x %d, fmt: 0x%08x", SensorDesc[sensorType].c_str(), width, height, StdTYPixFmtToOldPixelFormat(m_pixFmt));
+          ROS_INFO("Set %s image mode: %d x %d, fmt: 0x%08x", SensorDesc[sensorType].c_str(), width, height, StdTYPixFmtToOldPixelFormat(m_pixFmt));
           return TY_STATUS_OK;
         }
       }
@@ -418,22 +418,22 @@ TY_STATUS GigE_2_0::SetImageMode(const SensorType sensorType, const int width, c
         ret = TYSetEnum(hDevice, component, TY_ENUM_IMAGE_MODE, TYImageMode2(StdTYPixFmtToOldPixelFormat(m_pixFmt), width, height));
         if(ret == TY_STATUS_OK) {
           current_video_mode[sensorType] = videos[sensorType][i];
-          ROS_INFO("Set %s image mode : %d x %d, fmt: 0x%08x", SensorDesc[sensorType].c_str(), width, height, StdTYPixFmtToOldPixelFormat(m_pixFmt));
+          ROS_INFO("Set %s image mode: %d x %d, fmt: 0x%08x", SensorDesc[sensorType].c_str(), width, height, StdTYPixFmtToOldPixelFormat(m_pixFmt));
           return TY_STATUS_OK;
         }
       }
     }
   }
 
-  ROS_WARN("Incorrect image mode : 0x%08x target size: %d x %d - format(%s), using default value.", component, width, height, fmt.c_str());
+  ROS_WARN("Invalid image mode: 0x%08x, target resolution: %d x %d, format: %s, using default", component, width, height, fmt.c_str());
 
   uint32_t image_mode;
   ret = TYGetEnum(hDevice, component, TY_ENUM_IMAGE_MODE, &image_mode);
   if(ret == TY_STATUS_OK) {
     current_video_mode[sensorType] = VideoMode(OldPixelFormatToStdTYPixFmt(TYPixelFormat(image_mode)), TYImageWidth(image_mode), TYImageHeight(image_mode));
-    ROS_INFO("Set %s image mode : %d x %d, fmt: 0x%08x", SensorDesc[sensorType].c_str(), TYImageWidth(image_mode), TYImageHeight(image_mode), OldPixelFormatToStdTYPixFmt(TYPixelFormat(image_mode)));
+    ROS_INFO("Set %s image mode: %d x %d, fmt: 0x%08x", SensorDesc[sensorType].c_str(), TYImageWidth(image_mode), TYImageHeight(image_mode), OldPixelFormatToStdTYPixFmt(TYPixelFormat(image_mode)));
   } else {
-    ROS_WARN("Read default image mode : 0x%08x failed!", component);
+    ROS_WARN("Failed to read default image mode: 0x%08x", component);
   }
 
   return ret;
@@ -456,7 +456,7 @@ TY_STATUS GigE_2_0::PreSetting()
     bool b_gsvp_resend_support = false;
     TYHasFeature(hDevice, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, &b_gsvp_resend_support);
     if(b_gsvp_resend_support) {
-      ROS_INFO("Device Open resend.");
+      ROS_INFO("GVSP resend enabled");
       TYSetBool(hDevice, TY_COMPONENT_DEVICE, TY_BOOL_GVSP_RESEND, true);
     }
   }
@@ -520,10 +520,10 @@ TY_STATUS GigE_2_0::EnableColorStream(const bool en)
   
   if(en) {
     ret = TYEnableComponents(hDevice, TY_COMPONENT_RGB_CAM);
-    if(ret) ROS_WARN("Enable rgb component failed: %d", ret);
+    if(ret) ROS_WARN("Failed to enable RGB component, error: %d", ret);
   } else {
     ret = TYDisableComponents(hDevice, TY_COMPONENT_RGB_CAM);
-    if(ret) ROS_WARN("Disable rgb component failed: %d", ret);
+    if(ret) ROS_WARN("Failed to disable RGB component, error: %d", ret);
   }
   return ret;
 }
@@ -536,10 +536,10 @@ TY_STATUS GigE_2_0::EnableDepthStream(const bool en)
 
   if(en) {
     ret = TYEnableComponents(hDevice, TY_COMPONENT_DEPTH_CAM);
-    if(ret) ROS_WARN("Enable depth component failed: %d", ret);
+    if(ret) ROS_WARN("Failed to enable depth component, error: %d", ret);
   } else {
     ret = TYDisableComponents(hDevice, TY_COMPONENT_DEPTH_CAM);
-    if(ret) ROS_WARN("Disable depth component failed: %d", ret);
+    if(ret) ROS_WARN("Failed to disable depth component, error: %d", ret);
   }
   return ret;
 }
@@ -552,10 +552,10 @@ TY_STATUS GigE_2_0::EnableLeftIRStream(const bool en)
 
   if(en) {
     ret = TYEnableComponents(hDevice, TY_COMPONENT_IR_CAM_LEFT);
-    if(ret) ROS_WARN("Enable Left-IR component failed: %d", ret);
+    if(ret) ROS_WARN("Failed to enable Left-IR component, error: %d", ret);
   } else {
     ret = TYDisableComponents(hDevice, TY_COMPONENT_IR_CAM_LEFT);
-    if(ret) ROS_WARN("Disable Left-IR component failed: %d", ret);
+    if(ret) ROS_WARN("Failed to disable Left-IR component, error: %d", ret);
   }
   return ret;
 }
@@ -568,12 +568,45 @@ TY_STATUS GigE_2_0::EnableRightIRStream(const bool en)
 
   if(en) {
     ret = TYEnableComponents(hDevice, TY_COMPONENT_IR_CAM_RIGHT);
-    if(ret) ROS_WARN("Enable Right-IR component failed: %d", ret);
+    if(ret) ROS_WARN("Failed to enable Right-IR component, error: %d", ret);
   } else {
     ret = TYDisableComponents(hDevice, TY_COMPONENT_IR_CAM_RIGHT);
-    if(ret) ROS_WARN("Disable Right-IR component failed: %d", ret);
+    if(ret) ROS_WARN("Failed to disable Right-IR component, error: %d", ret);
   }
   return ret;
+}
+
+TY_STATUS GigE_2_0::stream_base_info_init()
+{
+  const static TY_COMPONENT_ID comps[] = {
+    TY_COMPONENT_IR_CAM_LEFT,
+    TY_COMPONENT_IR_CAM_RIGHT,
+    TY_COMPONENT_RGB_CAM,
+    TY_COMPONENT_DEPTH_CAM
+  };
+
+  for(auto& comp : comps) {
+      percipio_stream_info default_stream_info = {1, -1, -1};
+
+      TY_CAMERA_CALIB_INFO calib_data;
+      auto ret = TYGetStruct(hDevice, comp, TY_STRUCT_CAM_CALIB_DATA, &calib_data, sizeof(calib_data));
+      if(ret) continue;
+      
+      TY_IMAGE_MODE  image_mode = 0;
+      ret = TYGetEnum(hDevice, comp, TY_ENUM_IMAGE_MODE, &image_mode);
+      if(ret) continue;
+
+      int width = TYImageWidth(image_mode);
+      int height = TYImageHeight(image_mode);
+
+      default_stream_info.binning = 1.f * calib_data.intrinsicWidth / width;
+      default_stream_info.full_width = width;
+      default_stream_info.full_height = height;
+
+      m_stream_base_info[comp] = default_stream_info;
+  }
+
+  return TY_STATUS_OK;
 }
 
 void GigE_2_0::Reset()
@@ -603,7 +636,7 @@ bool GigE_2_0::load_default_parameter()
     
   uint32_t crc_data = *(uint32_t*)blocks;
   if(0 == crc_data || 0xffffffff == crc_data) {
-    ROS_INFO("The CRC check code is empty.");
+    ROS_INFO("CRC check code is empty, skipping default parameter loading");
     delete []blocks;
     return false;
   } 
@@ -620,21 +653,21 @@ bool GigE_2_0::load_default_parameter()
         uint32_t huffman_size = *(uint32_t*)(blocks + 8);
         uint8_t* huffman_ptr = (uint8_t*)(blocks + 12);
         if(huffman_size > (MAX_STORAGE_SIZE - 8)) {
-          ROS_WARN("Storage data length error.");
+          ROS_WARN("Storage data length exceeds maximum allowed size");
           delete []blocks;
           return false;
         }
                 
         crc = crc32_bitwise(huffman_ptr, huffman_size);
         if(crc_data != crc) {
-          ROS_WARN("Storage area data check failed (check code error).");
+          ROS_WARN("Storage data integrity check failed (CRC mismatch)");
           delete []blocks;
           return false;
         }
 
         std::string huffman_string(huffman_ptr, huffman_ptr + huffman_size);
         if(!TextHuffmanDecompression(huffman_string, js_string)) {
-          ROS_ERROR("Huffman decompression error.");
+          ROS_ERROR("Huffman decompression failed");
           delete []blocks;
           return false;
         }
@@ -642,7 +675,7 @@ bool GigE_2_0::load_default_parameter()
       }
       default:
       {
-        ROS_WARN("Unsupported encoding format.");
+        ROS_WARN("Unsupported storage encoding format");
         delete []blocks;
         return false;
       }
@@ -652,16 +685,16 @@ bool GigE_2_0::load_default_parameter()
   }
 
   if(!isValidJsonString(js_string.c_str())) {
-    ROS_WARN("Incorrect json data.");
+    ROS_WARN("Invalid JSON data in storage");
     delete []blocks;
     return false;
   }
 
   bool ret = gige_2_0_load_default_parameters(hDevice, js_string.c_str());
   if(ret)  
-    ROS_INFO("Loading default parameters successfully!");
+    ROS_INFO("Default parameters loaded successfully");
   else
-    ROS_WARN("Failed to load default parameters, some parameters cannot be loaded properly!");
+    ROS_WARN("Failed to load default parameters, some parameters may not be applied correctly");
     
   delete []blocks;
   return ret;
@@ -684,18 +717,18 @@ bool GigE_2_0::try_xml_parameter(const std::string& source, const std::string& f
   else if(source == "Laser")
     comp = TY_COMPONENT_LASER;
   else {
-    ROS_WARN("Incorrect source name: %s", source.c_str());
+    ROS_WARN("Invalid source name: %s", source.c_str());
     return false;
   }
 
   if(!(ids & comp)) {
-    ROS_WARN("Unsupported source name: %s", source.c_str());
+    ROS_WARN("Source not supported by device: %s", source.c_str());
     return false;
   }
 
   auto feature = m_gige_2_0_feature_map.find(feat);
   if (feature == m_gige_2_0_feature_map.end()) {
-    ROS_WARN("Unsupported feature name: %s", feat.c_str());
+    ROS_WARN("Unrecognized feature name: %s", feat.c_str());
     return false;
   }
 
@@ -726,7 +759,7 @@ bool GigE_2_0::try_xml_parameter(const std::string& source, const std::string& f
 
     case TY_FEATURE_BOOL:
     {
-      bool val = static_cast<bool>(atof(str_val.c_str()));
+      bool val = static_cast<bool>(atoi(str_val.c_str()));
       status = TYSetBool(hDevice, comp, feat_id, val);
       break;
     }
@@ -749,23 +782,23 @@ bool GigE_2_0::try_xml_parameter(const std::string& source, const std::string& f
           status = TYSetStruct(hDevice, comp, feat_id, &aec_roi, sizeof(aec_roi));
         } else {
           status = TY_STATUS_INVALID_FEATURE;
-          ROS_WARN("Unsupported feature type: %s(%d)", feat.c_str(), feat_id);
+          ROS_WARN("Unsupported feature type: %s (id=0x%08x)", feat.c_str(), feat_id);
         }
       } else {
         status = TY_STATUS_INVALID_FEATURE;
-        ROS_WARN("Unsupported feature type: %s(%d)", feat.c_str(), feat_id);
+        ROS_WARN("Unsupported feature type: %s (id=0x%08x)", feat.c_str(), feat_id);
       }
       break;
     }
     default:
     {
-      ROS_WARN("Unsupported feature type: %s(%d)", feat.c_str(), feat_id);
+      ROS_WARN("Unsupported feature type: %s (id=0x%08x)", feat.c_str(), feat_id);
       return false;
     }
   }
 
   if(status) {
-    ROS_WARN("Xml parameter(%s/%s(0x%08x)) init failed(%s(%d))!", source.c_str(), feat.c_str(), feat_id, 
+    ROS_WARN("XML parameter %s/%s (0x%08x) initialization failed: %s (0x%08x)", source.c_str(), feat.c_str(), feat_id, 
           TYErrorString(status), status);
     return false;
   }

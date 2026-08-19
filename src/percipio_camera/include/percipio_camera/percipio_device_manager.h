@@ -13,7 +13,15 @@ namespace percipio_wrapper
 {
 
 class PercipioDeviceListener;
+}
+
+namespace percipio
+{
 class PercipioDevice;
+}
+
+namespace percipio_wrapper
+{
 
 class PercipioDeviceManager
 {
@@ -29,8 +37,8 @@ public:
   boost::shared_ptr<std::vector<std::string> > getConnectedDeviceURIs() const;
   std::size_t getNumOfConnectedDevices() const;
 
-  boost::shared_ptr<PercipioDevice> getAnyDevice();
-  boost::shared_ptr<PercipioDevice> getDevice(const std::string& device_URI, const bool reconnection = false);
+  boost::shared_ptr<percipio::PercipioDevice> getAnyDevice();
+  boost::shared_ptr<percipio::PercipioDevice> getDevice(const std::string& device_URI, const bool reconnection = false);
   bool setNetworkConfiguration(const std::string& device_URI, const std::string& ip, const std::string& netmask, const std::string& gateway);
 
   std::string getSerial(const std::string& device_URI) const;

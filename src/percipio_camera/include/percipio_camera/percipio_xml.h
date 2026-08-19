@@ -125,7 +125,7 @@ static const int TIXML2_MAJOR_VERSION = 2;
 static const int TIXML2_MINOR_VERSION = 2;
 static const int TIXML2_PATCH_VERSION = 0;
 
-namespace tinyxml2
+namespace percipio_ros1_tinyxml2
 {
 class XMLDocument;
 class XMLElement;
@@ -2086,7 +2086,7 @@ private:
 };
 
 
-}	// tinyxml2
+}	// percipio_ros1_tinyxml2
 
 #if defined(_MSC_VER)
 #   pragma warning(pop)

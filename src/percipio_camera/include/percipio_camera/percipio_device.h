@@ -2,9 +2,7 @@
 #define PERCIPIO_DEVICE_H
 
 #include "percipio_camera/percipio_interface.h"
-
 #include "percipio_camera/percipio_video_mode.h"
-
 #include "percipio_camera/percipio_exception.h"
 
 #include <boost/shared_ptr.hpp>
@@ -17,52 +15,63 @@
 #include <string>
 #include <vector>
 
-namespace percipio
-{
-class Device;
-class DeviceInfo;
-class VideoStream;
-class SensorInfo;
-}
-
 namespace percipio_wrapper
 {
-
-typedef boost::function<void(sensor_msgs::ImagePtr image)> FrameCallbackFunction;
-
 class PercipioFrameListener;
+typedef boost::function<void(sensor_msgs::ImagePtr image)> FrameCallbackFunction;
+}
+
+namespace percipio
+{
 
 class PercipioDevice
 {
 public:
+  PercipioDevice();
   PercipioDevice(const std::string& device_URI, const bool auto_reconnect = false);
   virtual ~PercipioDevice();
+
+  TY_STATUS open(const char* uri, const bool auto_reconnect = false);
+
+  void close();
 
   const std::string getUri() const;
   const std::string getVendor() const;
   const std::string getName() const;
   uint16_t getUsbVendorId() const;
   uint16_t getUsbProductId() const;
-
   const std::string getStringID() const;
 
-  bool isValid() const;
+  const DeviceInfo& getDeviceInfo() const;
+
+  boost::shared_ptr<PercipioDepthCam> DevicePtr();
+
+  bool hasSensor(SensorType sensorType) const;
 
   bool hasIRSensor() const;
   bool hasColorSensor() const;
   bool hasDepthSensor() const;
   bool hasPoint3DSensor() const;
 
+  bool isValid() const;
+
+  bool ResolutionSetting(SensorType sensorType, int width, int height, const std::string& fmt);
+
   bool setColorResolution(int w, int h, const std::string& format);
   bool setDepthResolutuon(int w, int h, const std::string& format);
-  
-  void startIRStream();
-  void startColorStream();
-  void startDepthStream();
-  void startPoint3DStream();
+
+  void setStreamResendEnable(bool enabled);
+
+  TY_STATUS startIRStream();
+  TY_STATUS startColorStream();
+  TY_STATUS startDepthStream();
+  TY_STATUS startPoint3DStream();
+
+  // Reset stream started flags without touching the hardware.
+  // Used after the device is reopened (capture fully stopped).
+  void resetStreamState();
 
   void stopAllStreams();
-
   void stopIRStream();
   void stopColorStream();
   void stopDepthStream();
@@ -90,30 +99,35 @@ public:
 
   bool setDepthTimeDomainFilterEn(bool en);
   bool getDepthTimeDomainFilterEn();
-  
+
   bool setDepthTimeDomainFilterNum(int frames);
   int  getDepthTimeDomainFilterNum();
 
-  void setIREnhancement(percipio::IREnhanceModel model, int coeff);
+  void setIREnhancement(IREnhanceModel model, int coeff);
 
+  bool isImageRegistrationModeSupported(ImageRegistrationMode mode) const;
   bool isImageRegistrationModeSupported() const;
+  TY_STATUS setImageRegistrationMode(ImageRegistrationMode mode);
   void setImageRegistrationMode(bool enabled);
-  percipio::ImageRegistrationMode getImageRegistrationMode() const;
+  ImageRegistrationMode getImageRegistrationMode() const;
 
-  const std::vector<PercipioVideoMode>& getSupportedIRVideoModes() const;
-  const std::vector<PercipioVideoMode>& getSupportedColorVideoModes() const;
-  const std::vector<PercipioVideoMode>& getSupportedDepthVideoModes() const;
+  const std::vector<percipio_wrapper::PercipioVideoMode>& getSupportedIRVideoModes() const;
+  const std::vector<percipio_wrapper::PercipioVideoMode>& getSupportedColorVideoModes() const;
+  const std::vector<percipio_wrapper::PercipioVideoMode>& getSupportedDepthVideoModes() const;
 
-  void setIRFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
-  void setColorFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
-  void setDepthFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
-  void setPoint3DFrameCallback(boost::shared_ptr<FrameCallbackFunction>& callback);
+  void ir_stream_topic_enable(bool enabled);
+  void color_stream_topic_enable(bool enabled);
+  void depth_stream_topic_enable(bool enabled);
+  void pointcloud_stream_topic_enable(bool enabled);
 
-  void setDeviceInitCallback(boost::shared_ptr<percipio::DeviceInitCallbackFunction>& callback);
+  void setIRFrameCallback(boost::shared_ptr<percipio_wrapper::FrameCallbackFunction>& callback);
+  void setColorFrameCallback(boost::shared_ptr<percipio_wrapper::FrameCallbackFunction>& callback);
+  void setDepthFrameCallback(boost::shared_ptr<percipio_wrapper::FrameCallbackFunction>& callback);
+  void setPoint3DFrameCallback(boost::shared_ptr<percipio_wrapper::FrameCallbackFunction>& callback);
 
-  void setDeviceEventCallback(boost::shared_ptr<percipio::DeviceEventCallbackFunction>& callback);
-
-  void setUseDeviceTimer(bool enable);
+  void setDeviceInitCallback(boost::shared_ptr<DeviceInitCallbackFunction>& callback);
+  void setDeviceEventCallback(boost::shared_ptr<DeviceEventCallbackFunction>& callback);
+  void setStreamRestoreCallback(boost::shared_ptr<StreamRestoreCallbackFunction>& callback);
 
   void setDeviceWorkMode(bool enable_rate, float frame_rate, bool trigger_mode_en);
 
@@ -123,37 +137,39 @@ public:
 
   void reset();
 
-  //PERCIPIO
   float getDepthScale();
   bool getDepthCalibIntristic(void* data, const size_t size);
   bool getColorCalibIntristic(void* data, const size_t size);
   bool getColorCalibDistortion(void* data, const size_t size);
 
   int init_parameters_from_xml(const std::string& xml);
+
+  TY_STATUS PropertyGet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
+  TY_STATUS PropertySet(TY_COMPONENT_ID comp, TY_FEATURE_ID feat, void* ptr, size_t size);
+
 protected:
   void shutdown();
 
-  boost::shared_ptr<percipio::VideoStream> getIRVideoStream() const;
-  boost::shared_ptr<percipio::VideoStream> getColorVideoStream() const;
-  boost::shared_ptr<percipio::VideoStream> getDepthVideoStream() const;
-  boost::shared_ptr<percipio::VideoStream> getPoint3DVideoStream() const;
+  boost::shared_ptr<VideoStream> getIRVideoStream() const;
+  boost::shared_ptr<VideoStream> getColorVideoStream() const;
+  boost::shared_ptr<VideoStream> getDepthVideoStream() const;
+  boost::shared_ptr<VideoStream> getPoint3DVideoStream() const;
 
-  boost::shared_ptr<percipio::Device> percipio_device_;
-  boost::shared_ptr<percipio::DeviceInfo> device_info_;
+  DeviceInfo m_deviceInfo;
 
-  boost::shared_ptr<PercipioFrameListener> ir_frame_listener;
-  boost::shared_ptr<PercipioFrameListener> color_frame_listener;
-  boost::shared_ptr<PercipioFrameListener> depth_frame_listener;
-  boost::shared_ptr<PercipioFrameListener> point3d_frame_listener;
+  boost::shared_ptr<percipio_wrapper::PercipioFrameListener> ir_frame_listener;
+  boost::shared_ptr<percipio_wrapper::PercipioFrameListener> color_frame_listener;
+  boost::shared_ptr<percipio_wrapper::PercipioFrameListener> depth_frame_listener;
+  boost::shared_ptr<percipio_wrapper::PercipioFrameListener> point3d_frame_listener;
 
-  mutable boost::shared_ptr<percipio::VideoStream> ir_video_stream_;
-  mutable boost::shared_ptr<percipio::VideoStream> color_video_stream_;
-  mutable boost::shared_ptr<percipio::VideoStream> depth_video_stream_;
-  mutable boost::shared_ptr<percipio::VideoStream> point3d_video_stream_;
+  mutable boost::shared_ptr<VideoStream> ir_video_stream_;
+  mutable boost::shared_ptr<VideoStream> color_video_stream_;
+  mutable boost::shared_ptr<VideoStream> depth_video_stream_;
+  mutable boost::shared_ptr<VideoStream> point3d_video_stream_;
 
-  mutable std::vector<PercipioVideoMode> ir_video_modes_;
-  mutable std::vector<PercipioVideoMode> color_video_modes_;
-  mutable std::vector<PercipioVideoMode> depth_video_modes_;
+  mutable std::vector<percipio_wrapper::PercipioVideoMode> ir_video_modes_;
+  mutable std::vector<percipio_wrapper::PercipioVideoMode> color_video_modes_;
+  mutable std::vector<percipio_wrapper::PercipioVideoMode> depth_video_modes_;
 
   bool ir_video_started_;
   bool color_video_started_;
@@ -162,12 +178,14 @@ protected:
 
   bool image_registration_activated_;
 
-  bool percipio_device_time_;
-
+private:
+  bool m_isOwner;
+  TY_STATUS DeviceGetInfo();
+  bool IPv4_verify(const char *ip);
 };
 
 std::ostream& operator << (std::ostream& stream, const PercipioDevice& device);
 
 }
 
-#endif /* OPENNI_DEVICE_H */
+#endif /* PERCIPIO_DEVICE_H */

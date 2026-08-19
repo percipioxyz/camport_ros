@@ -45,7 +45,7 @@ static const unsigned char TIXML_UTF_LEAD_0 = 0xefU;
 static const unsigned char TIXML_UTF_LEAD_1 = 0xbbU;
 static const unsigned char TIXML_UTF_LEAD_2 = 0xbfU;
 
-namespace tinyxml2
+namespace percipio_ros1_tinyxml2
 {
 
 struct Entity {
@@ -2260,5 +2260,5 @@ bool XMLPrinter::Visit( const XMLUnknown& unknown )
     return true;
 }
 
-}   // namespace tinyxml2
+}   // namespace percipio_ros1_tinyxml2
 

@@ -57,7 +57,7 @@ public:
                                 percipio::VideoFrameData* dst)
     {
       if(src->getPixelFormat() != TYPixelFormatCoord3D_C16) {
-        ROS_ERROR("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
+        ROS_ERROR("Invalid pixel format at %s:%d", __FILE__, __LINE__);
         return-1;
       }
 
@@ -82,7 +82,7 @@ public:
 
       TY_STATUS err = TYUndistortImage(depth_calib, &src_image, nullptr, &dst_image);
       if(err) {
-        ROS_WARN("TYUndistortImage fail!");
+        ROS_WARN("TYUndistortImage failed for depth image");
       }
       return err;
     }
@@ -91,9 +91,10 @@ public:
                                 percipio::VideoFrameData* src, 
                                 percipio::VideoFrameData* dst)
     {
-      if(src->getPixelFormat() != TYPixelFormatRGB8 &&
+      if(src->getPixelFormat() != TYPixelFormatBGR8 &&
+         src->getPixelFormat() != TYPixelFormatRGB8 &&
          src->getPixelFormat() != TYPixelFormatMono8) {
-        ROS_ERROR("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
+        ROS_ERROR("Invalid pixel format at %s:%d", __FILE__, __LINE__);
         return-1;
       }
 
@@ -118,7 +119,7 @@ public:
 
       TY_STATUS err = TYUndistortImage(color_calib, &src_image, nullptr, &dst_image);
       if(err) {
-        ROS_WARN("TYUndistortImage fail!");
+        ROS_WARN("TYUndistortImage failed for color image");
       }
       return err;
     }
@@ -132,7 +133,7 @@ public:
                                               float f_scale_unit)
     {
       if(src->getPixelFormat() != TYPixelFormatCoord3D_C16) {
-        ROS_ERROR("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
+        ROS_ERROR("Invalid pixel format at %s:%d", __FILE__, __LINE__);
         return-1;
       }
 
@@ -166,7 +167,7 @@ public:
                                               float f_scale_unit)
     {
       if(src->getPixelFormat() != TYPixelFormatCoord3D_ABC16) {
-        ROS_ERROR("%s <%d> Invalid pixel format!\n", __FILE__, __LINE__);
+        ROS_ERROR("Invalid pixel format at %s:%d", __FILE__, __LINE__);
         return-1;
       }
 
@@ -227,23 +228,28 @@ public:
       dst.setHeight(src.getHeight());
       dst.setFrameIndex(src.getFrameIndex());
       dst.setComponentID(src.getComponentID());
-      dst.setPixelFormat(TYPixelFormatRGB8);
       dst.Resize(totalSize);
 
       TYDecodeResult retInfo;
-      return TYDecodeImage(&src_img,  TY_OUTPUT_FORMAT_AUTO, (void*)dst.getData(), totalSize, &retInfo);
+      TYDecodeError err = TYDecodeImage(&src_img,  TY_OUTPUT_FORMAT_AUTO, (void*)dst.getData(), totalSize, &retInfo);
+      if(err == TY_DECODE_SUCCESS) {
+        dst.setPixelFormat(retInfo.format);
+      } else {
+        ROS_WARN("cvtColor failed with status: %d", err);
+      }
+      return err;
     }
 
     static int IRUndistortion(percipio::VideoFrameData& IR, const TY_CAMERA_CALIB_INFO *calib_info, const TY_CAMERA_ROTATION *cameraRotation, const TY_CAMERA_INTRINSIC *cameraNewIntrinsic, const TYLensOpticalType type = TY_LENS_PINHOLE)
     {
         if (!calib_info ) {
-            ROS_WARN("IRUndistortion Invalid parameters: calib_info is null");
+            ROS_WARN("IR undistortion failed: calib_info is null");
             return TY_STATUS_INVALID_PARAMETER;
         }
         
         //Check if IR data is valid
         if (!IR.getData() || IR.getWidth() <= 0 || IR.getHeight() <= 0 || IR.getDataSize() <= 0) {
-            ROS_WARN("IRUndistortion Invalid IR image data");
+            ROS_WARN("IR undistortion failed: invalid IR image data");
             return TY_STATUS_INVALID_PARAMETER;
         }
         
@@ -289,7 +295,7 @@ public:
     {
         uint32_t pixelFormat = grayIR.getPixelFormat();
         if (!(pixelFormat == TYPixelFormatMono8 || pixelFormat == TYPixelFormatMono16)) {
-            ROS_WARN("linearStretch support Mono8 or Mono16 gray, not support others type, please check grayIR pixel format");
+            ROS_WARN("Linear stretch requires Mono8 or Mono16 pixel format, unsupported format detected");
             return -1;
         }
 
@@ -303,13 +309,13 @@ public:
         int roi_height = static_cast<int>(rows - rows * ratiocut * 2);
 
         if (roi_width <= 0 || roi_height <= 0 || roi_x < 0 || roi_y < 0) {
-            ROS_WARN("ROI is invalid");
+            ROS_WARN("ROI is invalid for linear stretch");
             return -1;
         }
 
         void* data = grayIR.getData();
         if (!data) {
-            ROS_WARN("grayIR data is null");
+            ROS_WARN("GrayIR data pointer is null");
             return -1;
         }
 
@@ -385,13 +391,13 @@ public:
     static int GrayIR_linearStretch_multi(percipio::VideoFrameData& grayIR, double multi_expandratio = 8)
     {
         if (multi_expandratio <= 0) {
-            ROS_WARN("linearStretch_multi multi_expandratio must bigger than 0");
+            ROS_WARN("linearStretch_multi: expand_ratio must be greater than 0");
             return -1;
         }
         
         uint32_t pixelFormat = grayIR.getPixelFormat();
         if (!(pixelFormat == TYPixelFormatMono8 || pixelFormat == TYPixelFormatMono16)) {
-            ROS_WARN("linearStretch_multi support Mono8 or Mono16 gray, not support others type, please check grayIR pixel format");
+            ROS_WARN("linearStretch_multi requires Mono8 or Mono16 pixel format, unsupported format detected");
             return -1;
         }
         
@@ -401,7 +407,7 @@ public:
         
         void* data = grayIR.getData();
         if (!data) {
-            ROS_WARN("grayIR data is null");
+            ROS_WARN("GrayIR data pointer is null");
             return -1;
         }
         
@@ -461,14 +467,14 @@ public:
     static int GrayIR_linearStretch_std(percipio::VideoFrameData& grayIR, double std_expandratio = 6)
     {
         if (std_expandratio <= 0) {
-            ROS_WARN("GrayIR_linearStretch_std multi_expandratio must be bigger than 0");
+            ROS_WARN("GrayIR_linearStretch_std: expand_ratio must be greater than 0");
             return -1;
         }
 
         //Check pixel format
         uint32_t pixelFormat = grayIR.getPixelFormat();
         if (!(pixelFormat == TYPixelFormatMono8 || pixelFormat == TYPixelFormatMono16)) {
-            ROS_WARN("GrayIR_linearStretch_std supports Mono8 or Mono16 gray, not other types");
+            ROS_WARN("GrayIR_linearStretch_std requires Mono8 or Mono16 pixel format, unsupported format detected");
             return -1;
         }
 
@@ -478,7 +484,7 @@ public:
         
         void* data = grayIR.getData();
         if (!data) {
-            ROS_WARN("grayIR data is null");
+            ROS_WARN("GrayIR data pointer is null");
             return -1;
         }
 
@@ -509,7 +515,7 @@ public:
         //Calculate normalization factor
         double use_norm = stddev * std_expandratio + 1.0;
         if (use_norm <= 0) {
-            ROS_WARN("Calculated normalization factor is non-positive");
+            ROS_WARN("Calculated normalization factor is non-positive, cannot perform stretch");
             return -1;
         }
         
@@ -574,14 +580,14 @@ public:
     static int GrayIR_nonlinearStretch_log2(percipio::VideoFrameData& grayIR, double log_expandratio = 20)
     {
         if (log_expandratio <= 0) {
-            ROS_WARN("GrayIR_nonlinearStretch_log multi_expandratio must be bigger than 0");
+            ROS_WARN("GrayIR_nonlinearStretch_log2: expand_ratio must be greater than 0");
             return -1;
         }
         
         //Check pixel format
         uint32_t pixelFormat = grayIR.getPixelFormat();
         if (!(pixelFormat == TYPixelFormatMono8 || pixelFormat == TYPixelFormatMono16)) {
-            ROS_WARN("GrayIR_linearStretch_std supports Mono8 or Mono16 gray, not other types");
+            ROS_WARN("GrayIR_nonlinearStretch_log2 requires Mono8 or Mono16 pixel format, unsupported format detected");
             return -1;
         }
         
@@ -591,7 +597,7 @@ public:
         
         void* data = grayIR.getData();
         if (!data) {
-            ROS_WARN("grayIR data is null");
+            ROS_WARN("GrayIR data pointer is null");
             return -1;
         }
         
@@ -649,7 +655,7 @@ public:
         //Check pixel format
         uint32_t pixelFormat = grayIR.getPixelFormat();
         if (!(pixelFormat == TYPixelFormatMono8 || pixelFormat == TYPixelFormatMono16)) {
-            ROS_WARN("GrayIR_linearStretch_std supports Mono8 or Mono16 gray, not other types");
+            ROS_WARN("GrayIR_nonlinearStretch_hist requires Mono8 or Mono16 pixel format, unsupported format detected");
             return -1;
         }
         
@@ -659,7 +665,7 @@ public:
         
         void* data = grayIR.getData();
         if (!data) {
-            ROS_WARN("grayIR data is null");
+            ROS_WARN("GrayIR data pointer is null");
             return -1;
         }
         
